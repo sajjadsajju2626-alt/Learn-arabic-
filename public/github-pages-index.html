@@ -1003,34 +1003,76 @@
       } catch (e) { setSpeakerPulse(btn, false); }
     }
 
+    const BASE_ARABIC_LETTERS = [
+      "ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص",
+      "ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"
+    ];
+
+    function getArabicLetterAudioUrl(text) {
+      const idx = BASE_ARABIC_LETTERS.indexOf(text);
+      if (idx === -1) return null;
+      return `https://raw.githubusercontent.com/mustafa0x/arabic-alphabet-audio/master/mp3/${String(idx + 1).padStart(2, "0")}.mp3`;
+    }
+
+    function buildArabicAudioSources(text) {
+      const cleaned = text.trim();
+      const sources = [];
+      const letterMp3 = getArabicLetterAudioUrl(cleaned);
+      if (letterMp3) sources.push({ url: letterMp3, crossOrigin: true });
+      sources.push({
+        url: `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(cleaned)}`,
+        crossOrigin: true
+      });
+      sources.push({
+        url: `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(cleaned)}&le=ar`,
+        crossOrigin: false
+      });
+      return sources;
+    }
+
     function speakArabic(text, rate = 1.0, btn = null) {
       stopArabicAudio();
-      if (!userState.soundEnabled || !text || !text.trim()) return;
+      const cleaned = typeof text === "string" ? text.trim() : "";
+      if (!userState.soundEnabled || !cleaned) return;
       const token = ++activePlayToken;
       const targetRate = rate < 0.75 ? 0.65 : 1.0;
+      const sources = buildArabicAudioSources(cleaned);
       setSpeakerPulse(btn, true);
-      try {
-        const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ar&q=${encodeURIComponent(text.trim())}`;
-        const audio = new Audio(url);
-        audio.preload = "auto";
-        audio.playbackRate = targetRate;
-        activeCloudAudio = audio;
-        let fellBack = false;
-        const fallback = () => {
-          if (fellBack || token !== activePlayToken) return;
-          fellBack = true;
+
+      const trySource = (index) => {
+        if (token !== activePlayToken) return;
+        if (index >= sources.length || typeof Audio === "undefined") {
+          speakOfflineFallback(cleaned, targetRate, token, btn);
+          return;
+        }
+        const source = sources[index];
+        let advanced = false;
+        let audio = null;
+        const tryNext = () => {
+          if (advanced || token !== activePlayToken) return;
+          advanced = true;
           if (activeCloudAudio === audio) activeCloudAudio = null;
-          speakOfflineFallback(text.trim(), targetRate, token, btn);
+          trySource(index + 1);
         };
-        audio.onloadedmetadata = () => { if (token === activePlayToken) audio.playbackRate = targetRate; };
-        audio.onplaying = () => { if (token === activePlayToken) audio.playbackRate = targetRate; };
-        audio.onended = () => { if (token === activePlayToken) { activeCloudAudio = null; setSpeakerPulse(btn, false); } };
-        audio.onerror = fallback;
-        const p = audio.play();
-        if (p && typeof p.catch === "function") p.catch(fallback);
-      } catch (e) {
-        speakOfflineFallback(text.trim(), targetRate, token, btn);
-      }
+        try {
+          audio = new Audio();
+          if (source.crossOrigin) audio.crossOrigin = "anonymous";
+          audio.preload = "auto";
+          audio.src = source.url;
+          audio.playbackRate = targetRate;
+          activeCloudAudio = audio;
+          audio.onloadedmetadata = () => { if (token === activePlayToken) audio.playbackRate = targetRate; };
+          audio.onplaying = () => { if (token === activePlayToken) { audio.playbackRate = targetRate; setSpeakerPulse(btn, true); } };
+          audio.onended = () => { if (token === activePlayToken) { activeCloudAudio = null; setSpeakerPulse(btn, false); } };
+          audio.onerror = tryNext;
+          const p = audio.play();
+          if (p && typeof p.catch === "function") p.catch(tryNext);
+        } catch (e) {
+          tryNext();
+        }
+      };
+
+      trySource(0);
     }
     if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 

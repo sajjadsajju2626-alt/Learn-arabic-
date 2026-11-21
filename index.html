@@ -890,9 +890,90 @@
     let currentVowel = "base";
     let selectedAlpha = ARABIC_ALPHABET[0];
 
-    // ================= AUDIO & CLOUD ARABIC TTS =================
+    // ================= AUDIO & MULTI-SOURCE HUMAN ARABIC TTS =================
+    const BASE_ARABIC_LETTERS = [
+      "ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص",
+      "ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"
+    ];
+
     let audioCtx = null;
     let activeCloudAudio = null;
+    let activePlayToken = 0;
+    let activeSpeakerBtn = null;
+    let fallbackAudioTimer = null;
+
+    function getArabicLetterAudioUrl(text) {
+      const idx = BASE_ARABIC_LETTERS.indexOf(text);
+      if (idx === -1) return null;
+      const letterIndex = String(idx + 1).padStart(2, "0");
+      return `https://raw.githubusercontent.com/mustafa0x/arabic-alphabet-audio/master/mp3/${letterIndex}.mp3`;
+    }
+
+    function buildArabicAudioSources(text) {
+      const cleaned = text.trim();
+      const sources = [];
+      const letterMp3 = getArabicLetterAudioUrl(cleaned);
+      if (letterMp3) {
+        sources.push({ url: letterMp3, crossOrigin: true });
+      }
+      sources.push({
+        url: `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(cleaned)}`,
+        crossOrigin: true
+      });
+      sources.push({
+        url: `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(cleaned)}&le=ar`,
+        crossOrigin: false
+      });
+      return sources;
+    }
+
+    function setSpeakerButtonState(btn, state) {
+      if (activeSpeakerBtn && activeSpeakerBtn !== btn) {
+        activeSpeakerBtn.classList.remove("ring-4", "ring-sky-300", "animate-pulse");
+        activeSpeakerBtn.removeAttribute("data-audio-state");
+      }
+      if (!btn) {
+        activeSpeakerBtn = null;
+        return;
+      }
+      if (state === "loading") {
+        btn.classList.add("ring-4", "ring-sky-300");
+        btn.classList.remove("animate-pulse");
+        btn.setAttribute("data-audio-state", "loading");
+        activeSpeakerBtn = btn;
+      } else if (state === "playing") {
+        btn.classList.add("ring-4", "ring-sky-300", "animate-pulse");
+        btn.setAttribute("data-audio-state", "playing");
+        activeSpeakerBtn = btn;
+      } else {
+        btn.classList.remove("ring-4", "ring-sky-300", "animate-pulse");
+        btn.setAttribute("data-audio-state", "idle");
+        if (activeSpeakerBtn === btn) activeSpeakerBtn = null;
+      }
+    }
+
+    function stopArabicAudio() {
+      activePlayToken += 1;
+      if (fallbackAudioTimer) {
+        clearTimeout(fallbackAudioTimer);
+        fallbackAudioTimer = null;
+      }
+      if (activeCloudAudio) {
+        try {
+          activeCloudAudio.onloadedmetadata = null;
+          activeCloudAudio.onplaying = null;
+          activeCloudAudio.onended = null;
+          activeCloudAudio.onerror = null;
+          activeCloudAudio.pause();
+          activeCloudAudio.currentTime = 0;
+        } catch (e) {}
+        activeCloudAudio = null;
+      }
+      if ("speechSynthesis" in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      setSpeakerButtonState(activeSpeakerBtn, "idle");
+    }
 
     function playTone(type) {
       if (!userState.soundEnabled) return;
@@ -923,33 +1004,100 @@
       } catch (e) {}
     }
 
-    function speakOfflineFallback(text, rate = 0.9) {
-      if (!("speechSynthesis" in window)) return;
+    function speakOfflineFallback(text, rate, token, btn) {
+      if (token !== activePlayToken) return;
+      if (!("speechSynthesis" in window)) { setSpeakerButtonState(btn, "idle"); return; }
       try {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
         u.lang = "ar-SA"; u.rate = rate;
         const v = window.speechSynthesis.getVoices().find(x => x.lang.toLowerCase().startsWith("ar"));
         if (v) u.voice = v;
+        u.onstart = () => {
+          if (token !== activePlayToken) return;
+          if (fallbackAudioTimer) { clearTimeout(fallbackAudioTimer); fallbackAudioTimer = null; }
+          setSpeakerButtonState(btn, "playing");
+        };
+        u.onend = () => {
+          if (token !== activePlayToken) return;
+          if (fallbackAudioTimer) { clearTimeout(fallbackAudioTimer); fallbackAudioTimer = null; }
+          setSpeakerButtonState(btn, "idle");
+        };
+        u.onerror = () => {
+          if (token !== activePlayToken) return;
+          if (fallbackAudioTimer) { clearTimeout(fallbackAudioTimer); fallbackAudioTimer = null; }
+          setSpeakerButtonState(btn, "idle");
+        };
+        setSpeakerButtonState(btn, "playing");
         window.speechSynthesis.speak(u);
-      } catch (e) {}
+        fallbackAudioTimer = setTimeout(() => {
+          if (token === activePlayToken) setSpeakerButtonState(btn, "idle");
+        }, 2400);
+      } catch (e) { setSpeakerButtonState(btn, "idle"); }
     }
 
-    function speakArabic(text, rate = 0.95) {
-      if (!userState.soundEnabled || !text) return;
-      try {
-        if (activeCloudAudio) { activeCloudAudio.pause(); activeCloudAudio = null; }
-        const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=ar&client=tw-ob&q=${encodeURIComponent(text)}`;
-        const audio = new Audio(url);
-        audio.playbackRate = rate < 0.7 ? 0.65 : 1.0;
-        activeCloudAudio = audio;
-        let fellBack = false;
-        const fallback = () => { if (!fellBack) { fellBack = true; speakOfflineFallback(text, rate); } };
-        audio.onerror = fallback;
-        audio.play().catch(fallback);
-      } catch (e) {
-        speakOfflineFallback(text, rate);
-      }
+    function speakArabic(text, rate = 1.0, triggerBtn = null) {
+      stopArabicAudio();
+      const cleaned = typeof text === "string" ? text.trim() : "";
+      if (!userState.soundEnabled || !cleaned) return;
+
+      const token = ++activePlayToken;
+      const targetRate = rate < 0.75 ? 0.65 : 1.0;
+      const sources = buildArabicAudioSources(cleaned);
+      setSpeakerButtonState(triggerBtn, "loading");
+
+      const trySource = (index) => {
+        if (token !== activePlayToken) return;
+        if (index >= sources.length || typeof Audio === "undefined") {
+          speakOfflineFallback(cleaned, targetRate, token, triggerBtn);
+          return;
+        }
+
+        const source = sources[index];
+        let advanced = false;
+        const tryNext = () => {
+          if (advanced || token !== activePlayToken) return;
+          advanced = true;
+          if (activeCloudAudio === audio) activeCloudAudio = null;
+          trySource(index + 1);
+        };
+
+        let audio;
+        try {
+          audio = new Audio();
+          if (source.crossOrigin) {
+            audio.crossOrigin = "anonymous";
+          }
+          audio.preload = "auto";
+          audio.src = source.url;
+          audio.playbackRate = targetRate;
+          activeCloudAudio = audio;
+
+          audio.onloadedmetadata = () => {
+            if (token === activePlayToken) audio.playbackRate = targetRate;
+          };
+          audio.onplaying = () => {
+            if (token !== activePlayToken) return;
+            audio.playbackRate = targetRate;
+            setSpeakerButtonState(triggerBtn, "playing");
+          };
+          audio.onended = () => {
+            if (token !== activePlayToken) return;
+            if (activeCloudAudio === audio) activeCloudAudio = null;
+            setSpeakerButtonState(triggerBtn, "idle");
+          };
+          audio.onerror = tryNext;
+
+          const playPromise = audio.play();
+          if (playPromise && typeof playPromise.catch === "function") {
+            playPromise.catch(tryNext);
+          }
+        } catch (e) {
+          tryNext();
+        }
+      };
+
+      trySource(0);
     }
     if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 
@@ -1149,13 +1297,14 @@
         card.className = `btn-3d rounded-2xl border-2 border-b-4 p-3 min-h-[86px] flex flex-col items-center justify-center ${active ? "bg-sky-50 border-[#1CB0F6] ring-2 ring-sky-200" : "bg-white border-slate-200 hover:border-sky-300"}`;
         card.innerHTML = `<span class="font-arabic text-3xl font-bold text-slate-900 leading-normal">${ar}</span><span dir="ltr" class="text-xs font-extrabold text-[#0369A1] mt-0.5">${tr}</span>`;
         card.addEventListener("click", () => {
-          selectedAlpha = item; playTone("tap"); speakArabic(ar, 0.85); renderAlphabetGrid();
+          selectedAlpha = item; playTone("tap"); renderAlphabetGrid();
+          speakArabic(ar, 1.0, document.getElementById("alpha-speak-btn"));
         });
         grid.appendChild(card);
       });
     }
-    document.getElementById("alpha-speak-btn").addEventListener("click", () => speakArabic(getAlphaText(selectedAlpha).ar, 0.9));
-    document.getElementById("alpha-slow-btn").addEventListener("click", () => speakArabic(getAlphaText(selectedAlpha).ar, 0.55));
+    document.getElementById("alpha-speak-btn").addEventListener("click", (e) => speakArabic(getAlphaText(selectedAlpha).ar, 1.0, e.currentTarget));
+    document.getElementById("alpha-slow-btn").addEventListener("click", (e) => speakArabic(getAlphaText(selectedAlpha).ar, 0.65, e.currentTarget));
     document.querySelectorAll(".vowel-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         playTone("tap"); currentVowel = btn.dataset.vowel;
@@ -1235,6 +1384,7 @@
     }
 
     function closeLessonModal() {
+      stopArabicAudio();
       document.getElementById("lesson-modal").classList.add("hidden");
       document.getElementById("feedback-drawer").classList.add("hidden");
       renderLearningPath();
@@ -1286,9 +1436,11 @@
           </div>`;
         header.appendChild(audioCard);
         setTimeout(() => {
-          document.getElementById("q-speak-btn")?.addEventListener("click", () => speakArabic(q.arabic, 0.95));
-          document.getElementById("q-slow-btn")?.addEventListener("click", () => speakArabic(q.arabic, 0.55));
-          speakArabic(q.arabic, 0.95);
+          const speakBtn = document.getElementById("q-speak-btn");
+          const slowBtn = document.getElementById("q-slow-btn");
+          speakBtn?.addEventListener("click", () => speakArabic(q.arabic, 1.0, speakBtn));
+          slowBtn?.addEventListener("click", () => speakArabic(q.arabic, 0.65, slowBtn));
+          speakArabic(q.arabic, 1.0, speakBtn);
         }, 60);
       }
       container.appendChild(header);
@@ -1310,7 +1462,7 @@
           b.addEventListener("click", () => {
             if (activeSession.isAnswered) return;
             playTone("tap");
-            if (q.isArabicOption) speakArabic(opt, 0.9);
+            if (q.isArabicOption) speakArabic(opt, 1.0);
             activeSession.selectedAnswer = opt;
             document.querySelectorAll(".mcq-opt").forEach(x => { x.classList.remove("border-[#1CB0F6]", "bg-sky-50", "text-[#0369A1]"); x.classList.add("border-slate-200", "bg-white", "text-slate-800"); });
             b.classList.remove("border-slate-200", "bg-white", "text-slate-800"); b.classList.add("border-[#1CB0F6]", "bg-sky-50", "text-[#0369A1]");
@@ -1353,7 +1505,7 @@
             chip.innerHTML = `<span class="${q.isArabicWords ? "font-arabic text-2xl leading-snug" : "text-sm"}">${w}</span>${tr ? `<span dir="ltr" class="text-[11px] font-bold ${used ? "text-transparent" : "text-[#0369A1]"}">${tr}</span>` : ""}`;
             chip.addEventListener("click", () => {
               if (activeSession.isAnswered) return;
-              playTone("tap"); if (q.isArabicWords) speakArabic(w, 0.9);
+              playTone("tap"); if (q.isArabicWords) speakArabic(w, 1.0);
               activeSession.wordBankSelected.push({ id: i, text: w }); refreshWB();
             });
             bank.appendChild(chip);
@@ -1402,7 +1554,7 @@
           b.innerHTML = `<span class="font-arabic text-xl sm:text-2xl leading-snug">${item.ar}</span>${item.tr ? `<span dir="ltr" class="text-[11px] font-bold text-[#0369A1]">${item.tr}</span>` : ""}`;
           b.addEventListener("click", () => {
             if (b.disabled) return;
-            playTone("tap"); speakArabic(item.ar, 0.9);
+            playTone("tap"); speakArabic(item.ar, 1.0);
             lCol.querySelectorAll("button:not(:disabled)").forEach(x => x.classList.remove("border-[#1CB0F6]", "bg-sky-50"));
             b.classList.add("border-[#1CB0F6]", "bg-sky-50");
             activeSession.selectedLeft = { idx: item.idx, el: b }; checkPair();
@@ -1539,6 +1691,7 @@
     // ================= NAVIGATION & PROFILE =================
     function switchTab(tabName) {
       playTone("tap");
+      stopArabicAudio();
       ["path", "alphabet", "leaderboard", "profile"].forEach(t => document.getElementById(`tab-${t}`).classList.add("hidden"));
       document.getElementById(`tab-${tabName}`).classList.remove("hidden");
 

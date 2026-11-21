@@ -16,7 +16,14 @@ import {
   shouldShowArabicPromptCard,
   unlockLessonsUpToUnit,
 } from './learningEngine';
-import { buildArabicTtsUrl, resolveArabicPlaybackRate } from './audio';
+import {
+  buildArabicAudioSources,
+  buildArabicTtsUrl,
+  buildStreamElementsTtsUrl,
+  buildYoudaoTtsUrl,
+  getArabicLetterAudioUrl,
+  resolveArabicPlaybackRate,
+} from './audio';
 import type { LessonQuestion, UserState } from '../types/learning';
 
 const baseUser: UserState = {
@@ -285,12 +292,44 @@ test('no Malayalam-to-Arabic question across all 30 lessons or Placement Test le
   }
 });
 
-test('Cloud Arabic TTS URL builder and playback rate resolver handle normal and slow speeds accurately', () => {
-  const url = buildArabicTtsUrl('أَقْرَأُ');
-  assert.equal(
-    url,
-    `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ar&q=${encodeURIComponent('أَقْرَأُ')}`
-  );
+test('multi-source Arabic audio pipeline routes 28 base letters to studio MP3s and words/harakat to StreamElements Wavenet-B + Youdao backup', () => {
+  // 1. All 28 base Arabic letters map cleanly to 01.mp3 .. 28.mp3
+  ARABIC_ALPHABET.forEach((letter, idx) => {
+    const expectedIndex = String(idx + 1).padStart(2, '0');
+    const expectedUrl = `https://raw.githubusercontent.com/mustafa0x/arabic-alphabet-audio/master/mp3/${expectedIndex}.mp3`;
+    assert.equal(getArabicLetterAudioUrl(letter.base), expectedUrl);
+    assert.equal(buildArabicTtsUrl(letter.base), expectedUrl);
+
+    const sources = buildArabicAudioSources(letter.base);
+    assert.equal(sources.length, 3);
+    assert.equal(sources[0].provider, 'letter-mp3');
+    assert.equal(sources[0].url, expectedUrl);
+    assert.equal(sources[0].crossOrigin, true);
+    assert.equal(sources[1].provider, 'streamelements');
+    assert.equal(sources[2].provider, 'youdao');
+  });
+
+  // 2. Harakat syllables, words, and sentences route to StreamElements ar-XA-Wavenet-B then Youdao backup
+  for (const sample of ['بَ', 'أَقْرَأُ', 'السَّلَامُ عَلَيْكُمْ']) {
+    assert.equal(getArabicLetterAudioUrl(sample), null);
+    const sources = buildArabicAudioSources(sample);
+    assert.equal(sources.length, 2);
+    assert.equal(sources[0].provider, 'streamelements');
+    assert.equal(
+      sources[0].url,
+      `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(sample)}`
+    );
+    assert.equal(sources[0].crossOrigin, true);
+    assert.equal(sources[1].provider, 'youdao');
+    assert.equal(
+      sources[1].url,
+      `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(sample)}&le=ar`
+    );
+    assert.equal(buildStreamElementsTtsUrl(sample), sources[0].url);
+    assert.equal(buildYoudaoTtsUrl(sample), sources[1].url);
+  }
+
+  // 3. Normal (1.0) and slow turtle (0.65) playback rates
   assert.equal(resolveArabicPlaybackRate(1.0), 1.0);
   assert.equal(resolveArabicPlaybackRate(0.9), 1.0);
   assert.equal(resolveArabicPlaybackRate(0.65), 0.65);

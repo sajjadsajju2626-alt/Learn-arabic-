@@ -5,7 +5,44 @@ export interface ArabicAudioState {
   sourceId: string | null;
 }
 
+export interface ArabicAudioSource {
+  url: string;
+  crossOrigin: boolean;
+  provider: 'letter-mp3' | 'streamelements' | 'youdao';
+}
+
 type AudioStateListener = (state: ArabicAudioState) => void;
+
+export const BASE_ARABIC_LETTERS = [
+  'ا',
+  'ب',
+  'ت',
+  'ث',
+  'ج',
+  'ح',
+  'خ',
+  'د',
+  'ذ',
+  'ر',
+  'ز',
+  'س',
+  'ش',
+  'ص',
+  'ض',
+  'ط',
+  'ظ',
+  'ع',
+  'غ',
+  'ف',
+  'ق',
+  'ك',
+  'ل',
+  'م',
+  'ن',
+  'ه',
+  'و',
+  'ي',
+] as const;
 
 let sharedAudioCtx: AudioContext | null = null;
 let activeCloudAudio: HTMLAudioElement | null = null;
@@ -37,10 +74,50 @@ export function subscribeArabicAudioState(listener: AudioStateListener): () => v
   };
 }
 
-export function buildArabicTtsUrl(arabicText: string): string {
-  return `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ar&q=${encodeURIComponent(
+export function getArabicLetterAudioUrl(arabicText: string): string | null {
+  const cleaned = arabicText.trim();
+  const idx = (BASE_ARABIC_LETTERS as readonly string[]).indexOf(cleaned);
+  if (idx === -1) return null;
+  const letterIndex = String(idx + 1).padStart(2, '0');
+  return `https://raw.githubusercontent.com/mustafa0x/arabic-alphabet-audio/master/mp3/${letterIndex}.mp3`;
+}
+
+export function buildStreamElementsTtsUrl(arabicText: string): string {
+  return `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(
     arabicText.trim()
   )}`;
+}
+
+export function buildYoudaoTtsUrl(arabicText: string): string {
+  return `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(
+    arabicText.trim()
+  )}&le=ar`;
+}
+
+export function buildArabicTtsUrl(arabicText: string): string {
+  return getArabicLetterAudioUrl(arabicText) ?? buildStreamElementsTtsUrl(arabicText);
+}
+
+export function buildArabicAudioSources(arabicText: string): ArabicAudioSource[] {
+  const cleaned = arabicText.trim();
+  if (!cleaned) return [];
+
+  const sources: ArabicAudioSource[] = [];
+  const letterUrl = getArabicLetterAudioUrl(cleaned);
+  if (letterUrl) {
+    sources.push({ url: letterUrl, crossOrigin: true, provider: 'letter-mp3' });
+  }
+  sources.push({
+    url: buildStreamElementsTtsUrl(cleaned),
+    crossOrigin: true,
+    provider: 'streamelements',
+  });
+  sources.push({
+    url: buildYoudaoTtsUrl(cleaned),
+    crossOrigin: false,
+    provider: 'youdao',
+  });
+  return sources;
 }
 
 export function resolveArabicPlaybackRate(rate: number): number {
@@ -198,7 +275,6 @@ function speakOfflineFallback(
     setAudioState({ status: 'playing', sourceId });
     window.speechSynthesis.speak(utter);
 
-    // Safety guard so headless browsers without TTS voices never leave the UI pulsing indefinitely
     fallbackSafetyTimer = window.setTimeout(() => {
       if (token === activePlayToken) {
         setAudioState({ status: 'idle', sourceId: null });
@@ -227,56 +303,70 @@ export function speakArabic(
   const token = ++activePlayToken;
   const targetRate = resolveArabicPlaybackRate(rate);
   const resolvedSource = sourceId ?? null;
+  const sources = buildArabicAudioSources(cleaned);
 
   setAudioState({ status: 'loading', sourceId: resolvedSource });
 
-  try {
-    if (typeof Audio === 'undefined') {
+  const trySource = (index: number) => {
+    if (token !== activePlayToken) return;
+    if (index >= sources.length || typeof Audio === 'undefined') {
       speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
       return;
     }
 
-    const audio = new Audio(buildArabicTtsUrl(cleaned));
-    audio.preload = 'auto';
-    audio.playbackRate = targetRate;
-    activeCloudAudio = audio;
+    const source = sources[index];
+    let advanced = false;
+    let audio: HTMLAudioElement | null = null;
 
-    let fellBack = false;
-    const triggerFallback = () => {
-      if (fellBack || token !== activePlayToken) return;
-      fellBack = true;
+    const tryNext = () => {
+      if (advanced || token !== activePlayToken) return;
+      advanced = true;
       if (activeCloudAudio === audio) {
         activeCloudAudio = null;
       }
-      speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
+      trySource(index + 1);
     };
 
-    audio.onloadedmetadata = () => {
-      if (token !== activePlayToken) return;
-      audio.playbackRate = targetRate;
-    };
-
-    audio.onplaying = () => {
-      if (token !== activePlayToken) return;
-      audio.playbackRate = targetRate;
-      setAudioState({ status: 'playing', sourceId: resolvedSource });
-    };
-
-    audio.onended = () => {
-      if (token !== activePlayToken) return;
-      if (activeCloudAudio === audio) {
-        activeCloudAudio = null;
+    try {
+      audio = new Audio();
+      if (source.crossOrigin) {
+        audio.crossOrigin = 'anonymous';
       }
-      setAudioState({ status: 'idle', sourceId: null });
-    };
+      audio.preload = 'auto';
+      audio.src = source.url;
+      audio.playbackRate = targetRate;
+      activeCloudAudio = audio;
 
-    audio.onerror = triggerFallback;
+      audio.onloadedmetadata = () => {
+        if (token === activePlayToken && audio) {
+          audio.playbackRate = targetRate;
+        }
+      };
 
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(triggerFallback);
+      audio.onplaying = () => {
+        if (token !== activePlayToken || !audio) return;
+        audio.playbackRate = targetRate;
+        setAudioState({ status: 'playing', sourceId: resolvedSource });
+      };
+
+      audio.onended = () => {
+        if (token !== activePlayToken) return;
+        if (activeCloudAudio === audio) {
+          activeCloudAudio = null;
+        }
+        setAudioState({ status: 'idle', sourceId: null });
+      };
+
+      audio.onerror = tryNext;
+
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(tryNext);
+      }
+    } catch {
+      tryNext();
     }
-  } catch {
-    speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
-  }
+  };
+
+  trySource(0);
 }
