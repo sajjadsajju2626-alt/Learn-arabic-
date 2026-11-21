@@ -1464,14 +1464,33 @@
     document.getElementById("refresh-lb-btn").addEventListener("click", () => { playTone("tap"); loadLeaderboard(); });
 
     // ================= LESSON / TEST ENGINE =================
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function prepareSessionQuestions(rawQuestions) {
+      const cloned = JSON.parse(JSON.stringify(rawQuestions));
+      cloned.forEach(q => {
+        if (Array.isArray(q.options)) {
+          q.options = shuffleArray(q.options);
+        }
+      });
+      return cloned;
+    }
+
     function startLesson(lesson) {
       if (userState.hearts <= 0) { document.getElementById("out-of-hearts-modal").classList.remove("hidden"); return; }
-      activeSession = { mode: "lesson", lessonId: lesson.id, targetUnitIndex: null, questions: JSON.parse(JSON.stringify(lesson.questions)), currentIndex: 0, score: 0, hearts: userState.hearts, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
+      activeSession = { mode: "lesson", lessonId: lesson.id, targetUnitIndex: null, questions: prepareSessionQuestions(lesson.questions), currentIndex: 0, score: 0, hearts: userState.hearts, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
       openLessonModal(null);
     }
 
     function startPlacementTest() {
-      activeSession = { mode: "placement", lessonId: null, targetUnitIndex: null, questions: JSON.parse(JSON.stringify(PLACEMENT_QUESTIONS)), currentIndex: 0, score: 0, hearts: 5, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
+      activeSession = { mode: "placement", lessonId: null, targetUnitIndex: null, questions: prepareSessionQuestions(PLACEMENT_QUESTIONS), currentIndex: 0, score: 0, hearts: 5, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
       openLessonModal("🚀 നിലവാര നിർണ്ണയ പരീക്ഷ (Placement Test · 7–8 ശരി = യൂണിറ്റ് 5 അൺലോക്ക്)");
     }
 
@@ -1480,8 +1499,8 @@
       for (let i = 0; i < targetUnitIndex; i++) {
         UNITS[i].lessons.forEach(l => l.questions.forEach(q => { if (q.type !== "pairs") pool.push(q); }));
       }
-      const picked = fisherYatesShuffle(pool).slice(0, 5);
-      activeSession = { mode: "jump", lessonId: null, targetUnitIndex, questions: JSON.parse(JSON.stringify(picked)), currentIndex: 0, score: 0, hearts: 3, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
+      const picked = shuffleArray(pool).slice(0, 5);
+      activeSession = { mode: "jump", lessonId: null, targetUnitIndex, questions: prepareSessionQuestions(picked), currentIndex: 0, score: 0, hearts: 3, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
       openLessonModal(`🚀 യൂണിറ്റ് ${targetUnitIndex + 1}-ലേക്കുള്ള പ്രവേശന ടെസ്റ്റ് (5-ൽ 4 ശരി ആവശ്യം)`);
     }
 

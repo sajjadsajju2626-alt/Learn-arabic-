@@ -316,6 +316,30 @@ export function shouldShowArabicPromptCard(question: LessonQuestion): boolean {
   return false;
 }
 
+export function shuffleArray<T>(arr: readonly T[], rng: () => number = Math.random): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+export function prepareSessionQuestions(
+  rawQuestions: readonly LessonQuestion[],
+  rng: () => number = Math.random
+): LessonQuestion[] {
+  return rawQuestions.map((q) => {
+    if ((q.type === 'mcq' || q.type === 'listen') && Array.isArray(q.options)) {
+      return {
+        ...q,
+        options: shuffleArray(q.options, rng),
+      };
+    }
+    return { ...q };
+  });
+}
+
 export function buildUnitJumpQuestions(
   targetUnitIndex: number,
   units: Unit[] = UNITS,
@@ -331,7 +355,7 @@ export function buildUnitJumpQuestions(
       }
     }
   }
-  return fisherYatesShuffle(pool).slice(0, count);
+  return prepareSessionQuestions(shuffleArray(pool).slice(0, count));
 }
 
 export function deterministicShuffle<T>(items: T[], seed: number): T[] {

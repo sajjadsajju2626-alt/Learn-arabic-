@@ -7,6 +7,7 @@ import {
   computeStreakUpdate,
   MAX_HEARTS,
   mergeAndSortLeaderboard,
+  prepareSessionQuestions,
 } from './utils/learningEngine';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { AppShell } from './components/AppShell';
@@ -113,7 +114,7 @@ export default function App() {
       lessonTitle: lesson.title,
       targetUnitIndex: null,
       bannerText: null,
-      questions: lesson.questions,
+      questions: prepareSessionQuestions(lesson.questions),
       initialHearts: Math.max(user.hearts, 1),
     });
   };
@@ -125,7 +126,7 @@ export default function App() {
       lessonTitle: 'നിലവാര നിർണ്ണയ പരീക്ഷ',
       targetUnitIndex: null,
       bannerText: 'നിലവാര നിർണ്ണയ പരീക്ഷ (Placement Test)',
-      questions: PLACEMENT_QUESTIONS,
+      questions: prepareSessionQuestions(PLACEMENT_QUESTIONS),
       initialHearts: MAX_HEARTS,
     });
   };

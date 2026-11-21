@@ -13,7 +13,9 @@ import {
   isLessonUnlocked,
   isUnitUnlocked,
   mergeAndSortLeaderboard,
+  prepareSessionQuestions,
   shouldShowArabicPromptCard,
+  shuffleArray,
   unlockLessonsUpToUnit,
 } from './learningEngine';
 import {
@@ -417,5 +419,45 @@ test('preloadArabicAudio caches HTMLAudioElement instances in audioCache Map and
       (globalThis as unknown as { Audio: unknown }).Audio = OriginalAudio;
     }
   }
+});
+
+test('prepareSessionQuestions shuffles mcq and listen options via shuffleArray while preserving exact q.answer match', () => {
+  const allSets: LessonQuestion[][] = [
+    ...UNITS.flatMap((u) => u.lessons.map((l) => l.questions)),
+    PLACEMENT_QUESTIONS,
+  ];
+
+  // Verify exact answer integrity across every mcq & listen question after shuffling
+  for (const questions of allSets) {
+    const prepared = prepareSessionQuestions(questions);
+    assert.equal(prepared.length, questions.length);
+    for (let i = 0; i < prepared.length; i++) {
+      const q = prepared[i];
+      const orig = questions[i];
+      if ((q.type === 'mcq' || q.type === 'listen') && (orig.type === 'mcq' || orig.type === 'listen')) {
+        assert.equal(q.options.length, orig.options.length);
+        assert.deepEqual([...q.options].sort(), [...orig.options].sort());
+        assert.equal(q.answer, orig.answer);
+        assert.ok(
+          q.options.includes(q.answer),
+          `Expected shuffled options to contain exact answer "${q.answer}"`
+        );
+      }
+    }
+  }
+
+  // Verify the specific listen question ("ശബ്ദം കേട്ട് ശരിയായ നേരം തിരഞ്ഞെടുക്കുക") places its answer in varied indices
+  const u5l2 = UNITS[4].lessons[1].questions;
+  const listenQ = u5l2.find((q) => q.type === 'listen');
+  assert.ok(listenQ && listenQ.type === 'listen');
+  const seenIndices = new Set<number>();
+  for (let t = 0; t < 40; t++) {
+    const shuffled = shuffleArray(listenQ.options);
+    seenIndices.add(shuffled.indexOf(listenQ.answer));
+  }
+  assert.ok(
+    seenIndices.size >= 3,
+    `Expected listen question correct answer across >= 3 positions, saw ${seenIndices.size}`
+  );
 });
 
