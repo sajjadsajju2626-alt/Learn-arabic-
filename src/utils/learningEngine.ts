@@ -6,13 +6,23 @@ import type {
   LessonQuestion,
   SessionMode,
   SessionResult,
+  SessionVariant,
+  StoryCheckStep,
+  StoryStep,
   Unit,
+  UnitStory,
   UserState,
   VowelMode,
 } from '../types/learning';
 
 export const MAX_HEARTS = 5;
 export const LESSON_XP_REWARD = 15;
+export const STORY_XP_REWARD = 15;
+export const REVIEW_XP_REWARD = 5;
+export const LEGENDARY_XP_REWARD = 40;
+export const LEGENDARY_HEARTS = 3;
+export const REVIEW_QUESTION_COUNT = 5;
+export const LEGENDARY_QUESTION_COUNT = 10;
 export const TREASURE_CHEST_XP = 25;
 export const TREASURE_CHEST_HEARTS = 1;
 export const MISTAKE_REVIEW_BANNER_TEXT =
@@ -229,12 +239,14 @@ export function evaluateQuestionAnswer(
 
 export function evaluateSessionOutcome(params: {
   mode: 'lesson' | 'placement' | 'jump';
+  variant?: SessionVariant;
   lessonId: string | null;
   targetUnitIndex: number | null;
   score: number;
   totalQuestions: number;
+  xpReward?: number;
 }): SessionResult {
-  const { mode, lessonId, targetUnitIndex, score, totalQuestions } = params;
+  const { mode, variant = 'standard', lessonId, targetUnitIndex, score, totalQuestions, xpReward } = params;
 
   if (mode === 'placement') {
     if (score >= 7) {
@@ -308,13 +320,63 @@ export function evaluateSessionOutcome(params: {
     };
   }
 
+  if (variant === 'review') {
+    return {
+      mode: 'lesson',
+      variant: 'review',
+      lessonId,
+      targetUnitIndex: null,
+      score,
+      totalQuestions,
+      earnedXp: xpReward ?? REVIEW_XP_REWARD,
+      unlockedUpToUnitIndex: null,
+      title: 'പുനരവലോകനം പൂർത്തിയായി!',
+      subtitle: 'വേഗത്തിലുള്ള 5 ചോദ്യ പരിശീലനം വിജയകരമായി പൂർത്തിയാക്കി.',
+      emoji: '🔄',
+    };
+  }
+
+  if (variant === 'legendary') {
+    return {
+      mode: 'lesson',
+      variant: 'legendary',
+      lessonId,
+      targetUnitIndex: null,
+      score,
+      totalQuestions,
+      earnedXp: xpReward ?? LEGENDARY_XP_REWARD,
+      unlockedUpToUnitIndex: null,
+      markLegendary: true,
+      title: 'ലെജൻഡറി വിജയം! 👑',
+      subtitle: 'ഉച്ചാരണ സൂചനകളില്ലാതെ 10 കഠിന ചോദ്യങ്ങൾ ജയിച്ച് ലെജൻഡറി കിരീടം നേടി!',
+      emoji: '👑',
+    };
+  }
+
+  if (variant === 'story') {
+    return {
+      mode: 'lesson',
+      variant: 'story',
+      lessonId,
+      targetUnitIndex: null,
+      score,
+      totalQuestions,
+      earnedXp: xpReward ?? STORY_XP_REWARD,
+      unlockedUpToUnitIndex: null,
+      title: 'കഥ പൂർത്തിയായി! 📖',
+      subtitle: 'അറബി സംഭാഷണം കേട്ട് മനസ്സിലാക്കി അടുത്ത ഘട്ടം അൺലോക്ക് ചെയ്തു.',
+      emoji: '📖',
+    };
+  }
+
   return {
     mode: 'lesson',
+    variant: 'standard',
     lessonId,
     targetUnitIndex: null,
     score,
     totalQuestions,
-    earnedXp: LESSON_XP_REWARD,
+    earnedXp: xpReward ?? LESSON_XP_REWARD,
     unlockedUpToUnitIndex: null,
     title: 'പാഠം പൂർത്തിയായി!',
     subtitle: 'മികച്ച പ്രകടനം! അടുത്ത പാഠം അൺലോക്ക് ആയിരിക്കുന്നു.',
@@ -328,10 +390,14 @@ export function applySessionResult(
   units: Unit[] = UNITS
 ): UserState {
   let completedLessons = [...user.completedLessons];
+  const legendaryLessons = [...(user.legendaryLessons ?? [])];
 
   if (result.mode === 'lesson' && result.lessonId) {
     if (!completedLessons.includes(result.lessonId)) {
       completedLessons.push(result.lessonId);
+    }
+    if (result.markLegendary && !legendaryLessons.includes(result.lessonId)) {
+      legendaryLessons.push(result.lessonId);
     }
   } else if (result.unlockedUpToUnitIndex !== null) {
     completedLessons = unlockLessonsUpToUnit(
@@ -345,6 +411,7 @@ export function applySessionResult(
     ...user,
     xp: user.xp + result.earnedXp,
     completedLessons,
+    legendaryLessons,
   };
 }
 
@@ -463,7 +530,8 @@ export function resolveLessonTargetCount(lesson: Pick<Lesson, 'nodeType'>): numb
   if (
     lesson.nodeType === 'hard' ||
     lesson.nodeType === 'listening' ||
-    lesson.nodeType === 'dialogue'
+    lesson.nodeType === 'dialogue' ||
+    lesson.nodeType === 'story'
   ) {
     return 11;
   }
@@ -820,6 +888,132 @@ export function buildLessonSessionQuestions(
   }
 
   return prepareSessionQuestions(ordered.slice(0, targetCount), rng);
+}
+
+/**
+ * Builds a quick 5-question refresher session (+5 XP) for already-completed nodes.
+ */
+export function buildReviewSessionQuestions(
+  lesson: Lesson,
+  units: readonly Unit[] = UNITS,
+  rng: () => number = Math.random
+): LessonQuestion[] {
+  const fullPool = buildLessonSessionQuestions(lesson, [], units, rng);
+  const picked: LessonQuestion[] = [];
+  const seen = new Set<string>();
+
+  for (const t of ALL_QUESTION_TYPES) {
+    if (picked.length >= REVIEW_QUESTION_COUNT) break;
+    const match = fullPool.find((q) => q.type === t && !seen.has(getQuestionFingerprint(q)));
+    if (match) {
+      seen.add(getQuestionFingerprint(match));
+      picked.push(match);
+    }
+  }
+  for (const q of fullPool) {
+    if (picked.length >= REVIEW_QUESTION_COUNT) break;
+    const fp = getQuestionFingerprint(q);
+    if (!seen.has(fp)) {
+      seen.add(fp);
+      picked.push(q);
+    }
+  }
+  return prepareSessionQuestions(picked.slice(0, REVIEW_QUESTION_COUNT), rng);
+}
+
+/**
+ * Builds a harder 10-question Zero-Hint Legendary mastery challenge (+40 XP, 3 hearts).
+ * Prioritizes active recall formats (wordbank, fill_blank, listen, Arabic-option MCQ).
+ */
+export function buildLegendarySessionQuestions(
+  lesson: Lesson,
+  units: readonly Unit[] = UNITS,
+  rng: () => number = Math.random
+): LessonQuestion[] {
+  const basePool = buildLessonSessionQuestions(lesson, [], units, rng);
+  const unit = units.find((u) => u.lessons.some((l) => l.id === lesson.id));
+  const extraDynamic = unit ? generateDynamicUnitQuestions(unit, rng) : [];
+  const combined = [...basePool, ...shuffleArray(extraDynamic, rng)];
+
+  const difficultyRank = (q: LessonQuestion): number => {
+    if (q.type === 'wordbank' && q.isArabicWords) return 0;
+    if (q.type === 'fill_blank') return 1;
+    if (q.type === 'listen') return 2;
+    if (q.type === 'mcq' && q.isArabicOption) return 3;
+    if (q.type === 'wordbank') return 4;
+    if (q.type === 'mcq') return 5;
+    return 6;
+  };
+
+  const ranked = [...combined].sort((a, b) => difficultyRank(a) - difficultyRank(b));
+  const seen = new Set<string>();
+  const picked: LessonQuestion[] = [];
+  for (const q of ranked) {
+    if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
+    const fp = getQuestionFingerprint(q);
+    if (seen.has(fp)) continue;
+    seen.add(fp);
+    const clone = JSON.parse(JSON.stringify(q)) as LessonQuestion;
+    delete clone.isReview;
+    delete clone.isSpacedRepetition;
+    picked.push(clone);
+  }
+  return prepareSessionQuestions(picked.slice(0, LEGENDARY_QUESTION_COUNT), rng);
+}
+
+/**
+ * Prepares an Interactive Story by cloning steps and Fisher-Yates shuffling every
+ * mid-story comprehension check's options while keeping exact answer matching intact.
+ */
+export function prepareStorySteps(
+  story: UnitStory,
+  rng: () => number = Math.random
+): StoryStep[] {
+  return story.steps.map((step) => {
+    if (step.kind === 'check') {
+      return {
+        ...step,
+        options: shuffleArray(step.options, rng),
+        optionTranslits: step.optionTranslits ? { ...step.optionTranslits } : undefined,
+      };
+    }
+    return { ...step };
+  });
+}
+
+export function evaluateStoryCheckAnswer(
+  step: StoryCheckStep,
+  selectedOption: string | null
+): { correct: boolean; expectedDisplay: string } {
+  const correct = selectedOption === step.answer;
+  const expectedDisplay =
+    step.checkType === 'fill_blank' && step.sentence
+      ? buildFilledSentence(step.sentence, step.answer)
+      : step.answer;
+  return { correct, expectedDisplay };
+}
+
+export function collectStoryArabicTexts(story: UnitStory): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (text?: string) => {
+    const t = (text ?? '').trim();
+    if (!t || !/[\u0600-\u06FF]/.test(t) || seen.has(t)) return;
+    seen.add(t);
+    out.push(t);
+  };
+  add(story.titleAr);
+  for (const step of story.steps) {
+    if (step.kind === 'line') {
+      add(step.ar);
+    } else if (step.kind === 'check') {
+      for (const opt of step.options) add(opt);
+      if (step.checkType === 'fill_blank' && step.sentence) {
+        add(buildFilledSentence(step.sentence, step.answer));
+      }
+    }
+  }
+  return out;
 }
 
 export function buildUnitJumpQuestions(

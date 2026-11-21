@@ -1,4 +1,5 @@
 import type { FillBlankQuestion, GuidebookEntry, Lesson, LessonQuestion, Unit, UnitMascot } from '../types/learning';
+import { UNIT_STORIES } from './unitStories';
 
 export const TREASURE_CHEST_XP = 25;
 export const TREASURE_CHEST_HEARTS = 1;
@@ -5399,12 +5400,13 @@ export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
       },
       {
         id: `${unit.id}_n5`,
-        title: pack?.dialogueTitle ?? 'നിത്യോപയോഗ സംഭാഷണം',
-        subtitle: 'ദൈനംദിന പ്രയോഗം',
-        icon: '💬',
-        nodeType: 'dialogue',
+        title: UNIT_STORIES[unit.id]?.titleMl ?? pack?.dialogueTitle ?? 'നിത്യോപയോഗ സംഭാഷണം',
+        subtitle: 'കഥ / Story',
+        icon: '📖',
+        nodeType: 'story',
         xpReward: 15,
         questions: cloneQuestions(dialogueNodeQuestions),
+        story: UNIT_STORIES[unit.id],
       },
       {
         id: `${unit.id}_n6`,

@@ -1,31 +1,43 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum';
+import { UNIT_STORIES } from '../data/unitStories';
 import {
   ALL_QUESTION_TYPES,
   applySessionResult,
   areWordBankAnswersEqual,
   buildFilledSentence,
+  buildLegendarySessionQuestions,
   buildLessonSessionQuestions,
+  buildReviewSessionQuestions,
   buildUnitJumpQuestions,
   claimTreasureChest,
+  collectStoryArabicTexts,
   computeStreakUpdate,
   enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
+  evaluateStoryCheckAnswer,
   fisherYatesShuffle,
   getAllLessonIds,
   getLetterDisplay,
   getQuestionFingerprint,
   isLessonUnlocked,
   isUnitUnlocked,
+  LEGENDARY_HEARTS,
+  LEGENDARY_QUESTION_COUNT,
+  LEGENDARY_XP_REWARD,
   mergeAndSortLeaderboard,
   migrateLegacyCompletedIds,
   MISTAKE_REVIEW_BANNER_TEXT,
   normalizeWordBankText,
   prepareSessionQuestions,
+  prepareStorySteps,
+  REVIEW_QUESTION_COUNT,
+  REVIEW_XP_REWARD,
   shouldShowArabicPromptCard,
   shuffleArray,
+  STORY_XP_REWARD,
   unlockLessonsUpToUnit,
 } from './learningEngine';
 import {
@@ -61,8 +73,8 @@ test('curriculum contains 35 units and 280 winding nodes (8 per unit) with 28 Ar
   assert.equal(getAllLessonIds().length, 280);
   assert.equal(ARABIC_ALPHABET.length, 28);
 
-  const expectedIcons = ['⭐', '📖', '🧩', '🎁', '💬', '🎧', '⚡', '🏆'];
-  const expectedTypes = ['lesson', 'practice', 'wordbank', 'chest', 'dialogue', 'listening', 'hard', 'trophy'];
+  const expectedIcons = ['⭐', '📖', '🧩', '🎁', '📖', '🎧', '⚡', '🏆'];
+  const expectedTypes = ['lesson', 'practice', 'wordbank', 'chest', 'story', 'listening', 'hard', 'trophy'];
 
   for (const unit of UNITS) {
     assert.equal(unit.lessons.length, 8, `${unit.id} must have 8 nodes`);
@@ -1104,6 +1116,144 @@ test('buildLessonSessionQuestions delivers 10-12 unique balanced 5-type question
   assert.equal(greenTreeQ.answer, 'شَجَرَةٌ خَضْرَاءُ');
   assert.equal(shouldShowArabicPromptCard(greenTreeQ), false);
 });
+
+test('all 35 units have Interactive Arabic Story on Node 5 with 5-6 vocalized lines, 2 checks, audio extraction, and Unit 15 Missing Passport story', () => {
+  assert.equal(Object.keys(UNIT_STORIES).length, 35);
+
+  for (const unit of UNITS) {
+    const node5 = unit.lessons[4];
+    assert.equal(node5.id, `${unit.id}_n5`);
+    assert.equal(node5.nodeType, 'story');
+    assert.equal(node5.icon, '📖');
+    assert.ok(node5.story, `${node5.id} must attach a UnitStory`);
+
+    const story = node5.story;
+    assert.equal(story.characters.length, 2, `${unit.id} story must have 2 named characters`);
+    assert.ok(story.titleAr.trim().length > 0 && /[\u0600-\u06FF]/.test(story.titleAr));
+    assert.ok(story.titleMl.trim().length > 0);
+    assert.ok(story.titleTr.trim().length > 0);
+
+    const lines = story.steps.filter((s) => s.kind === 'line');
+    const checks = story.steps.filter((s) => s.kind === 'check');
+    assert.ok(
+      lines.length >= 5 && lines.length <= 6,
+      `${unit.id} story must have 5-6 dialogue lines, got ${lines.length}`
+    );
+    assert.equal(checks.length, 2, `${unit.id} story must have 2 mid-story comprehension checks`);
+
+    for (const line of lines) {
+      if (line.kind !== 'line') continue;
+      assert.ok(line.speaker === 0 || line.speaker === 1);
+      assert.ok(/[\u0600-\u06FF]/.test(line.ar), `${unit.id} story line must contain Arabic script`);
+      assert.ok(line.tr.trim().length > 0, `${unit.id} story line must include Malayalam transliteration`);
+      assert.ok(line.ml.trim().length > 0, `${unit.id} story line must include Malayalam meaning`);
+    }
+
+    for (const check of checks) {
+      if (check.kind !== 'check') continue;
+      assert.ok(check.options.length >= 3, `${unit.id} story check needs >= 3 options`);
+      assert.ok(check.options.includes(check.answer), `${unit.id} story check answer must be in options`);
+      assert.equal(evaluateStoryCheckAnswer(check, check.answer).correct, true);
+      const wrongOpt = check.options.find((o) => o !== check.answer) ?? '__wrong__';
+      assert.equal(evaluateStoryCheckAnswer(check, wrongOpt).correct, false);
+    }
+
+    // Audio preloader collects story title and dialogue lines
+    const texts = collectStoryArabicTexts(story);
+    assert.ok(texts.includes(story.titleAr));
+    assert.ok(texts.length >= 6);
+  }
+
+  // Unit 15 signature Missing Passport story
+  const u15Story = UNIT_STORIES.u15;
+  assert.equal(u15Story.titleAr, 'جَوَازُ السَّفَرِ الْمَفْقُودُ');
+  assert.equal(u15Story.titleMl, 'കാണാതായ പാസ്പോർട്ട്');
+
+  // prepareStorySteps shuffles check options without mutating original story
+  const origCheck = u15Story.steps.find((s) => s.kind === 'check');
+  assert.ok(origCheck && origCheck.kind === 'check');
+  const seenPos = new Set<number>();
+  for (let i = 0; i < 40; i++) {
+    const prepared = prepareStorySteps(u15Story);
+    const prepCheck = prepared.find((s) => s.kind === 'check');
+    assert.ok(prepCheck && prepCheck.kind === 'check');
+    assert.ok(prepCheck.options.includes(prepCheck.answer));
+    seenPos.add(prepCheck.options.indexOf(prepCheck.answer));
+  }
+  assert.ok(seenPos.size >= 2, 'Story check options should shuffle across positions');
+});
+
+test('Review (+5 XP, 5 questions) and Legendary (+40 XP, 10 zero-hint questions, 3 hearts, crown persistence) work cleanly', () => {
+  assert.equal(REVIEW_XP_REWARD, 5);
+  assert.equal(REVIEW_QUESTION_COUNT, 5);
+  assert.equal(LEGENDARY_XP_REWARD, 40);
+  assert.equal(LEGENDARY_QUESTION_COUNT, 10);
+  assert.equal(LEGENDARY_HEARTS, 3);
+  assert.equal(STORY_XP_REWARD, 15);
+
+  const sampleNode = UNITS[14].lessons[1]; // u15_n2
+  const reviewQs = buildReviewSessionQuestions(sampleNode, UNITS);
+  assert.equal(reviewQs.length, 5);
+  assert.equal(new Set(reviewQs.map((q) => getQuestionFingerprint(q))).size, 5);
+
+  const legendaryQs = buildLegendarySessionQuestions(sampleNode, UNITS);
+  assert.equal(legendaryQs.length, 10);
+  assert.equal(new Set(legendaryQs.map((q) => getQuestionFingerprint(q))).size, 10);
+
+  // Story outcome awards +15 XP and marks node complete
+  const storyOutcome = evaluateSessionOutcome({
+    mode: 'lesson',
+    variant: 'story',
+    lessonId: 'u15_n5',
+    targetUnitIndex: null,
+    score: 2,
+    totalQuestions: 2,
+    xpReward: STORY_XP_REWARD,
+  });
+  assert.equal(storyOutcome.earnedXp, 15);
+  const afterStory = applySessionResult(baseUser, storyOutcome);
+  assert.equal(afterStory.xp, 15);
+  assert.ok(afterStory.completedLessons.includes('u15_n5'));
+
+  // Review outcome awards +5 XP and does not mark legendary
+  const reviewOutcome = evaluateSessionOutcome({
+    mode: 'lesson',
+    variant: 'review',
+    lessonId: 'u15_n2',
+    targetUnitIndex: null,
+    score: 5,
+    totalQuestions: 5,
+    xpReward: REVIEW_XP_REWARD,
+  });
+  assert.equal(reviewOutcome.earnedXp, 5);
+  assert.equal(Boolean(reviewOutcome.markLegendary), false);
+  const afterReview = applySessionResult(afterStory, reviewOutcome);
+  assert.equal(afterReview.xp, 20);
+  assert.deepEqual(afterReview.legendaryLessons ?? [], []);
+
+  // Legendary outcome awards +40 XP and persists legendaryLessons crown idempotently
+  const legendaryOutcome = evaluateSessionOutcome({
+    mode: 'lesson',
+    variant: 'legendary',
+    lessonId: 'u15_n2',
+    targetUnitIndex: null,
+    score: 10,
+    totalQuestions: 10,
+    xpReward: LEGENDARY_XP_REWARD,
+  });
+  assert.equal(legendaryOutcome.earnedXp, 40);
+  assert.equal(legendaryOutcome.markLegendary, true);
+  assert.equal(legendaryOutcome.emoji, '👑');
+  const afterLegendary = applySessionResult(afterReview, legendaryOutcome);
+  assert.equal(afterLegendary.xp, 60);
+  assert.deepEqual(afterLegendary.legendaryLessons, ['u15_n2']);
+
+  // Repeating Legendary doesn't duplicate the lessonId in legendaryLessons
+  const afterLegendaryAgain = applySessionResult(afterLegendary, legendaryOutcome);
+  assert.equal(afterLegendaryAgain.xp, 100);
+  assert.deepEqual(afterLegendaryAgain.legendaryLessons, ['u15_n2']);
+});
+
 
 
 

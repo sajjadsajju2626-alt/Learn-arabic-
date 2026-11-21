@@ -61,6 +61,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
 
   const question = questionQueue[currentIndex];
   const progressPct = Math.round((currentIndex / questionQueue.length) * 100);
+  const hideTranslit = Boolean(session.hideTranslit);
+  const isLegendary = session.variant === 'legendary';
   const showArabicPromptCard = shouldShowArabicPromptCard(question);
   const shouldGateTranslit =
     showArabicPromptCard &&
@@ -129,7 +131,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const deductHeart = () => {
     const next = Math.max(0, hearts - 1);
     setHearts(next);
-    if (session.mode === 'lesson') {
+    if (session.mode === 'lesson' && !isLegendary) {
       onHeartsChange(next);
     }
     if (next === 0) {
@@ -250,10 +252,12 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     } else {
       const result = evaluateSessionOutcome({
         mode: session.mode,
+        variant: session.variant,
         lessonId: session.lessonId,
         targetUnitIndex: session.targetUnitIndex,
         score,
         totalQuestions: questionQueue.length,
+        xpReward: session.xpReward,
       });
       onComplete(result);
     }
@@ -321,7 +325,13 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           </div>
         ) : (
           session.bannerText && (
-            <div className="bg-sky-50 text-[#0369A1] text-xs font-extrabold text-center py-1.5 border-t border-sky-100">
+            <div
+              className={
+                isLegendary
+                  ? 'bg-gradient-to-r from-purple-700 via-violet-600 to-amber-500 text-white text-xs sm:text-sm font-extrabold text-center py-2 px-4 border-t border-purple-800/30'
+                  : 'bg-sky-50 text-[#0369A1] text-xs font-extrabold text-center py-1.5 border-t border-sky-100'
+              }
+            >
               {session.bannerText}
             </div>
           )
@@ -413,7 +423,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   <div className="font-arabic text-3xl sm:text-4xl font-bold text-slate-900">
                     {question.arabic}
                   </div>
-                  {question.translit &&
+                  {!hideTranslit &&
+                    question.translit &&
                     (!shouldGateTranslit || hintRevealed || Boolean(feedback) ? (
                       <div className="text-sm font-bold text-[#0369A1] mt-1">
                         {question.translit}
@@ -479,7 +490,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       >
                         {opt}
                       </span>
-                      {optTr && (
+                      {!hideTranslit && optTr && (
                         <span
                           dir="ltr"
                           className="text-xs font-bold text-[#0369A1] leading-snug"
@@ -539,7 +550,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           <span className="font-arabic text-2xl sm:text-3xl leading-snug">
                             {selectedOption ?? '\u00A0'}
                           </span>
-                          {selectedTr && (
+                          {!hideTranslit && selectedTr && (
                             <span
                               dir="ltr"
                               className="font-sans text-[11px] font-extrabold leading-tight opacity-90"
@@ -604,7 +615,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           <span className="font-arabic text-2xl sm:text-3xl leading-normal">
                             {opt}
                           </span>
-                          {optTr && (
+                          {!hideTranslit && optTr && (
                             <span
                               dir="ltr"
                               className="text-xs font-bold text-[#0369A1] leading-snug"
@@ -656,7 +667,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           >
                             {chip.text}
                           </span>
-                          {chipTr && (
+                          {!hideTranslit && chipTr && (
                             <span dir="ltr" className="text-[11px] font-bold text-[#0369A1]">
                               {chipTr}
                             </span>
@@ -706,7 +717,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         >
                           {chip.text}
                         </span>
-                        {chipTr && (
+                        {!hideTranslit && chipTr && (
                           <span
                             dir="ltr"
                             className={`text-[11px] font-bold ${
@@ -749,7 +760,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         <span className="font-arabic text-xl sm:text-2xl leading-snug">
                           {item.text}
                         </span>
-                        {item.tr && (
+                        {!hideTranslit && item.tr && (
                           <span
                             dir="ltr"
                             className={`text-[11px] font-bold ${
@@ -886,14 +897,28 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  playTone('correct', soundEnabled);
-                  setHearts(MAX_HEARTS);
-                  onRefillHearts();
-                  setShowOutOfHearts(false);
+                  if (isLegendary) {
+                    playTone('tap', soundEnabled);
+                    setQuestionQueue([...session.questions]);
+                    setCurrentIndex(0);
+                    setScore(0);
+                    setHearts(session.initialHearts);
+                    resetQuestionState();
+                    setShowOutOfHearts(false);
+                  } else {
+                    playTone('correct', soundEnabled);
+                    setHearts(MAX_HEARTS);
+                    onRefillHearts();
+                    setShowOutOfHearts(false);
+                  }
                 }}
-                className="btn-3d w-full py-3.5 rounded-2xl bg-[#4AA802] border-b-4 border-[#388000] text-white font-extrabold text-sm"
+                className={`btn-3d w-full py-3.5 rounded-2xl border-b-4 text-white font-extrabold text-sm ${
+                  isLegendary
+                    ? 'bg-purple-600 border-purple-800'
+                    : 'bg-[#4AA802] border-[#388000]'
+                }`}
               >
-                ഹാർട്ടുകൾ നിറയ്ക്കുക (സൗജന്യം)
+                {isLegendary ? 'വീണ്ടും ശ്രമിക്കുക (3 ❤️)' : 'ഹാർട്ടുകൾ നിറയ്ക്കുക (സൗജന്യം)'}
               </button>
               <button
                 type="button"

@@ -91,10 +91,50 @@ export type NodeKind =
   | 'practice'
   | 'wordbank'
   | 'chest'
+  | 'story'
   | 'dialogue'
   | 'listening'
   | 'hard'
   | 'trophy';
+
+export interface StoryCharacter {
+  nameAr: string;
+  nameMl: string;
+  avatar: string;
+}
+
+export interface StoryDialogueLine {
+  kind: 'line';
+  speaker: 0 | 1;
+  ar: string;
+  tr: string;
+  ml: string;
+}
+
+export interface StoryCheckStep {
+  kind: 'check';
+  checkType: 'mcq' | 'fill_blank';
+  prompt: string;
+  sentence?: string;
+  hintMl?: string;
+  options: string[];
+  isArabicOption?: boolean;
+  optionTranslits?: Record<string, string>;
+  answer: string;
+}
+
+export type StoryStep = StoryDialogueLine | StoryCheckStep;
+
+export interface UnitStory {
+  id: string;
+  titleMl: string;
+  titleAr: string;
+  titleTr: string;
+  emoji: string;
+  settingMl: string;
+  characters: [StoryCharacter, StoryCharacter];
+  steps: StoryStep[];
+}
 
 export interface GuidebookEntry {
   ar: string;
@@ -118,6 +158,7 @@ export interface Lesson {
   xpReward?: number;
   heartReward?: number;
   questions: LessonQuestion[];
+  story?: UnitStory;
 }
 
 export interface UnitTheme {
@@ -151,31 +192,38 @@ export interface UserState {
   streak: number;
   hearts: number;
   completedLessons: string[];
+  legendaryLessons?: string[];
   lastActiveDate: string;
   soundEnabled: boolean;
   onboarded: boolean;
 }
 
 export type SessionMode = 'lesson' | 'placement' | 'jump';
+export type SessionVariant = 'standard' | 'review' | 'legendary' | 'story';
 
 export interface SessionConfig {
   mode: SessionMode;
+  variant?: SessionVariant;
   lessonId: string | null;
   lessonTitle?: string;
   targetUnitIndex: number | null;
   bannerText: string | null;
   questions: LessonQuestion[];
   initialHearts: number;
+  xpReward?: number;
+  hideTranslit?: boolean;
 }
 
 export interface SessionResult {
   mode: SessionMode;
+  variant?: SessionVariant;
   lessonId: string | null;
   targetUnitIndex: number | null;
   score: number;
   totalQuestions: number;
   earnedXp: number;
   unlockedUpToUnitIndex: number | null;
+  markLegendary?: boolean;
   title: string;
   subtitle: string;
   emoji: string;

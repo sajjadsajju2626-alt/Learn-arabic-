@@ -3,14 +3,19 @@ import { PLACEMENT_QUESTIONS, UNITS } from './data/curriculum';
 import type { AppTab, Lesson, SessionConfig, SessionResult, UserState } from './types/learning';
 import {
   applySessionResult,
+  buildLegendarySessionQuestions,
   buildLessonSessionQuestions,
+  buildReviewSessionQuestions,
   buildUnitJumpQuestions,
   claimTreasureChest,
   computeStreakUpdate,
+  LEGENDARY_HEARTS,
+  LEGENDARY_XP_REWARD,
   MAX_HEARTS,
   mergeAndSortLeaderboard,
   migrateLegacyCompletedIds,
   prepareSessionQuestions,
+  REVIEW_XP_REWARD,
 } from './utils/learningEngine';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { AppShell } from './components/AppShell';
@@ -19,6 +24,7 @@ import { AlphabetTab } from './components/AlphabetTab';
 import { LeaderboardTab } from './components/LeaderboardTab';
 import { ProfileTab } from './components/ProfileTab';
 import { LessonModal } from './components/LessonModal';
+import { StoryModal } from './components/StoryModal';
 import { CompleteModal } from './components/CompleteModal';
 
 const STORAGE_KEY = 'arabic_ml_app_state_v2';
@@ -36,6 +42,7 @@ function createInitialUserState(): UserState {
     streak: 1,
     hearts: MAX_HEARTS,
     completedLessons: [],
+    legendaryLessons: [],
     lastActiveDate: new Date().toDateString(),
     soundEnabled: true,
     onboarded: autostart,
@@ -51,6 +58,7 @@ function createInitialUserState(): UserState {
       ...fallback,
       ...parsed,
       completedLessons: migrateLegacyCompletedIds(parsed.completedLessons ?? [], UNITS),
+      legendaryLessons: Array.isArray(parsed.legendaryLessons) ? parsed.legendaryLessons : [],
       onboarded: Boolean(parsed.onboarded && parsed.name) || autostart,
       name: parsed.name || (autostart ? 'അഹമ്മദ്' : ''),
     };
@@ -73,6 +81,7 @@ export default function App() {
   const [user, setUser] = useState<UserState>(createInitialUserState);
   const [activeTab, setActiveTab] = useState<AppTab>('path');
   const [activeSession, setActiveSession] = useState<SessionConfig | null>(null);
+  const [activeStoryLesson, setActiveStoryLesson] = useState<Lesson | null>(null);
   const [completeResult, setCompleteResult] = useState<SessionResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -124,18 +133,53 @@ export default function App() {
       handleClaimChest(lesson);
       return;
     }
+    if (lesson.nodeType === 'story' && lesson.story) {
+      setActiveStoryLesson(lesson);
+      return;
+    }
     if (user.hearts <= 0) {
       setUser((prev) => ({ ...prev, hearts: MAX_HEARTS }));
       showToast('ഹാർട്ടുകൾ സ്വയമേവ നിറച്ചിരിക്കുന്നു! പാഠം തുടങ്ങാം.');
     }
     setActiveSession({
       mode: 'lesson',
+      variant: 'standard',
       lessonId: lesson.id,
       lessonTitle: lesson.title,
       targetUnitIndex: null,
       bannerText: null,
       questions: buildLessonSessionQuestions(lesson, user.completedLessons, UNITS),
       initialHearts: Math.max(user.hearts, 1),
+      xpReward: lesson.xpReward ?? 15,
+    });
+  };
+
+  const startReview = (lesson: Lesson) => {
+    setActiveSession({
+      mode: 'lesson',
+      variant: 'review',
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      targetUnitIndex: null,
+      bannerText: '🔄 ദ്രുത പുനരവലോകനം · 5 ചോദ്യങ്ങൾ (+5 XP)',
+      questions: buildReviewSessionQuestions(lesson, UNITS),
+      initialHearts: Math.max(user.hearts, 1),
+      xpReward: REVIEW_XP_REWARD,
+    });
+  };
+
+  const startLegendary = (lesson: Lesson) => {
+    setActiveSession({
+      mode: 'lesson',
+      variant: 'legendary',
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      targetUnitIndex: null,
+      bannerText: '👑 ലെജൻഡറി വെല്ലുവിളി · 3 ❤️ · ഉച്ചാരണ സൂചനകളില്ല (+40 XP)',
+      questions: buildLegendarySessionQuestions(lesson, UNITS),
+      initialHearts: LEGENDARY_HEARTS,
+      xpReward: LEGENDARY_XP_REWARD,
+      hideTranslit: true,
     });
   };
 
@@ -167,6 +211,7 @@ export default function App() {
   const handleSessionComplete = (result: SessionResult) => {
     setUser((prev) => applySessionResult(prev, result, UNITS));
     setActiveSession(null);
+    setActiveStoryLesson(null);
     setCompleteResult(result);
   };
 
@@ -180,6 +225,7 @@ export default function App() {
       ...prev,
       xp: 0,
       completedLessons: [],
+      legendaryLessons: [],
       hearts: MAX_HEARTS,
     }));
     setActiveTab('path');
@@ -209,8 +255,11 @@ export default function App() {
         {activeTab === 'path' && (
           <LearningPathTab
             completedLessons={user.completedLessons}
+            legendaryLessons={user.legendaryLessons ?? []}
             soundEnabled={user.soundEnabled}
             onStartLesson={startLesson}
+            onStartReview={startReview}
+            onStartLegendary={startLegendary}
             onClaimChest={handleClaimChest}
             onStartUnitJump={startUnitJumpTest}
           />
@@ -252,6 +301,17 @@ export default function App() {
           onRefillHearts={() => setUser((prev) => ({ ...prev, hearts: MAX_HEARTS }))}
           onComplete={handleSessionComplete}
           onClose={() => setActiveSession(null)}
+        />
+      )}
+
+      {activeStoryLesson && activeStoryLesson.story && (
+        <StoryModal
+          lessonId={activeStoryLesson.id}
+          story={activeStoryLesson.story}
+          soundEnabled={user.soundEnabled}
+          initialHearts={Math.max(user.hearts, 1)}
+          onComplete={handleSessionComplete}
+          onClose={() => setActiveStoryLesson(null)}
         />
       )}
 
