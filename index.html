@@ -29,10 +29,38 @@
     .animate-shake { animation: shake 0.38s ease-in-out; }
     @keyframes popIn { 0% { transform: translateY(8px) scale(0.96); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
     .animate-pop { animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes floatSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    .animate-float-slow { animation: floatSlow 3.4s infinite ease-in-out; }
+    @keyframes chestBurst {
+      0% { transform: scale(0.7) rotate(-8deg); opacity: 0; }
+      55% { transform: scale(1.12) rotate(5deg); opacity: 1; }
+      78% { transform: scale(0.96) rotate(-2deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .animate-chest-open { animation: chestBurst 0.52s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    /* Smooth 8-node Duolingo S-curve offsets (mobile-safe, expanded on sm+) */
+    .path-node-0 { transform: translateX(0px); }
+    .path-node-1 { transform: translateX(-32px); }
+    .path-node-2 { transform: translateX(-50px); }
+    .path-node-3 { transform: translateX(-24px); }
+    .path-node-4 { transform: translateX(18px); }
+    .path-node-5 { transform: translateX(50px); }
+    .path-node-6 { transform: translateX(28px); }
+    .path-node-7 { transform: translateX(0px); }
+    @media (min-width: 640px) {
+      .path-node-0 { transform: translateX(0px); }
+      .path-node-1 { transform: translateX(-48px); }
+      .path-node-2 { transform: translateX(-76px); }
+      .path-node-3 { transform: translateX(-34px); }
+      .path-node-4 { transform: translateX(28px); }
+      .path-node-5 { transform: translateX(76px); }
+      .path-node-6 { transform: translateX(44px); }
+      .path-node-7 { transform: translateX(0px); }
+    }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     @media (prefers-reduced-motion: reduce) {
-      .animate-bounce-slow, .animate-shake, .animate-pop { animation: none !important; }
+      .animate-bounce-slow, .animate-shake, .animate-pop, .animate-float-slow, .animate-chest-open { animation: none !important; }
     }
   </style>
 </head>
@@ -49,7 +77,7 @@
           <p class="text-sm text-white/90 mt-2.5 leading-relaxed">കളികളിലൂടെയും ക്വിസുകളിലൂടെയും എളുപ്പത്തിൽ അറബി ഭാഷ, അക്ഷരമാല, ഹറകത്തുകൾ, സംഭാഷണങ്ങൾ എന്നിവ സ്വായത്തമാക്കൂ!</p>
         </div>
         <div class="space-y-3 pt-4 border-t border-white/20 text-sm">
-          <div><span class="font-extrabold">10 യൂണിറ്റുകൾ · 30 പാഠങ്ങൾ</span><p class="text-xs text-white/85">അലിഫ്-ബാ മുതൽ സമ്പൂർണ്ണ സംഭാഷണങ്ങൾ വരെ</p></div>
+          <div><span class="font-extrabold">10 യൂണിറ്റുകൾ · 80 ഘട്ടങ്ങൾ</span><p class="text-xs text-white/85">അലിഫ്-ബാ മുതൽ സമ്പൂർണ്ണ സംഭാഷണങ്ങൾ വരെ</p></div>
           <div><span class="font-extrabold">28 അക്ഷരങ്ങളും 5 ഹറകത്തുകളും</span><p class="text-xs text-white/85">ക്ലൗഡ് അറബി ഓഡിയോ ഉച്ചാരണം സഹിതം</p></div>
         </div>
         <div class="bg-white/15 rounded-2xl p-4 border border-white/20">
@@ -112,7 +140,7 @@
         <div class="w-10 h-10 rounded-xl bg-[#58CC02] border-b-4 border-[#46A302] flex items-center justify-center text-xl shrink-0">🕌</div>
         <div>
           <div class="font-extrabold text-base text-slate-900 leading-tight whitespace-nowrap">അറബി പഠിക്കാം</div>
-          <div class="text-xs font-semibold text-slate-500 font-latin">Learn Arabic · 30 Lessons</div>
+          <div class="text-xs font-semibold text-slate-500 font-latin">Learn Arabic · 80 Nodes</div>
         </div>
       </div>
 
@@ -135,7 +163,7 @@
         <div id="side-avatar" class="w-10 h-10 rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center text-xl shrink-0">🧕</div>
         <div class="min-w-0 flex-1">
           <div id="side-name" class="text-sm font-extrabold text-slate-900 truncate">പഠിതാവ്</div>
-          <div id="side-progress" class="text-xs text-slate-500 font-latin">0 XP · 0 / 30 പാഠം</div>
+          <div id="side-progress" class="text-xs text-slate-500 font-latin">0 XP · 0 / 80</div>
         </div>
       </div>
     </aside>
@@ -252,8 +280,8 @@
               </div>
               <div class="bg-white border border-slate-200 rounded-2xl p-4 text-center">
                 <div class="text-2xl">🎯</div>
-                <div id="prof-lessons" class="font-extrabold text-xl text-slate-900 font-latin mt-1">0 / 30</div>
-                <div class="text-[11px] text-slate-500 font-semibold">പാഠങ്ങൾ</div>
+                <div id="prof-lessons" class="font-extrabold text-xl text-slate-900 font-latin mt-1">0 / 80</div>
+                <div class="text-[11px] text-slate-500 font-semibold">ഘട്ടങ്ങൾ</div>
               </div>
             </div>
 
@@ -325,7 +353,7 @@
             <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
               <div id="rail-bar" class="h-full bg-[#58CC02] rounded-full transition-all duration-300" style="width:0%"></div>
             </div>
-            <p id="rail-lessons-text" class="text-xs text-slate-600 font-latin">0 / 30 പാഠങ്ങൾ പൂർത്തിയായി</p>
+            <p id="rail-lessons-text" class="text-xs text-slate-600 font-latin">0 / 80 ഘട്ടങ്ങൾ പൂർത്തിയായി</p>
             <button id="rail-placement-btn" type="button" class="btn-3d w-full py-2.5 px-4 rounded-xl border-2 border-b-4 border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#0369A1] font-extrabold text-xs">🚀 നിലവാര നിർണ്ണയ പരീക്ഷ എഴുതുക</button>
           </div>
         </aside>
@@ -437,6 +465,52 @@
     </div>
   </div>
 
+  <!-- ================= UNIT GUIDEBOOK MODAL ================= -->
+  <div id="guidebook-modal" role="dialog" aria-modal="true" aria-labelledby="guidebook-title" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[86vh] flex flex-col overflow-hidden shadow-2xl animate-pop">
+      <div id="guidebook-header" class="bg-[#58CC02] text-white p-5 flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div id="guidebook-kicker" class="text-xs font-bold text-white/90">യൂണിറ്റ് ഗൈഡ്‌ബുക്ക് 📘</div>
+          <h3 id="guidebook-title" class="text-lg sm:text-xl font-extrabold leading-snug mt-0.5">യൂണിറ്റ് പദാവലി</h3>
+          <p id="guidebook-subtitle" class="text-xs text-white/90 mt-0.5">പ്രധാന അറബി വാക്കുകളും ഹറകത്തുകളും മലയാളം അർത്ഥവും</p>
+        </div>
+        <button id="close-guidebook-btn" type="button" aria-label="ഗൈഡ്‌ബുക്ക് അടയ്ക്കുക" class="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 text-white text-lg font-bold flex items-center justify-center shrink-0">✕</button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4">
+        <div id="guidebook-tip" class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-700 leading-relaxed font-semibold"></div>
+        <div id="guidebook-list" class="space-y-2.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TREASURE CHEST CELEBRATION MODAL ================= -->
+  <div id="chest-modal" role="dialog" aria-modal="true" aria-labelledby="chest-title" class="hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-5">
+    <canvas id="chest-confetti-canvas" class="fixed inset-0 pointer-events-none z-10"></canvas>
+    <div class="relative z-20 bg-white rounded-3xl p-6 sm:p-7 text-center max-w-sm w-full shadow-2xl animate-pop space-y-5">
+      <div class="relative mx-auto w-28 h-28 rounded-3xl bg-gradient-to-b from-amber-100 to-amber-200 border-2 border-amber-300 flex items-center justify-center animate-chest-open">
+        <span class="text-6xl" aria-hidden="true">🎁</span>
+        <span class="absolute -top-2 -right-2 text-2xl animate-bounce-slow" aria-hidden="true">✨</span>
+        <span class="absolute -bottom-1 -left-2 text-xl" aria-hidden="true">🎉</span>
+      </div>
+      <div>
+        <p class="text-xs font-extrabold text-amber-600">ബോണസ് സമ്മാനം</p>
+        <h3 id="chest-title" class="text-2xl font-extrabold text-slate-900 mt-0.5">നിധിപ്പെട്ടി തുറന്നു!</h3>
+        <p id="chest-subtitle" class="text-sm text-slate-600 mt-1.5">അഭിനന്ദനങ്ങൾ! ക്വിസ് കൂടാതെ തന്നെ ബോണസ് XP-യും ഹാർട്ടും സ്വന്തമാക്കി.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3 font-latin">
+        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3.5">
+          <div class="text-[11px] font-bold text-amber-700">ബോണസ് XP</div>
+          <div id="chest-xp-val" class="text-2xl font-extrabold text-amber-500 mt-0.5">+25 ⭐</div>
+        </div>
+        <div class="bg-rose-50 border-2 border-rose-200 rounded-2xl p-3.5">
+          <div class="text-[11px] font-bold text-rose-700">ബോണസ് ഹാർട്ട്</div>
+          <div id="chest-heart-val" class="text-2xl font-extrabold text-rose-500 mt-0.5">+1 ❤️</div>
+        </div>
+      </div>
+      <button id="chest-done-btn" type="button" class="btn-3d w-full py-3.5 rounded-2xl bg-[#58CC02] border-b-4 border-[#46A302] text-white font-extrabold text-base">തുടരുക</button>
+    </div>
+  </div>
+
   <!-- Toast Banner -->
   <div id="toast-banner" class="hidden fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-50 bg-slate-900 text-white text-sm font-bold px-4 py-3 rounded-xl shadow-lg animate-pop"></div>
 
@@ -515,8 +589,8 @@
       { base: "ي", name: "യാ", fatha: "يَ", fathaTr: "യ", kasra: "يِ", kasraTr: "യി", damma: "يُ", dammaTr: "യു", tanween: "يًا", tanweenTr: "യൻ" }
     ];
 
-    // ================= 10 UNITS / 30 LESSONS CURRICULUM =================
-    const UNITS = [
+    // ================= 10 UNITS / 80 WINDING NODES CURRICULUM =================
+    const BASE_UNITS = [
       {
         id: "u1", number: 1,
         title: "യൂണിറ്റ് 1: അറബി അക്ഷരങ്ങളും ഹറകത്തുകളും",
@@ -810,7 +884,7 @@
           {
             id: "u9_l2", title: "വർത്തമാനകാലം - ഞാൻ ചെയ്യുന്നു", icon: "✍️",
             questions: [
-              { type: "mcq", prompt: "'ഞാൻ വായിക്കുന്നു' എന്നതിന്റെ അറബി വാക്ക്?", arabic: "أَقْرَأُ", translit: "അഖ്റഉ", options: ["ഞാൻ വായിക്കുന്നു", "ഞാൻ എഴുതുന്നു", "ഞാൻ പോകുന്നു", "ഞാൻ കുടിക്കുന്നു"], answer: "ഞാൻ വായിക്കുന്നു" },
+              { type: "mcq", prompt: "'ഞാൻ വായിക്കുന്നു' എന്നതിന്റെ അറബി വാക്ക്?", options: ["أَقْرَأُ", "أَكْتُبُ", "أَذْهَبُ", "أَشْرَبُ"], isArabicOption: true, optionTranslits: { "أَقْرَأُ": "അഖ്റഉ", "أَكْتُبُ": "അക്തുബു", "أَذْهَبُ": "അദ്ഹബു", "أَشْرَبُ": "അശ്റബു" }, answer: "أَقْرَأُ" },
               { type: "pairs", prompt: "വർത്തമാനകാല ക്രിയകൾ യോജിപ്പിക്കുക", pairs: [{ ar: "أَذْهَبُ", tr: "അദ്ഹബു", ml: "ഞാൻ പോകുന്നു" }, { ar: "أَقْرَأُ", tr: "അഖ്റഉ", ml: "ഞാൻ വായിക്കുന്നു" }, { ar: "أَكْتُبُ", tr: "അക്തുബു", ml: "ഞാൻ എഴുതുന്നു" }, { ar: "أَشْرَبُ", tr: "അശ്റബു", ml: "ഞാൻ കുടിക്കുന്നു" }] },
               { type: "listen", prompt: "ശബ്ദം കേട്ട് അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "أَنَا أَكْتُبُ الدَّرْسَ", translit: "അനാ അക്തുബുദ്-ദർസ", options: ["ഞാൻ പാഠം എഴുതുന്നു", "ഞാൻ പുസ്തകം വായിക്കുന്നു", "ഞാൻ ചായ കുടിക്കുന്നു", "ഞാൻ സ്കൂളിലേക്ക് പോകുന്നു"], answer: "ഞാൻ പാഠം എഴുതുന്നു" },
               { type: "wordbank", prompt: "'ഞാൻ ചായ കുടിക്കുന്നു' എന്ന് അറബിയിൽ എഴുതുക", words: ["أَنَا", "أَشْرَبُ", "الشَّايَ", "أَكْتُبُ"], isArabicWords: true, wordTranslits: { "أَنَا": "അനാ", "أَشْرَبُ": "അശ്റബു", "الشَّايَ": "അശ്-ശായ", "أَكْتُبُ": "അക്തുബു" }, answer: ["أَنَا", "أَشْرَبُ", "الشَّايَ"] }
@@ -864,6 +938,382 @@
         ]
       }
     ];
+
+    const TREASURE_CHEST_XP = 25;
+    const TREASURE_CHEST_HEARTS = 1;
+
+    const UNIT_EXPANSION_PACKS = {
+      u1: {
+        guidebookTip: "അറബി അക്ഷരങ്ങൾ വലത്തുനിന്ന് ഇടത്തോട്ടാണ് (RTL) എഴുതുന്നതും വായിക്കുന്നതും. ഫത്ഹ് ( َ = അ), കസ്റ് ( ِ = ഇ), ളമ്മ് ( ُ = ഉ) എന്നിവയാണ് അടിസ്ഥാന സ്വരചിഹ്നങ്ങൾ (ഹറകത്തുകൾ).",
+        mascot: { kind: "owl", greetingAr: "هَيَّا نَبْدَأُ!", greetingTr: "ഹയ്യാ നബ്ദഉ!", secondaryAr: "أ ب ت", secondaryMl: "അക്ഷരങ്ങൾ" },
+        guidebook: [
+          { ar: "ا", tr: "അലിഫ്", ml: "ആദ്യ അറബി അക്ഷരം (Alif)" },
+          { ar: "ب", tr: "ബാ", ml: "താഴെ 1 പുള്ളിയുള്ള അക്ഷരം (Ba)" },
+          { ar: "ت", tr: "താ", ml: "മുകളിൽ 2 പുള്ളികളുള്ള അക്ഷരം (Ta)" },
+          { ar: "ث", tr: "ഥാ", ml: "മുകളിൽ 3 പുള്ളികളുള്ള അക്ഷരം (Tha)" },
+          { ar: "بَ / بِ / بُ", tr: "ബ / ബി / ബു", ml: "ഫത്ഹ്, കസ്റ്, ളമ്മ് ഹറകത്തുകൾ" },
+          { ar: "ج / ح / خ", tr: "ജീം / ഹാ / ഖാ", ml: "പുള്ളികളുടെ സ്ഥാനം ശ്രദ്ധിക്കുക" },
+          { ar: "كَتَبَ", tr: "കതബ", ml: "അവൻ എഴുതി (ഹറകത്ത് വായന)" },
+          { ar: "قَرَأَ", tr: "ഖറഅ", ml: "അവൻ വായിച്ചു (ലളിത പദം)" }
+        ],
+        dialogueTitle: "അക്ഷരങ്ങൾ ചേർത്ത് വായിക്കാം",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "ഈ ചെറിയ അറബി പദം വായിക്കൂ: 'ഖറഅ'", arabic: "قَرَأَ", translit: "ഖ-റ-അ", options: ["അവൻ വായിച്ചു", "അവൻ എഴുതി", "അവൻ ഉറങ്ങി", "അവൻ പോയി"], answer: "അവൻ വായിച്ചു" },
+          { type: "mcq", prompt: "'ദു' (Du) എന്ന ശബ്ദം നൽകുന്ന അക്ഷരം ഏതാണ്?", options: ["دَ", "دِ", "دُ", "رُ"], isArabicOption: true, optionTranslits: { "دَ": "ദ", "دِ": "ദി", "دُ": "ദു", "رُ": "റു" }, answer: "دُ" },
+          { type: "pairs", prompt: "ഹറകത്തുള്ള അക്ഷരങ്ങളും ശബ്ദങ്ങളും യോജിപ്പിക്കുക", pairs: [{ ar: "حِ", tr: "ഹി", ml: "ഹി (Hi)" }, { ar: "خُ", tr: "ഖു", ml: "ഖു (Khu)" }, { ar: "جَ", tr: "ജ", ml: "ജ (Ja)" }, { ar: "تِ", tr: "തി", ml: "തി (Ti)" }] },
+          { type: "wordbank", prompt: "'ദറസ' (അവൻ പഠിച്ചു) എന്ന പദത്തിന്റെ അക്ഷരശബ്ദങ്ങൾ ക്രമീകരിക്കുക", arabic: "دَرَسَ", translit: "ദ - റ - സ", words: ["ദ", "റ", "സ", "ബ", "ഖ"], answer: ["ദ", "റ", "സ"] }
+        ],
+        listeningTitle: "അക്ഷര-ഹറകത്ത് ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ ഹറകത്ത് തിരഞ്ഞെടുക്കുക", arabic: "حُ", translit: "ഹു (Hu)", options: ["ഹ (حَ)", "ഹി (حِ)", "ഹു (حُ)", "ഖു (خُ)"], answer: "ഹു (حُ)" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ പദം തിരഞ്ഞെടുക്കുക", arabic: "كَتَبَ", translit: "കതബ", options: ["കതബ (അവൻ എഴുതി)", "ഖറഅ (അവൻ വായിച്ചു)", "ദറസ (അവൻ പഠിച്ചു)", "ജലസ (അവൻ ഇരുന്നു)"], answer: "കതബ (അവൻ എഴുതി)" }
+        ],
+        hardTitle: "അക്ഷരമാല കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'ഖി' (Khi) എന്ന ശബ്ദമുള്ള അക്ഷരം ഏതാണ്?", options: ["خِ", "حِ", "جِ", "خُ"], isArabicOption: true, optionTranslits: { "خِ": "ഖി", "حِ": "ഹി", "جِ": "ജി", "خُ": "ഖു" }, answer: "خِ" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 1 ട്രോഫി പരീക്ഷ"
+      },
+      u2: {
+        guidebookTip: "അറബി സംഭാഷണം തുടങ്ങുന്നത് ഹൃദ്യമായ സലാമോടെയാണ്. മറുപടിയായി 'വ അലൈക്കുമുസ്സലാം' എന്നും നന്ദിക്ക് 'അഫ്‌വൻ' (സാരമില്ല) എന്നും പറയുക.",
+        mascot: { kind: "lantern", greetingAr: "مَرْحَبًا بِكَ!", greetingTr: "മർഹബൻ ബിക!", secondaryAr: "شُكْرًا", secondaryMl: "നന്ദി" },
+        guidebook: [
+          { ar: "اَلسَّلَامُ عَلَيْكُمْ", tr: "അസ്സലാമു അലൈക്കും", ml: "നിങ്ങൾക്ക് സമാധാനമുണ്ടാകട്ടെ" },
+          { ar: "مَرْحَبًا", tr: "മർഹബൻ", ml: "സ്വാഗതം / ഹലോ" },
+          { ar: "صَبَاحَ الْخَيْرِ", tr: "സബാഹൽ ഖൈർ", ml: "സുപ്രഭാതം" },
+          { ar: "مَسَاءَ الْخَيْرِ", tr: "മസാഅൽ ഖൈർ", ml: "ശുഭസായാഹ്നം" },
+          { ar: "شُكْرًا", tr: "ശുക്റൻ", ml: "നന്ദി" },
+          { ar: "عَفْوًا", tr: "അഫ്‌വൻ", ml: "സാരമില്ല / സ്വാഗതം" },
+          { ar: "مِنْ فَضْلِكَ", tr: "മിൻ ഫള്‌ലിക", ml: "ദയവായി (Please)" },
+          { ar: "كَيْفَ حَالُكَ؟", tr: "കൈഫ ഹാലുക?", ml: "നിങ്ങൾക്ക് സുഖമാണോ?" }
+        ],
+        dialogueTitle: "നിത്യോപയോഗ അഭിവാദ്യ സംഭാഷണം",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "വൈകുന്നേരം ഒരാളെ കാണുമ്പോൾ 'ശുഭസായാഹ്നം' എന്ന് എങ്ങനെ പറയും?", options: ["مَسَاءَ الْخَيْرِ", "صَبَاحَ الْخَيْرِ", "مَعَ السَّلَامَةِ", "شُكْرًا جَزِيلًا"], isArabicOption: true, optionTranslits: { "مَسَاءَ الْخَيْرِ": "മസാഅൽ ഖൈർ", "صَبَاحَ الْخَيْرِ": "സബാഹൽ ഖൈർ", "مَعَ السَّلَامَةِ": "മഅസ്സലാമ", "شُكْرًا جَزِيلًا": "ശുക്റൻ ജസീലൻ" }, answer: "مَسَاءَ الْخَيْرِ" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ഈ സലാം മറുപടിയുടെ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "وَعَلَيْكُمُ السَّلَامُ", translit: "വ അലൈക്കുമുസ്സലാം", options: ["നിങ്ങൾക്കും സമാധാനമുണ്ടാകട്ടെ", "ദയവായി വരൂ", "വളരെ നന്ദി", "വിട പറയുന്നു"], answer: "നിങ്ങൾക്കും സമാധാനമുണ്ടാകട്ടെ" },
+          { type: "pairs", prompt: "അഭിവാദ്യങ്ങളും മറുപടികളും യോജിപ്പിക്കുക", pairs: [{ ar: "مَسَاءَ الْخَيْرِ", tr: "മസാഅൽ ഖൈർ", ml: "ശുഭസായാഹ്നം" }, { ar: "شُكْرًا جَزِيلًا", tr: "ശുക്റൻ ജസീലൻ", ml: "വളരെ നന്ദി" }, { ar: "تُصْبِحُ عَلَى خَيْرٍ", tr: "തുസ്ബിഹു അലാ ഖൈർ", ml: "ശുഭരാത്രി" }, { ar: "آسِفٌ", tr: "ആസിഫ്", ml: "ക്ഷമിക്കണം" }] },
+          { type: "wordbank", prompt: "'വളരെ നന്ദി' എന്ന് അറബിയിൽ ക്രമീകരിക്കുക", words: ["شُكْرًا", "جَزِيلًا", "عَفْوًا", "لَا"], isArabicWords: true, wordTranslits: { "شُكْرًا": "ശുക്റൻ", "جَزِيلًا": "ജസീലൻ", "عَفْوًا": "അഫ്‌വൻ", "لَا": "ലാ" }, answer: ["شُكْرًا", "جَزِيلًا"] }
+        ],
+        listeningTitle: "അഭിവാദ്യ ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ മലയാളം അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "مَعَ السَّلَامَةِ", translit: "മഅസ്സലാമ", options: ["വിട / യാത്രാമംഗളം", "സുപ്രഭാതം", "എനിക്ക് സുഖമാണ്", "ദയവായി"], answer: "വിട / യാത്രാമംഗളം" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം കണ്ടെത്തുക", arabic: "أَنَا بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ", translit: "അനാ ബിഖൈറിൻ വൽഹംദുലില്ലാഹ്", options: ["എനിക്ക് സുഖമാണ്, അൽഹംദുലില്ലാഹ്", "നിങ്ങളുടെ പേരെന്താണ്?", "ശുഭരാത്രി", "ക്ഷമിക്കണം"], answer: "എനിക്ക് സുഖമാണ്, അൽഹംദുലില്ലാഹ്" }
+        ],
+        hardTitle: "അഭിവാദ്യങ്ങൾ കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'ക്ഷമിക്കണം' (Sorry) എന്നതിന് അറബിയിൽ എന്ത് പറയും?", options: ["آسِفٌ", "شُكْرًا", "أَهْلًا", "نَعَمْ"], isArabicOption: true, optionTranslits: { "آسِفٌ": "ആസിഫ്", "شُكْرًا": "ശുക്റൻ", "أَهْلًا": "അഹ്‌ലൻ", "نَعَمْ": "നഅം" }, answer: "آسِفٌ" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 2 ട്രോഫി പരീക്ഷ"
+      },
+      u3: {
+        guidebookTip: "അറബിയിൽ പുരുഷനും സ്ത്രീക്കും വെവ്വേറെ സർവ്വനാമങ്ങളുണ്ട്: നീ (പുരുഷൻ) = أَنْتَ (അൻത), നീ (സ്ത്രീ) = أَنْتِ (അൻതി). 'ഞാൻ' എന്നതിന് أَنَا (അനാ) എന്ന് പൊതുവായി ഉപയോഗിക്കാം.",
+        mascot: { kind: "book", greetingAr: "مَا اسْمُكَ؟", greetingTr: "മസ്മുക?", secondaryAr: "أَنَا", secondaryMl: "ഞാൻ" },
+        guidebook: [
+          { ar: "أَنَا", tr: "അനാ", ml: "ഞാൻ (I)" },
+          { ar: "أَنْتَ / أَنْتِ", tr: "അൻത / അൻതി", ml: "നീ (പുരുഷൻ / സ്ത്രീ)" },
+          { ar: "هُوَ / هِيَ", tr: "ഹുവ / ഹിയ", ml: "അവൻ / അവൾ" },
+          { ar: "نَحْنُ", tr: "നഹ്നു", ml: "നമ്മൾ / ഞങ്ങൾ" },
+          { ar: "مَا / مَنْ", tr: "മാ / മൻ", ml: "എന്ത് / ആര്" },
+          { ar: "أَيْنَ / كَيْفَ", tr: "അയ്ന / കൈഫ", ml: "എവിടെ / എങ്ങനെ" },
+          { ar: "مَا اسْمُكَ؟", tr: "മസ്മുക?", ml: "നിന്റെ പേരെന്താണ്?" },
+          { ar: "أَنَا مِنَ الْهِنْدِ", tr: "അനാ മിനൽ ഹിന്ദ്", ml: "ഞാൻ ഇന്ത്യയിൽ നിന്നാണ്" }
+        ],
+        dialogueTitle: "പരിചയപ്പെടൽ സംഭാഷണം",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "'നമ്മൾ / ഞങ്ങൾ' എന്നതിന്റെ അറബി സർവ്വനാമം ഏതാണ്?", options: ["نَحْنُ", "أَنَا", "هُوَ", "هِيَ"], isArabicOption: true, optionTranslits: { "نَحْنُ": "നഹ്നു", "أَنَا": "അനാ", "هُوَ": "ഹുവ", "هِيَ": "ഹിയ" }, answer: "نَحْنُ" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ഈ ചോദ്യത്തിന്റെ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "مِنْ أَيْنَ أَنْتَ؟", translit: "മിൻ അയ്ന അൻത?", options: ["നീ എവിടെ നിന്നാണ്?", "നിന്റെ പേരെന്താണ്?", "ആരാണ് അവൻ?", "നീ എങ്ങനെയുണ്ട്?"], answer: "നീ എവിടെ നിന്നാണ്?" },
+          { type: "pairs", prompt: "പരിചയപ്പെടൽ വാക്യങ്ങൾ യോജിപ്പിക്കുക", pairs: [{ ar: "أَنْتِ", tr: "അൻതി", ml: "നീ (സ്ത്രീ)" }, { ar: "نَحْنُ", tr: "നഹ്നു", ml: "ഞങ്ങൾ / നമ്മൾ" }, { ar: "طَالِبَةٌ", tr: "ത്വാലിബത്തുൻ", ml: "വിദ്യാർത്ഥിനി" }, { ar: "مُعَلِّمٌ", tr: "മുഅല്ലിമുൻ", ml: "അധ്യാപകൻ" }] },
+          { type: "wordbank", prompt: "'ഞാൻ കേരളത്തിൽ നിന്നാണ്' എന്ന് അറബിയിൽ എഴുതുക", words: ["أَنَا", "مِنْ", "كِيرَالَا", "أَيْنَ"], isArabicWords: true, wordTranslits: { "أَنَا": "അനാ", "مِنْ": "മിൻ", "كِيرَالَا": "കേരള", "أَيْنَ": "അയ്ന" }, answer: ["أَنَا", "مِنْ", "كِيرَالَا"] }
+        ],
+        listeningTitle: "ചോദ്യ-ഉത്തര ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "هِيَ مُعَلِّمَةٌ", translit: "ഹിയ മുഅല്ലിമത്തുൻ", options: ["അവൾ ഒരു അധ്യാപികയാണ്", "അവൻ ഒരു വിദ്യാർത്ഥിയാണ്", "ഞാൻ ഇന്ത്യയിൽ നിന്നാണ്", "നീ എവിടെയാണ്?"], answer: "അവൾ ഒരു അധ്യാപികയാണ്" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "تَشَرَّفْنَا", translit: "തശറഫ്നാ", options: ["പരിചയപ്പെട്ടതിൽ സന്തോഷം", "നിങ്ങളുടെ പേരെന്താണ്?", "വിട പറയുന്നു", "സുഖമാണോ?"], answer: "പരിചയപ്പെട്ടതിൽ സന്തോഷം" }
+        ],
+        hardTitle: "സർവ്വനാമങ്ങൾ കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'ആരാണ് ഇത്?' എന്ന് അറബിയിൽ എങ്ങനെ ചോദിക്കും?", options: ["مَنْ هٰذَا؟", "أَيْنَ هٰذَا؟", "كَيْفَ هٰذَا؟", "مَا اسْمُكَ؟"], isArabicOption: true, optionTranslits: { "مَنْ هٰذَا؟": "മൻ ഹാദാ?", "أَيْنَ هٰذَا؟": "അയ്ന ഹാദാ?", "كَيْفَ هٰذَا؟": "കൈഫ ഹാദാ?", "مَا اسْمُكَ؟": "മസ്മുക?" }, answer: "مَنْ هٰذَا؟" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 3 ട്രോഫി പരീക്ഷ"
+      },
+      u4: {
+        guidebookTip: "വാക്കിന്റെ അവസാനം 'ീ' (ي) ചേർത്താൽ 'എന്റെ' എന്ന അർത്ഥം ലഭിക്കും: بَيْتٌ (വീട്) → بَيْتِي (എന്റെ വീട്), أَبٌ (പിതാവ്) → أَبِي (എന്റെ പിതാവ്).",
+        mascot: { kind: "tea", greetingAr: "هٰذَا بَيْتِي!", greetingTr: "ഹാദാ ബയ്തീ!", secondaryAr: "شَايٌ", secondaryMl: "ചായ" },
+        guidebook: [
+          { ar: "أَبٌ / أُمٌّ", tr: "അബുൻ / ഉമ്മുൻ", ml: "പിതാവ് / മാതാവ്" },
+          { ar: "أَخٌ / أُخْتٌ", tr: "അഖുൻ / ഉഖ്തുൻ", ml: "സഹോദരൻ / സഹോദരി" },
+          { ar: "بَيْتٌ", tr: "ബയ്തുൻ", ml: "വീട്" },
+          { ar: "مَاءٌ / حَلِيبٌ", tr: "മാഉൻ / ഹലീബുൻ", ml: "വെള്ളം / പാൽ" },
+          { ar: "خُبْزٌ / شَايٌ", tr: "ഖുബ്സുൻ / ശായുൻ", ml: "റൊട്ടി / ചായ" },
+          { ar: "أُرِيدُ", tr: "ഉരീദു", ml: "എനിക്ക് വേണം" },
+          { ar: "وَاحِدٌ - خَمْسَةٌ", tr: "വാഹിദ് മുതൽ ഖംസ വരെ", ml: "സംഖ്യകൾ 1 മുതൽ 5 വരെ" },
+          { ar: "كِتَابٌ جَمِيلٌ", tr: "കിതാബുൻ ജമീൽ", ml: "മനോഹരമായ പുസ്തകം" }
+        ],
+        dialogueTitle: "വീട്ടിലെയും മേശയിലെയും സംഭാഷണം",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "'എന്റെ മാതാവ്' എന്ന് അറബിയിൽ എങ്ങനെ പറയും?", options: ["أُمِّي", "أَبِي", "أَخِي", "بَيْتِي"], isArabicOption: true, optionTranslits: { "أُمِّي": "ഉമ്മീ", "أَبِي": "അബീ", "أَخِي": "അഖീ", "بَيْتِي": "ബയ്തീ" }, answer: "أُمِّي" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "أُرِيدُ خُبْزًا وَحَلِيبًا", translit: "ഉരീദു ഖുബ്സൻ വ ഹലീബൻ", options: ["എനിക്ക് റൊട്ടിയും പാലും വേണം", "എനിക്ക് ചായയും വെള്ളവും വേണം", "ഇത് എന്റെ വീടാണ്", "അവൻ എന്റെ സഹോദരനാണ്"], answer: "എനിക്ക് റൊട്ടിയും പാലും വേണം" },
+          { type: "pairs", prompt: "വീട്ടിലെ വാക്കുകൾ യോജിപ്പിക്കുക", pairs: [{ ar: "أَبِي", tr: "അബീ", ml: "എന്റെ പിതാവ്" }, { ar: "أُمِّي", tr: "ഉമ്മീ", ml: "എന്റെ മാതാവ്" }, { ar: "قَهْوَةٌ", tr: "ഖഹ്‌വതുൻ", ml: "കാപ്പി" }, { ar: "تُفَّاحٌ", tr: "തുഫ്ഫാഹുൻ", ml: "ആപ്പിൾ" }] },
+          { type: "wordbank", prompt: "'എനിക്ക് കാപ്പി വേണം' എന്ന് അറബിയിൽ നിർമ്മിക്കുക", words: ["أُرِيدُ", "قَهْوَةً", "مَاءً", "بَيْتِي"], isArabicWords: true, wordTranslits: { "أُرِيدُ": "ഉരീദു", "قَهْوَةً": "ഖഹ്‌വതൻ", "مَاءً": "മാഅൻ", "بَيْتِي": "ബയ്തീ" }, answer: ["أُرِيدُ", "قَهْوَةً"] }
+        ],
+        listeningTitle: "കുടുംബ-ഭക്ഷണ ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "هٰذَا أَخِي", translit: "ഹാദാ അഖീ", options: ["ഇത് എന്റെ സഹോദരനാണ്", "ഇത് എന്റെ സഹോദരിയാണ്", "ഇത് എന്റെ വീടാണ്", "ഇത് എന്റെ പുസ്തകമാണ്"], answer: "ഇത് എന്റെ സഹോദരനാണ്" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് എത്ര പുസ്തകങ്ങളാണെന്ന് തിരഞ്ഞെടുക്കുക", arabic: "ثَلَاثَةُ كُتُبٍ", translit: "ഥലാഥത്തു കുതുബിൻ", options: ["മൂന്ന് പുസ്തകങ്ങൾ", "രണ്ട് പുസ്തകങ്ങൾ", "അഞ്ച് പുസ്തകങ്ങൾ", "നാല് പുസ്തകങ്ങൾ"], answer: "മൂന്ന് പുസ്തകങ്ങൾ" }
+        ],
+        hardTitle: "ദൈനംദിന പദങ്ങൾ കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'ഇത് എന്റെ സഹോദരിയാണ്' എന്നതിന്റെ ശരിയായ അറബി വാക്യം?", options: ["هٰذِهِ أُخْتِي", "هٰذَا أَخِي", "هٰذَا بَيْتِي", "أَنَا طَالِبٌ"], isArabicOption: true, optionTranslits: { "هٰذِهِ أُخْتِي": "ഹാദിഹി ഉഖ്തീ", "هٰذَا أَخِي": "ഹാദാ അഖീ", "هٰذَا بَيْتِي": "ഹാദാ ബയ്തീ", "أَنَا طَالِبٌ": "അനാ ത്വാലിബുൻ" }, answer: "هٰذِهِ أُخْتِي" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 4 ട്രോഫി പരീക്ഷ"
+      },
+      u5: {
+        guidebookTip: "ആഴ്ചയിലെ ദിവസങ്ങൾ എണ്ണൽ സംഖ്യകളുമായി ബന്ധപ്പെട്ടിരിക്കുന്നു: അൽ-അഹദ് (1 = ഞായർ), അൽ-ഇഥ്നയ്ൻ (2 = തിങ്കൾ), അൽ-ഖമീസ് (5 = വ്യാഴം), അൽ-ജുമുഅ (വെള്ളി).",
+        mascot: { kind: "crescent", greetingAr: "كَمِ السَّاعَةُ؟", greetingTr: "കമിസ്-സാഅ?", secondaryAr: "اَلْيَوْمَ", secondaryMl: "ഇന്ന്" },
+        guidebook: [
+          { ar: "اَلْأَحَدُ / اَلْإِثْنَيْنُ", tr: "അൽ-അഹദ് / അൽ-ഇഥ്നയ്ൻ", ml: "ഞായറാഴ്ച / തിങ്കളാഴ്ച" },
+          { ar: "اَلْخَمِيسُ / اَلْجُمُعَةُ", tr: "അൽ-ഖമീസ് / അൽ-ജുമുഅ", ml: "വ്യാഴാഴ്ച / വെള്ളിയാഴ്ച" },
+          { ar: "اَلْيَوْمَ / غَدًا", tr: "അൽ-യൗം / ഗദൻ", ml: "ഇന്ന് / നാളെ" },
+          { ar: "أَمْسِ / اَلْآنَ", tr: "അംസി / അൽ-ആൻ", ml: "ഇന്നലെ / ഇപ്പോൾ" },
+          { ar: "صَبَاحًا / مَسَاءً", tr: "സബാഹൻ / മസാഅൻ", ml: "രാവിലെ / വൈകുന്നേരം" },
+          { ar: "كَمِ السَّاعَةُ؟", tr: "കമിസ്-സാഅ?", ml: "സമയം എത്രയായി?" },
+          { ar: "اَلسَّاعَةُ الْوَاحِدَةُ", tr: "അസ്-സാഅത്തുൽ വാഹിദ", ml: "ഒരു മണി (1:00)" },
+          { ar: "نِصْفٌ", tr: "നിസ്ഫ്", ml: "അര (Half / 30 മിനിറ്റ്)" }
+        ],
+        dialogueTitle: "ദൈനംദിന സമയ സംഭാഷണം",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "'ശനിയാഴ്ച' എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?", options: ["اَلسَّبْتُ", "اَلْجُمُعَةُ", "اَلْأَحَدُ", "اَلْخَمِيسُ"], isArabicOption: true, optionTranslits: { "اَلسَّبْتُ": "അസ്-സബ്ത്", "اَلْجُمُعَةُ": "അൽ-ജുമുഅ", "اَلْأَحَدُ": "അൽ-അഹദ്", "اَلْخَمِيسُ": "അൽ-ഖമീസ്" }, answer: "اَلسَّبْتُ" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "نَلْتَقِي غَدًا مَسَاءً", translit: "നൽതഖീ ഗദൻ മസാഅൻ", options: ["നാളെ വൈകുന്നേരം കാണാം", "ഇന്ന് രാവിലെ കാണാം", "ഇന്നലെ രാത്രി കണ്ടു", "ഇപ്പോൾ ഒരു മണിയാണ്"], answer: "നാളെ വൈകുന്നേരം കാണാം" },
+          { type: "pairs", prompt: "ദിവസങ്ങളും നേരങ്ങളും യോജിപ്പിക്കുക", pairs: [{ ar: "اَلسَّبْتُ", tr: "അസ്-സബ്ത്", ml: "ശനിയാഴ്ച" }, { ar: "لَيْلًا", tr: "ലയ്ലൻ", ml: "രാത്രിയിൽ" }, { ar: "مُبَكِّرًا", tr: "മുബക്കിറൻ", ml: "നേരത്തെ" }, { ar: "اَلسَّاعَةُ الثَّانِيَةُ", tr: "അസ്-സാഅത്തുഥ്-ഥാനിയ", ml: "രണ്ട് മണി" }] },
+          { type: "wordbank", prompt: "'ഇന്ന് വൈകുന്നേരം' എന്ന് അറബിയിൽ ക്രമീകരിക്കുക", words: ["اَلْيَوْمَ", "مَسَاءً", "أَمْسِ", "صَبَاحًا"], isArabicWords: true, wordTranslits: { "اَلْيَوْمَ": "അൽ-യൗം", "مَسَاءً": "മസാഅൻ", "أَمْسِ": "അംസി", "صَبَاحًا": "സബാഹൻ" }, answer: ["اَلْيَوْمَ", "مَسَاءً"] }
+        ],
+        listeningTitle: "സമയ-ദിവസ ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ സമയം തിരഞ്ഞെടുക്കുക", arabic: "اَلسَّاعَةُ الثَّانِيَةُ الْآنَ", translit: "അസ്-സാഅത്തുഥ്-ഥാനിയത്തുൽ ആൻ", options: ["ഇപ്പോൾ രണ്ട് മണിയാണ്", "ഇപ്പോൾ ഒരു മണിയാണ്", "നാളെ രാവിലെ", "വെള്ളിയാഴ്ച ഉച്ചയ്ക്ക്"], answer: "ഇപ്പോൾ രണ്ട് മണിയാണ്" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ഏത് ദിവസമാണെന്ന് തിരഞ്ഞെടുക്കുക", arabic: "أَمْسِ كَانَ الْخَمِيسَ", translit: "അംസി കാനൽ ഖമീസ", options: ["ഇന്നലെ വ്യാഴാഴ്ചയായിരുന്നു", "നാളെ വെള്ളിയാഴ്ചയാണ്", "ഇന്ന് ഞായറാഴ്ചയാണ്", "ഇന്നലെ തിങ്കളാഴ്ചയായിരുന്നു"], answer: "ഇന്നലെ വ്യാഴാഴ്ചയായിരുന്നു" }
+        ],
+        hardTitle: "സമയവും ദിവസങ്ങളും കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'ഇപ്പോൾ' (Now) എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?", options: ["اَلْآنَ", "غَدًا", "أَمْسِ", "نِصْفٌ"], isArabicOption: true, optionTranslits: { "اَلْآنَ": "അൽ-ആൻ", "غَدًا": "ഗദൻ", "أَمْسِ": "അംസി", "نِصْفٌ": "നിസ്ഫ്" }, answer: "اَلْآنَ" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 5 ട്രോഫി പരീക്ഷ"
+      },
+      u6: {
+        guidebookTip: "അറബിയിൽ വിശേഷണം (Adjective) എപ്പോഴും നാമത്തിന് ശേഷമാണ് വരിക: بَيْتٌ كَبِيرٌ (വീട് + വലിയ = വലിയ വീട്). സ്ത്രീലിംഗ നാമങ്ങളോടൊപ്പം നിറം മാറും: أَحْمَرُ → حَمْرَاءُ (ചുവന്ന).",
+        mascot: { kind: "owl", greetingAr: "جَمِيلٌ جِدًّا!", greetingTr: "ജമീലുൻ ജിദ്ദൻ!", secondaryAr: "أَخْضَرُ", secondaryMl: "പച്ച" },
+        guidebook: [
+          { ar: "أَحْمَرُ / حَمْرَاءُ", tr: "അഹ്മർ / ഹംറാഅ്", ml: "ചുവപ്പ് (പു./സ്ത്രീ.)" },
+          { ar: "أَزْرَقُ / أَخْضَرُ", tr: "അസ്റഖ് / അഖ്ളർ", ml: "നീല / പച്ച" },
+          { ar: "أَصْفَرُ", tr: "അസ്ഫർ", ml: "മഞ്ഞ" },
+          { ar: "أَبْيَضُ / أَسْوَدُ", tr: "അബ്യള് / അസ്വദ്", ml: "വെള്ള / കറുപ്പ്" },
+          { ar: "كَبِيرٌ / صَغِيرٌ", tr: "കബീർ / സ്വഗീർ", ml: "വലുത് / ചെറുത്" },
+          { ar: "جَدِيدٌ / قَدِيمٌ", tr: "ജദീദ് / ഖദീം", ml: "പുതിയത് / പഴയത്" },
+          { ar: "جَمِيلٌ", tr: "ജമീൽ", ml: "മനോഹരം" },
+          { ar: "سَيَّارَةٌ حَمْرَاءُ", tr: "സയ്യാറത്തുൻ ഹംറാഅ്", ml: "ചുവന്ന കാർ" }
+        ],
+        dialogueTitle: "വസ്തുക്കളെ വിവരിക്കാം",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "'പച്ച മരം' എന്നതിന്റെ അർത്ഥമുള്ള പ്രയോഗം ഏതാണ്?", arabic: "شَجَرَةٌ خَضْرَاءُ", translit: "ശജറത്തുൻ ഖള്റാഅ്", options: ["പച്ച മരം", "ചുവന്ന കാർ", "വെള്ള വീട്", "നീല പേന"], answer: "പച്ച മരം" },
+          { type: "mcq", prompt: "'നീല പേന' എന്ന് അറബിയിൽ എങ്ങനെ പറയും?", options: ["قَلَمٌ أَزْرَقُ", "قَلَمٌ أَحْمَرُ", "كِتَابٌ قَدِيمٌ", "بَيْتٌ صَغِيرٌ"], isArabicOption: true, optionTranslits: { "قَلَمٌ أَزْرَقُ": "ഖലമുൻ അസ്റഖ്", "قَلَمٌ أَحْمَرُ": "ഖലമുൻ അഹ്മർ", "كِتَابٌ قَدِيمٌ": "കിതാബുൻ ഖദീം", "بَيْتٌ صَغِيرٌ": "ബയ്തുൻ സ്വഗീർ" }, answer: "قَلَمٌ أَزْرَقُ" },
+          { type: "pairs", prompt: "വിപരീത വിശേഷണങ്ങൾ യോജിപ്പിക്കുക", pairs: [{ ar: "طَوِيلٌ", tr: "ത്വവീൽ", ml: "നീളമുള്ളത്" }, { ar: "قَصِيرٌ", tr: "ഖസീർ", ml: "കുറിയത്" }, { ar: "نَظِيفٌ", tr: "നളീഫ്", ml: "വൃത്തിയുള്ളത്" }, { ar: "سَرِيعٌ", tr: "സരീഅ്", ml: "വേഗമുള്ളത്" }] },
+          { type: "wordbank", prompt: "'വൃത്തിയുള്ള വലിയ വീട്' എന്ന് അറബിയിൽ നിർമ്മിക്കുക", words: ["بَيْتٌ", "كَبِيرٌ", "وَنَظِيفٌ", "قَدِيمٌ"], isArabicWords: true, wordTranslits: { "بَيْتٌ": "ബയ്തുൻ", "كَبِيرٌ": "കബീറുൻ", "وَنَظِيفٌ": "വ നളീഫുൻ", "قَدِيمٌ": "ഖദീമുൻ" }, answer: ["بَيْتٌ", "كَبِيرٌ", "وَنَظِيفٌ"] }
+        ],
+        listeningTitle: "നിറങ്ങളും വിശേഷണങ്ങളും ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "هٰذَا قَمِيصٌ أَبْيَضُ", translit: "ഹാദാ ഖമീസുൻ അബ്യള്", options: ["ഇതൊരു വെള്ള ഷർട്ടാണ്", "ഇതൊരു കറുത്ത ഷർട്ടാണ്", "ഇതൊരു ചുവന്ന കാറാണ്", "ഇതൊരു പുതിയ പുസ്തകമാണ്"], answer: "ഇതൊരു വെള്ള ഷർട്ടാണ്" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ വിശേഷണം തിരഞ്ഞെടുക്കുക", arabic: "سَيَّارَةٌ سَرِيعَةٌ", translit: "സയ്യാറത്തുൻ സരീഅത്തുൻ", options: ["വേഗതയുള്ള കാർ", "പഴയ കാർ", "ചെറിയ വീട്", "മഞ്ഞ പുസ്തകം"], answer: "വേഗതയുള്ള കാർ" }
+        ],
+        hardTitle: "വിശേഷണങ്ങൾ കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'മനോഹരം' (Beautiful) എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?", options: ["جَمِيلٌ", "قَدِيمٌ", "صَغِيرٌ", "أَسْوَدُ"], isArabicOption: true, optionTranslits: { "جَمِيلٌ": "ജമീൽ", "قَدِيمٌ": "ഖദീം", "صَغِيرٌ": "സ്വഗീർ", "أَسْوَدُ": "അസ്വദ്" }, answer: "جَمِيلٌ" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 6 ട്രോഫി പരീക്ഷ"
+      },
+      u7: {
+        guidebookTip: "വഴി ചോദിക്കാൻ 'أَيْنَ ...' (അയ്ന = എവിടെ?) ഉപയോഗിക്കുക. ദിശ പറയുമ്പോൾ 'إِلَى الْيَمِينِ' (വലത്തോട്ട്), 'إِلَى الْيَسَارِ' (ഇടത്തോട്ട്) എന്നിവ പ്രയോജനപ്പെടും.",
+        mascot: { kind: "compass", greetingAr: "رِحْلَةٌ سَعِيدَةٌ!", greetingTr: "രിഹ്‌ലത്തുൻ സഈദ!", secondaryAr: "يَمِينٌ", secondaryMl: "വലത്" },
+        guidebook: [
+          { ar: "مَدْرَسَةٌ / مَسْجِدٌ", tr: "മദ്റസ / മസ്ജിദ്", ml: "സ്കൂൾ / പള്ളി" },
+          { ar: "مُسْتَشْفًى / سُوقٌ", tr: "മുസ്തശ്ഫ / സൂഖ്", ml: "ആശുപത്രി / മാർക്കറ്റ്" },
+          { ar: "مَطَارٌ / تَذْكِرَةٌ", tr: "മത്വാർ / തദ്കിറ", ml: "വിമാനത്താവളം / ടിക്കറ്റ്" },
+          { ar: "يَمِينٌ / يَسَارٌ", tr: "യമീൻ / യസാർ", ml: "വലത് / ഇടത്" },
+          { ar: "أَمَامَ / خَلْفَ", tr: "അമാമ / ഖൽഫ", ml: "മുന്നിൽ / പിന്നിൽ" },
+          { ar: "هُنَا / هُنَاكَ", tr: "ഹുനാ / ഹുനാക", ml: "ഇവിടെ / അവിടെ" },
+          { ar: "قَرِيبٌ / بَعِيدٌ", tr: "ഖരീബ് / ബഈദ്", ml: "അടുത്ത് / ദൂരെ" },
+          { ar: "أَيْنَ الْمَطَارُ؟", tr: "അയ്നൽ മത്വാർ?", ml: "വിമാനത്താവളം എവിടെയാണ്?" }
+        ],
+        dialogueTitle: "യാത്രയിലും വഴിചോദിക്കലും",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "'ബസ്' (Bus) എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?", options: ["حَافِلَةٌ", "مَطَارٌ", "تَذْكِرَةٌ", "سُوقٌ"], isArabicOption: true, optionTranslits: { "حَافِلَةٌ": "ഹാഫില", "مَطَارٌ": "മത്വാർ", "تَذْكِرَةٌ": "തദ്കിറ", "سُوقٌ": "സൂഖ്" }, answer: "حَافِلَةٌ" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ദിശാ നിർദ്ദേശം തിരഞ്ഞെടുക്കുക", arabic: "اِذْهَبْ إِلَى الْيَمِينِ", translit: "ഇദ്ഹബ് ഇലൽ യമീൻ", options: ["വലത്തോട്ട് പോകൂ", "ഇടത്തോട്ട് പോകൂ", "ഇവിടെ നിൽക്കൂ", "വിമാനത്താവളം ദൂരെയാണ്"], answer: "വലത്തോട്ട് പോകൂ" },
+          { type: "pairs", prompt: "യാത്രാ പദങ്ങൾ യോജിപ്പിക്കുക", pairs: [{ ar: "قَرِيبٌ", tr: "ഖരീബ്", ml: "അടുത്ത്" }, { ar: "بَعِيدٌ", tr: "ബഈദ്", ml: "ദൂരെ" }, { ar: "طَائِرَةٌ", tr: "ത്വാഇറ", ml: "വിമാനം" }, { ar: "فُنْدُقٌ", tr: "ഫുന്ദുഖ്", ml: "ഹോട്ടൽ" }] },
+          { type: "wordbank", prompt: "'ഹോട്ടൽ ഇവിടെ അടുത്താണ്' എന്ന് അറബിയിൽ എഴുതുക", words: ["اَلْفُنْدُقُ", "قَرِيبٌ", "هُنَا", "بَعِيدٌ"], isArabicWords: true, wordTranslits: { "اَلْفُنْدُقُ": "അൽ-ഫുന്ദുഖു", "قَرِيبٌ": "ഖരീബുൻ", "هُنَا": "ഹുനാ", "بَعِيدٌ": "ബഈദുൻ" }, answer: ["اَلْفُنْدُقُ", "قَرِيبٌ", "هُنَا"] }
+        ],
+        listeningTitle: "സ്ഥല-ദിശാ ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "اَلْمُسْتَشْفَى عَلَى الْيَسَارِ", translit: "അൽ-മുസ്തശ്ഫ അലൽ യസാർ", options: ["ആശുപത്രി ഇടതുവശത്താണ്", "ആശുപത്രി വലതുവശത്താണ്", "പള്ളി വീടിന് പിന്നിലാണ്", "സ്കൂൾ വളരെ ദൂരെയാണ്"], answer: "ആശുപത്രി ഇടതുവശത്താണ്" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് അർത്ഥം കണ്ടെത്തുക", arabic: "رِحْلَةٌ سَعِيدَةٌ", translit: "രിഹ്‌ലത്തുൻ സഈദത്തുൻ", options: ["ശുഭയാത്ര!", "എനിക്ക് ടിക്കറ്റ് വേണം", "മാർക്കറ്റ് എവിടെയാണ്?", "ഇവിടെ വരൂ"], answer: "ശുഭയാത്ര!" }
+        ],
+        hardTitle: "യാത്രയും ദിശകളും കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'ദൂരെ' (Far) എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?", options: ["بَعِيدٌ", "قَرِيبٌ", "أَمَامَ", "هُنَا"], isArabicOption: true, optionTranslits: { "بَعِيدٌ": "ബഈദ്", "قَرِيبٌ": "ഖരീബ്", "أَمَامَ": "അമാമ", "هُنَا": "ഹുനാ" }, answer: "بَعِيدٌ" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 7 ട്രോഫി പരീക്ഷ"
+      },
+      u8: {
+        guidebookTip: "കടയിൽ വില ചോദിക്കാൻ 'بِكَمْ هٰذَا؟' (ബികം ഹാദാ? = ഇതിന് എത്ര വില?) എന്നും കടക്കാരൻ സാധനം നൽകുമ്പോൾ 'تَفَضَّلْ' (തഫള്ള്വൽ = ഇതാ സ്വീകരിക്കൂ) എന്നും പറയും.",
+        mascot: { kind: "lantern", greetingAr: "تَفَضَّلْ!", greetingTr: "തഫള്ള്വൽ!", secondaryAr: "عَشَرَةٌ", secondaryMl: "പത്ത് (10)" },
+        guidebook: [
+          { ar: "سِتَّةٌ / سَبْعَةٌ", tr: "സിത്ത / സബ്അ", ml: "ആറ് (6) / ഏഴ് (7)" },
+          { ar: "ثَمَانِيَةٌ / تِسْعَةٌ", tr: "ഥമാനിയ / തിസ്അ", ml: "എട്ട് (8) / ഒൻപത് (9)" },
+          { ar: "عَشَرَةٌ", tr: "അശറ", ml: "പത്ത് (10)" },
+          { ar: "بِكَمْ هٰذَا؟", tr: "ബികം ഹാദാ?", ml: "ഇതിന് എത്ര വിലയാണ്?" },
+          { ar: "غَالٍ / رَخِيصٌ", tr: "ഗാലീ / റഖീസ്", ml: "വില കൂടിയത് / വില കുറഞ്ഞത്" },
+          { ar: "نُقُودٌ / رِيَالٌ", tr: "നുഖൂദ് / രിയാൽ", ml: "പണം / റിയാൽ" },
+          { ar: "أُرِيدُ شِرَاءَ...", tr: "ഉരീദു ശിറാഅ...", ml: "എനിക്ക് വാങ്ങണം..." },
+          { ar: "تَفَضَّلْ", tr: "തഫള്ള്വൽ", ml: "ഇതാ സ്വീകരിക്കൂ / ദയവായി വരൂ" }
+        ],
+        dialogueTitle: "കടയിലെ വിലപേശലും വാങ്ങലും",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "'കട' (Shop / Store) എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?", options: ["دُكَّانٌ", "نُقُودٌ", "رَخِيصٌ", "غَالٍ"], isArabicOption: true, optionTranslits: { "دُكَّانٌ": "ദുക്കാൻ", "نُقُودٌ": "നുഖൂദ്", "رَخِيصٌ": "റഖീസ്", "غَالٍ": "ഗാലീ" }, answer: "دُكَّانٌ" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് വില എത്രയാണെന്ന് തിരഞ്ഞെടുക്കുക", arabic: "هٰذَا بِسَبْعَةِ رِيَالَاتٍ", translit: "ഹാദാ ബിസബ്അത്തി രിയാലാത്ത്", options: ["ഇതിന് ഏഴ് റിയാലാണ്", "ഇതിന് പത്ത് റിയാലാണ്", "ഇതിന് ആറ് റിയാലാണ്", "ഇതിന് ഒൻപത് റിയാലാണ്"], answer: "ഇതിന് ഏഴ് റിയാലാണ്" },
+          { type: "pairs", prompt: "ഷോപ്പിംഗ് വാക്കുകൾ യോജിപ്പിക്കുക", pairs: [{ ar: "دُكَّانٌ", tr: "ദുക്കാൻ", ml: "കട" }, { ar: "قَمِيصٌ", tr: "ഖമീസ്", ml: "ഷർട്ട്" }, { ar: "حَقِيبَةٌ", tr: "ഹഖീബ", ml: "ബാഗ്" }, { ar: "خَصْمٌ", tr: "ഖസ്മ്", ml: "ഡിസ്കൗണ്ട് / ഇളവ്" }] },
+          { type: "wordbank", prompt: "'ഇതാ പണം, നന്ദി' എന്ന് അറബിയിൽ എഴുതുക", words: ["تَفَضَّلِ", "النُّقُودَ،", "شُكْرًا", "غَالٍ"], isArabicWords: true, wordTranslits: { "تَفَضَّلِ": "തഫള്ള്വൽ", "النُّقُودَ،": "അൻ-നുഖൂദ,", "شُكْرًا": "ശുക്റൻ", "غَالٍ": "ഗാലീ" }, answer: ["تَفَضَّلِ", "النُّقُودَ،", "شُكْرًا"] }
+        ],
+        listeningTitle: "ഷോപ്പിംഗ് & സംഖ്യാ ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "هَلْ عِنْدَكَ حَقِيبَةٌ جَدِيدَةٌ؟", translit: "ഹൽ ഇന്ദക ഹഖീബത്തുൻ ജദീദ?", options: ["നിങ്ങളുടെ കയ്യിൽ പുതിയ ബാഗ് ഉണ്ടോ?", "ഈ ഷർട്ടിന് എത്ര വിലയാണ്?", "ഇത് വളരെ വില കുറഞ്ഞതാണ്", "എനിക്ക് പത്ത് റിയാൽ വേണം"], answer: "നിങ്ങളുടെ കയ്യിൽ പുതിയ ബാഗ് ഉണ്ടോ?" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് സംഖ്യ തിരഞ്ഞെടുക്കുക", arabic: "تِسْعَةُ رِيَالَاتٍ", translit: "തിസ്അത്തു രിയാലാത്ത്", options: ["ഒൻപത് റിയാൽ (9)", "ഏഴ് റിയാൽ (7)", "എട്ട് റിയാൽ (8)", "ആറ് റിയാൽ (6)"], answer: "ഒൻപത് റിയാൽ (9)" }
+        ],
+        hardTitle: "ഷോപ്പിംഗ് കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'വില കുറഞ്ഞത്' (Cheap) എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?", options: ["رَخِيصٌ", "غَالٍ", "نُقُودٌ", "قَمِيصٌ"], isArabicOption: true, optionTranslits: { "رَخِيصٌ": "റഖീസ്", "غَالٍ": "ഗാലീ", "نُقُودٌ": "നുഖൂദ്", "قَمِيصٌ": "ഖമീസ്" }, answer: "رَخِيصٌ" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 8 ട്രോഫി പരീക്ഷ"
+      },
+      u9: {
+        guidebookTip: "'ഞാൻ ചെയ്യുന്നു' എന്ന വർത്തമാനകാല ക്രിയ (Present Tense) തുടങ്ങുന്നത് എപ്പോഴും 'أَ' (അ) എന്ന അക്ഷരത്തിലാണ്: أَذْهَبُ (ഞാൻ പോകുന്നു), أَقْرَأُ (ഞാൻ വായിക്കുന്നു), أَكْتُبُ (ഞാൻ എഴുതുന്നു).",
+        mascot: { kind: "book", greetingAr: "أَقْرَأُ كُلَّ يَوْمٍ!", greetingTr: "അഖ്റഉ കുല്ല യൗമിൻ!", secondaryAr: "أَكْتُبُ", secondaryMl: "എഴുതുന്നു" },
+        guidebook: [
+          { ar: "ذَهَبَ / جَلَسَ", tr: "ദഹബ / ജലസ", ml: "അവൻ പോയി / അവൻ ഇരുന്നു" },
+          { ar: "أَكَلَ / شَرِبَ", tr: "അകല / ശരിബ", ml: "അവൻ കഴിച്ചു / അവൻ കുടിച്ചു" },
+          { ar: "نَامَ", tr: "നാമ", ml: "അവൻ ഉറങ്ങി" },
+          { ar: "أَذْهَبُ", tr: "അദ്ഹബു", ml: "ഞാൻ പോകുന്നു" },
+          { ar: "أَقْرَأُ / أَكْتُبُ", tr: "അഖ്റഉ / അക്തുബു", ml: "ഞാൻ വായിക്കുന്നു / എഴുതുന്നു" },
+          { ar: "أَشْرَبُ", tr: "അശ്റബു", ml: "ഞാൻ കുടിക്കുന്നു" },
+          { ar: "أَسْتَيْقِظُ مُبَكِّرًا", tr: "അസ്തയ്ഖിളു മുബക്കിറൻ", ml: "ഞാൻ അതിരാവിലെ ഉണരുന്നു" },
+          { ar: "أَذْهَبُ إِلَى الْمَدْرَسَةِ", tr: "അദ്ഹബു ഇലൽ മദ്റസ", ml: "ഞാൻ സ്കൂളിലേക്ക് പോകുന്നു" }
+        ],
+        dialogueTitle: "ദിനചര്യയെക്കുറിച്ച് സംസാരിക്കാം",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "'ഞാൻ ജോലി ചെയ്യുന്നു' എന്നതിന്റെ അറബി ക്രിയ ഏതാണ്?", options: ["أَعْمَلُ", "أَنَامُ", "أَشْرَبُ", "أَجْلِسُ"], isArabicOption: true, optionTranslits: { "أَعْمَلُ": "അഅ്മലു", "أَنَامُ": "അനാമു", "أَشْرَبُ": "അശ്റബു", "أَجْلِسُ": "അജ്ലിസു" }, answer: "أَعْمَلُ" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ദിനചര്യാ വാക്യത്തിന്റെ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "أَقْرَأُ الْكِتَابَ فِي الْمَسَاءِ", translit: "അഖ്റഉൽ കിതാബ ഫിൽ മസാഅ്", options: ["ഞാൻ വൈകുന്നേരം പുസ്തകം വായിക്കുന്നു", "ഞാൻ രാവിലെ സ്കൂളിൽ പോകുന്നു", "ഞാൻ രാത്രി നേരത്തെ ഉറങ്ങുന്നു", "ഞാൻ പാൽ കുടിക്കുന്നു"], answer: "ഞാൻ വൈകുന്നേരം പുസ്തകം വായിക്കുന്നു" },
+          { type: "pairs", prompt: "ക്രിയകളും അർത്ഥങ്ങളും യോജിപ്പിക്കുക", pairs: [{ ar: "أَعْمَلُ", tr: "അഅ്മലു", ml: "ഞാൻ ജോലി ചെയ്യുന്നു" }, { ar: "أَنَامُ", tr: "അനാമു", ml: "ഞാൻ ഉറങ്ങുന്നു" }, { ar: "آكُلُ", tr: "ആകുലു", ml: "ഞാൻ കഴിക്കുന്നു" }, { ar: "أَجْلِسُ", tr: "അജ്ലിസു", ml: "ഞാൻ ഇരിക്കുന്നു" }] },
+          { type: "wordbank", prompt: "'ഞാൻ എല്ലാ ദിവസവും അറബി പഠിക്കുന്നു' എന്ന് വിവർത്തനം ചെയ്യുക", arabic: "أَتَعَلَّمُ الْعَرَبِيَّةَ كُلَّ يَوْمٍ", translit: "അതഅല്ലമുൽ അറബിയ്യത്ത കുല്ല യൗമിൻ", words: ["ഞാൻ", "എല്ലാ ദിവസവും", "അറബി", "പഠിക്കുന്നു", "ഉറങ്ങുന്നു"], answer: ["ഞാൻ", "എല്ലാ ദിവസവും", "അറബി", "പഠിക്കുന്നു"] }
+        ],
+        listeningTitle: "പ്രവൃത്തികളുടെ ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "أَنَامُ مُبَكِّرًا فِي اللَّيْلِ", translit: "അനാമു മുബക്കിറൻ ഫിൽ ലയ്ൽ", options: ["ഞാൻ രാത്രി നേരത്തെ ഉറങ്ങുന്നു", "ഞാൻ രാവിലെ നേരത്തെ ഉണരുന്നു", "ഞാൻ ഭക്ഷണം കഴിക്കുന്നു", "ഞാൻ പാഠം എഴുതുന്നു"], answer: "ഞാൻ രാത്രി നേരത്തെ ഉറങ്ങുന്നു" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "ذَهَبَ إِلَى الْمَسْجِدِ", translit: "ദഹബ ഇലൽ മസ്ജിദ്", options: ["അവൻ പള്ളിയിലേക്ക് പോയി", "അവൻ വീട്ടിൽ ഇരുന്നു", "അവൻ വെള്ളം കുടിച്ചു", "അവൻ പുസ്തകം വായിച്ചു"], answer: "അവൻ പള്ളിയിലേക്ക് പോയി" }
+        ],
+        hardTitle: "ക്രിയകൾ കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'ഞാൻ എഴുതുന്നു' എന്നതിന്റെ അറബി ക്രിയ ഏതാണ്?", options: ["أَكْتُبُ", "أَقْرَأُ", "أَذْهَبُ", "أَشْرَبُ"], isArabicOption: true, optionTranslits: { "أَكْتُبُ": "അക്തുബു", "أَقْرَأُ": "അഖ്റഉ", "أَذْهَبُ": "അദ്ഹബു", "أَشْرَبُ": "അശ്റബു" }, answer: "أَكْتُبُ" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 9 ട്രോഫി പരീക്ഷ"
+      },
+      u10: {
+        guidebookTip: "ഇതുവരെ പഠിച്ച അഭിവാദ്യങ്ങൾ, സമയം, വില, ക്രിയകൾ, മര്യാദാവാക്കുകൾ എന്നിവ കൂട്ടിച്ചേർത്ത് യഥാർത്ഥ ജീവിതത്തിലെ സമ്പൂർണ്ണ അറബി സംഭാഷണങ്ങൾ ആത്മവിശ്വാസത്തോടെ സംസാരിക്കാം!",
+        mascot: { kind: "owl", greetingAr: "أَحْسَنْتَ يَا بَطَلُ!", greetingTr: "അഹ്‌സൻത യാ ബത്വൽ!", secondaryAr: "مُمْتَازٌ", secondaryMl: "ഗംഭീരം!" },
+        guidebook: [
+          { ar: "مَطْعَمٌ / قَائِمَةُ الطَّعَامِ", tr: "മത്വ്അം / ഖാഇമത്തുത്ത്വആം", ml: "റെസ്റ്റോറന്റ് / ഭക്ഷണ മെനു" },
+          { ar: "اَلطَّعَامُ لَذِيذٌ", tr: "അത്ത്വആമു ലദീദ്", ml: "ഭക്ഷണം രുചികരമാണ്" },
+          { ar: "اَلْحِسَابُ مِنْ فَضْلِكَ", tr: "അൽ-ഹിസാബ് മിൻ ഫള്‌ലിക", ml: "ദയവായി ബിൽ തരൂ" },
+          { ar: "أَنَا مَرِيضٌ", tr: "അനാ മരീള്", ml: "എനിക്ക് സുഖമില്ല" },
+          { ar: "طَبِيبٌ / دَوَاءٌ", tr: "ത്വബീബ് / ദവാഅ്", ml: "ഡോക്ടർ / മരുന്ന്" },
+          { ar: "شَفَاكَ اللّٰهُ", tr: "ശഫാകല്ലാഹ്", ml: "ദൈവം നിങ്ങൾക്ക് സുഖം നൽകട്ടെ" },
+          { ar: "مَاءٌ بَارِدٌ", tr: "മാഉൻ ബാരിദ്", ml: "തണുത്ത വെള്ളം" },
+          { ar: "مُمْتَازٌ / أَحْسَنْتَ", tr: "മുംതാസ് / അഹ്‌സൻത", ml: "ഗംഭീരം / വളരെ നന്ന്" }
+        ],
+        dialogueTitle: "യഥാർത്ഥ ജീവിത സംഭാഷണങ്ങൾ",
+        dialogueQuestions: [
+          { type: "mcq", prompt: "'തണുത്ത വെള്ളം' എന്ന് അറബിയിൽ എങ്ങനെ പറയും?", options: ["مَاءٌ بَارِدٌ", "طَعَامٌ لَذِيذٌ", "اَلْحِسَابُ", "دَوَاءٌ جَدِيدٌ"], isArabicOption: true, optionTranslits: { "مَاءٌ بَارِدٌ": "മാഉൻ ബാരിദ്", "طَعَامٌ لَذِيذٌ": "ത്വആമുൻ ലദീദ്", "اَلْحِسَابُ": "അൽ-ഹിസാബ്", "دَوَاءٌ جَدِيدٌ": "ദവാഉൻ ജദീദ്" }, answer: "مَاءٌ بَارِدٌ" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് റെസ്റ്റോറന്റ് വാക്യത്തിന്റെ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "أُرِيدُ قَائِمَةَ الطَّعَامِ مِنْ فَضْلِكَ", translit: "ഉരീദു ഖാഇമത്തത്ത്വആമി മിൻ ഫള്‌ലിക", options: ["ദയവായി എനിക്ക് മെനു തരൂ", "ദയവായി എനിക്ക് ബിൽ തരൂ", "ഭക്ഷണം വളരെ രുചികരമാണ്", "ഡോക്ടർ എവിടെയാണ്?"], answer: "ദയവായി എനിക്ക് മെനു തരൂ" },
+          { type: "pairs", prompt: "സംഭാഷണ വാക്യങ്ങൾ യോജിപ്പിക്കുക", pairs: [{ ar: "مَاءٌ بَارِدٌ", tr: "മാഉൻ ബാരിദ്", ml: "തണുത്ത വെള്ളം" }, { ar: "أُرِيدُ طَبِيبًا", tr: "ഉരീദു ത്വബീബൻ", ml: "എനിക്ക് ഡോക്ടറെ കാണണം" }, { ar: "بِالْهَنَاءِ وَالشِّفَاءِ", tr: "ബിൽഹനാഇ വശ്ശിഫാഅ്", ml: "ഭക്ഷണം ആസ്വദിക്കൂ" }, { ar: "أَحْسَنْتَ", tr: "അഹ്‌സൻത", ml: "വളരെ നന്ന്" }] },
+          { type: "wordbank", prompt: "'ദയവായി തണുത്ത വെള്ളം തരൂ' എന്ന് അറബിയിൽ ക്രമീകരിക്കുക", words: ["أُرِيدُ", "مَاءً", "بَارِدًا", "مَرِيضٌ"], isArabicWords: true, wordTranslits: { "أُرِيدُ": "ഉരീദു", "مَاءً": "മാഅൻ", "بَارِدًا": "ബാരിദൻ", "مَرِيضٌ": "മരീള്" }, answer: ["أُرِيدُ", "مَاءً", "بَارِدًا"] }
+        ],
+        listeningTitle: "സമ്പൂർണ്ണ ശ്രവണ വെല്ലുവിളി",
+        extraListeningQuestions: [
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് ശരിയായ അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "أَشْعُرُ بِتَحَسُّنٍ الْيَوْمَ", translit: "അശ്ഉറു ബിതഹസ്സുനിൻ അൽ-യൗം", options: ["ഇന്ന് എനിക്ക് ഭേദമുണ്ട്", "എനിക്ക് സുഖമില്ല", "ഭക്ഷണം രുചികരമാണ്", "വിമാനത്താവളം അടുത്താണ്"], answer: "ഇന്ന് എനിക്ക് ഭേദമുണ്ട്" },
+          { type: "listen", prompt: "ശബ്ദം കേട്ട് അർത്ഥം തിരഞ്ഞെടുക്കുക", arabic: "شُكْرًا، اَلطَّعَامُ لَذِيذٌ جِدًّا", translit: "ശുക്റൻ, അത്ത്വആമു ലദീദുൻ ജിദ്ദൻ", options: ["നന്ദി, ഭക്ഷണം വളരെ രുചികരമാണ്", "ദയവായി ബിൽ തരൂ", "എനിക്ക് മരുന്ന് വേണം", "വേഗം സുഖമാകട്ടെ"], answer: "നന്ദി, ഭക്ഷണം വളരെ രുചികരമാണ്" }
+        ],
+        hardTitle: "സംഭാഷണ കഠിന പരിശീലനം",
+        hardExtraQuestions: [
+          { type: "mcq", prompt: "'ഡോക്ടർ' എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?", options: ["طَبِيبٌ", "مَرِيضٌ", "دَوَاءٌ", "مَطْعَمٌ"], isArabicOption: true, optionTranslits: { "طَبِيبٌ": "ത്വബീബ്", "مَرِيضٌ": "മരീള്", "دَوَاءٌ": "ദവാഅ്", "مَطْعَمٌ": "മത്വ്അം" }, answer: "طَبِيبٌ" }
+        ],
+        trophyTitle: "യൂണിറ്റ് 10 ഗ്രാൻഡ് ട്രോഫി പരീക്ഷ"
+      }
+    };
+
+    function expandUnitsToEightNodes(baseUnits) {
+      const cloneQs = qs => JSON.parse(JSON.stringify(qs));
+      return baseUnits.map(unit => {
+        const pack = UNIT_EXPANSION_PACKS[unit.id];
+        const [base1, base2, base3] = unit.lessons;
+        const allBase = unit.lessons.flatMap(l => l.questions);
+        const listens = allBase.filter(q => q.type === "listen");
+        const pairs = allBase.filter(q => q.type === "pairs");
+        const wordbanks = allBase.filter(q => q.type === "wordbank");
+        const mcqs = allBase.filter(q => q.type === "mcq");
+
+        const listeningQuestions = [];
+        if (pack?.extraListeningQuestions[0]) listeningQuestions.push(pack.extraListeningQuestions[0]);
+        if (listens[0]) listeningQuestions.push(listens[0]);
+        if (pack?.extraListeningQuestions[1]) listeningQuestions.push(pack.extraListeningQuestions[1]);
+        if (pack?.guidebook && pack.guidebook.length >= 4) {
+          listeningQuestions.push({
+            type: "pairs",
+            prompt: "കേട്ട് അതിവേഗം ജോഡികൾ യോജിപ്പിക്കുക",
+            pairs: pack.guidebook.slice(0, 4).map(g => ({ ar: g.ar.split(" / ")[0], tr: g.tr.split(" / ")[0], ml: g.ml.split(" / ")[0] }))
+          });
+        } else if (pairs[0]) {
+          listeningQuestions.push(pairs[0]);
+        }
+
+        const hardQuestions = [];
+        if (pack?.hardExtraQuestions[0]) hardQuestions.push(pack.hardExtraQuestions[0]);
+        if (wordbanks[0]) hardQuestions.push(wordbanks[0]);
+        if (pack?.dialogueQuestions[3]) hardQuestions.push(pack.dialogueQuestions[3]);
+        if (mcqs[mcqs.length - 1]) hardQuestions.push(mcqs[mcqs.length - 1]);
+        if (listens[listens.length - 1]) hardQuestions.push(listens[listens.length - 1]);
+
+        const trophyQuestions = [];
+        if (mcqs[0]) trophyQuestions.push(mcqs[0]);
+        if (pairs[pairs.length - 1]) trophyQuestions.push(pairs[pairs.length - 1]);
+        if (pack?.dialogueQuestions[1]) trophyQuestions.push(pack.dialogueQuestions[1]);
+        if (wordbanks[wordbanks.length - 1]) trophyQuestions.push(wordbanks[wordbanks.length - 1]);
+        if (pack?.dialogueQuestions[0]) trophyQuestions.push(pack.dialogueQuestions[0]);
+
+        return {
+          ...unit,
+          guidebookTip: pack?.guidebookTip || "",
+          guidebook: pack?.guidebook || [],
+          mascot: pack?.mascot || { kind: "owl", greetingAr: "مُمْتَازٌ!", greetingTr: "മുംതാസ്!", secondaryAr: "عَرَبِيّ", secondaryMl: "അറബി" },
+          lessons: [
+            { id: `${unit.id}_n1`, title: base1.title, subtitle: "അടിസ്ഥാന പദാവലി", icon: "⭐", nodeType: "lesson", xpReward: 15, questions: cloneQs(base1.questions) },
+            { id: `${unit.id}_n2`, title: base2.title, subtitle: "ഉച്ചാരണവും പരിശീലനവും", icon: "📖", nodeType: "practice", xpReward: 15, questions: cloneQs(base2.questions) },
+            { id: `${unit.id}_n3`, title: base3.title, subtitle: "വാക്യ നിർമ്മാണം", icon: "🧩", nodeType: "wordbank", xpReward: 15, questions: cloneQs(base3.questions) },
+            { id: `${unit.id}_n4`, title: "നിധിപ്പെട്ടി · ബോണസ്", subtitle: "+25 XP · +1 ❤️", icon: "🎁", nodeType: "chest", xpReward: TREASURE_CHEST_XP, heartReward: TREASURE_CHEST_HEARTS, questions: [] },
+            { id: `${unit.id}_n5`, title: pack?.dialogueTitle || "നിത്യോപയോഗ സംഭാഷണം", subtitle: "ദൈനംദിന പ്രയോഗം", icon: "💬", nodeType: "dialogue", xpReward: 15, questions: cloneQs(pack?.dialogueQuestions || base3.questions) },
+            { id: `${unit.id}_n6`, title: pack?.listeningTitle || "ശ്രവണ വെല്ലുവിളി", subtitle: "കേട്ട് മനസ്സിലാക്കാം", icon: "🎧", nodeType: "listening", xpReward: 20, questions: cloneQs(listeningQuestions) },
+            { id: `${unit.id}_n7`, title: pack?.hardTitle || "കഠിന പരിശീലനം", subtitle: "മിക്സഡ് വെല്ലുവിളി", icon: "⚡", nodeType: "hard", xpReward: 20, questions: cloneQs(hardQuestions) },
+            { id: `${unit.id}_n8`, title: pack?.trophyTitle || `യൂണിറ്റ് ${unit.number} ട്രോഫി പരീക്ഷ`, subtitle: "അടുത്ത യൂണിറ്റ് അൺലോക്ക്", icon: "🏆", nodeType: "trophy", xpReward: 25, questions: cloneQs(trophyQuestions) }
+          ]
+        };
+      });
+    }
+
+    const UNITS = expandUnitsToEightNodes(BASE_UNITS);
 
     const PLACEMENT_QUESTIONS = [
       { type: "mcq", prompt: "ചോദ്യം 1/8: 'ജി' (Ji) എന്ന ശബ്ദമുള്ള അക്ഷരം ഏതാണ്?", options: ["جَ", "جِ", "جُ", "حِ"], isArabicOption: true, answer: "جِ" },
@@ -1272,11 +1722,26 @@
     // ================= PERSISTENCE & FIREBASE SYNC =================
     function getAllLessonIds() { return UNITS.flatMap(u => u.lessons.map(l => l.id)); }
 
+    function migrateLegacyCompletedIds(ids) {
+      const validIds = new Set(getAllLessonIds());
+      const out = new Set();
+      (Array.isArray(ids) ? ids : []).forEach(id => {
+        if (validIds.has(id)) { out.add(id); return; }
+        const m = /^u(\d+)_l(\d+)$/.exec(id);
+        if (m) {
+          const mapped = `u${m[1]}_n${m[2]}`;
+          if (validIds.has(mapped)) out.add(mapped);
+        }
+      });
+      return Array.from(out);
+    }
+
     function loadLocalState() {
       const autostart = new URLSearchParams(window.location.search).get("autostart") === "1";
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         userState = { ...userState, ...JSON.parse(saved) };
+        userState.completedLessons = migrateLegacyCompletedIds(userState.completedLessons);
         checkStreak();
         return Boolean(userState.name);
       }
@@ -1362,7 +1827,80 @@
     document.getElementById("start-basics-btn").addEventListener("click", () => completeOnboarding(false));
     document.getElementById("start-placement-btn").addEventListener("click", () => completeOnboarding(true));
 
-    // ================= LEARNING PATH (10 UNITS / 30 LESSONS) =================
+    // ================= LEARNING PATH (10 UNITS / 80 WINDING NODES) =================
+    function buildOwlMascotSvg(accentHex) {
+      return `
+        <svg viewBox="0 0 110 110" class="w-20 h-20 sm:w-24 sm:h-24 drop-shadow-sm" aria-hidden="true">
+          <ellipse cx="55" cy="98" rx="30" ry="6" fill="#CBD5E1" opacity="0.55"/>
+          <path d="M24 58 C24 30, 86 30, 86 58 C86 84, 74 94, 55 94 C36 94, 24 84, 24 58 Z" fill="${accentHex}"/>
+          <path d="M35 66 C35 53, 75 53, 75 66 C75 84, 66 90, 55 90 C44 90, 35 84, 35 66 Z" fill="#FFFFFF" opacity="0.9"/>
+          <polygon points="29,38 38,24 46,35" fill="${accentHex}"/>
+          <polygon points="81,38 72,24 64,35" fill="${accentHex}"/>
+          <circle cx="43" cy="52" r="11" fill="#FFFFFF"/>
+          <circle cx="67" cy="52" r="11" fill="#FFFFFF"/>
+          <circle cx="44" cy="52" r="5.5" fill="#1E293B"/>
+          <circle cx="68" cy="52" r="5.5" fill="#1E293B"/>
+          <circle cx="46" cy="50" r="2" fill="#FFFFFF"/>
+          <circle cx="70" cy="50" r="2" fill="#FFFFFF"/>
+          <polygon points="55,56 49,64 61,64" fill="#F59E0B"/>
+          <path d="M22 60 C15 64, 15 76, 25 78" fill="none" stroke="${accentHex}" stroke-width="6" stroke-linecap="round"/>
+          <path d="M88 60 C95 64, 95 76, 85 78" fill="none" stroke="${accentHex}" stroke-width="6" stroke-linecap="round"/>
+          <path d="M44 25 Q55 18 66 25" fill="none" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="55" cy="18" r="3" fill="#F59E0B"/>
+        </svg>`;
+    }
+
+    function buildCulturalCompanionSvg(kind) {
+      if (kind === "lantern") {
+        return `<svg viewBox="0 0 100 100" class="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-sm" aria-hidden="true">
+          <ellipse cx="50" cy="92" rx="22" ry="5" fill="#CBD5E1" opacity="0.5"/>
+          <path d="M44 14 Q50 6 56 14" fill="none" stroke="#D97706" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M35 28 L50 15 L65 28 Z" fill="#F59E0B"/>
+          <rect x="33" y="28" width="34" height="44" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="3.5"/>
+          <rect x="42" y="34" width="16" height="32" rx="6" fill="#FDE047"/>
+          <path d="M30 72 L70 72 L64 84 L36 84 Z" fill="#D97706"/>
+          <circle cx="50" cy="50" r="5" fill="#FFFFFF" opacity="0.9"/>
+        </svg>`;
+      }
+      if (kind === "crescent") {
+        return `<svg viewBox="0 0 100 100" class="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-sm" aria-hidden="true">
+          <circle cx="50" cy="50" r="38" fill="#E0F2FE"/>
+          <path d="M58 24 A24 24 0 1 0 74 68 A19 19 0 1 1 58 24 Z" fill="#F59E0B"/>
+          <polygon points="68,30 70,36 76,36 71,40 73,46 68,42 63,46 65,40 60,36 66,36" fill="#0EA5E9"/>
+        </svg>`;
+      }
+      if (kind === "compass") {
+        return `<svg viewBox="0 0 100 100" class="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-sm" aria-hidden="true">
+          <circle cx="50" cy="50" r="36" fill="#EEF2FF" stroke="#5C6BC0" stroke-width="4"/>
+          <polygon points="50,20 58,50 50,46 42,50" fill="#EF4444"/>
+          <polygon points="50,80 58,50 50,54 42,50" fill="#3F51B5"/>
+          <circle cx="50" cy="50" r="5" fill="#FFFFFF" stroke="#1E293B" stroke-width="2.5"/>
+        </svg>`;
+      }
+      if (kind === "tea") {
+        return `<svg viewBox="0 0 100 100" class="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-sm" aria-hidden="true">
+          <ellipse cx="48" cy="84" rx="28" ry="6" fill="#CBD5E1" opacity="0.5"/>
+          <path d="M26 42 H68 V64 C68 75, 58 80, 47 80 C36 80, 26 75, 26 64 Z" fill="#FF9600" stroke="#D97706" stroke-width="3"/>
+          <path d="M68 48 H76 C82 48, 82 64, 74 64 H68" fill="none" stroke="#D97706" stroke-width="4" stroke-linecap="round"/>
+          <path d="M38 34 Q42 26 38 20 M48 34 Q52 26 48 20 M58 34 Q62 26 58 20" fill="none" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>`;
+      }
+      return `<svg viewBox="0 0 100 100" class="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-sm" aria-hidden="true">
+        <ellipse cx="50" cy="88" rx="26" ry="5" fill="#CBD5E1" opacity="0.5"/>
+        <rect x="20" y="26" width="60" height="52" rx="10" fill="#FFFFFF" stroke="#1CB0F6" stroke-width="4"/>
+        <line x1="50" y1="26" x2="50" y2="78" stroke="#BAE6FD" stroke-width="3"/>
+        <line x1="28" y1="42" x2="43" y2="42" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+        <line x1="28" y1="54" x2="43" y2="54" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+        <line x1="57" y1="42" x2="72" y2="42" stroke="#1CB0F6" stroke-width="3" stroke-linecap="round"/>
+        <line x1="57" y1="54" x2="72" y2="54" stroke="#1CB0F6" stroke-width="3" stroke-linecap="round"/>
+      </svg>`;
+    }
+
+    const UNIT_HEX_MAP = {
+      u1: "#58CC02", u2: "#1CB0F6", u3: "#CE82FF", u4: "#FF9600", u5: "#00CD9C",
+      u6: "#FF4B4B", u7: "#5C6BC0", u8: "#10B981", u9: "#F59E0B", u10: "#8B5CF6"
+    };
+
     function renderLearningPath() {
       const container = document.getElementById("units-container");
       container.innerHTML = "";
@@ -1373,68 +1911,239 @@
         const firstIdx = allIds.indexOf(firstId);
         const isUnitUnlocked = firstIdx === 0 || userState.completedLessons.includes(allIds[firstIdx - 1]) || userState.completedLessons.includes(firstId);
         const doneInUnit = unit.lessons.filter(l => userState.completedLessons.includes(l.id)).length;
+        const accentHex = UNIT_HEX_MAP[unit.id] || "#58CC02";
 
-        const sec = document.createElement("div");
-        sec.className = "space-y-6";
+        const sec = document.createElement("section");
+        sec.className = "space-y-4";
+        sec.setAttribute("aria-label", unit.title);
 
+        // Unit Header Banner with Guidebook Button (📘) on the right
         const header = document.createElement("div");
-        header.className = `${unit.color} text-white rounded-2xl p-5 shadow-sm border-b-4 ${unit.borderColor}`;
+        header.className = `${unit.color} text-white rounded-2xl p-4 sm:p-5 shadow-sm border-b-4 ${unit.borderColor}`;
         header.innerHTML = `
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div class="text-xs font-bold text-white/90">യൂണിറ്റ് ${unit.number} · ${doneInUnit}/${unit.lessons.length} പൂർത്തിയായി</div>
+          <div class="flex items-start sm:items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs font-bold text-white/90 font-latin">യൂണിറ്റ് ${unit.number} · ${doneInUnit}/${unit.lessons.length} പൂർത്തിയായി</div>
               <h3 class="font-extrabold text-lg sm:text-xl leading-snug mt-0.5">${unit.title}</h3>
               <p class="text-xs sm:text-sm text-white/90 mt-0.5">${unit.subtitle}</p>
             </div>
-            ${!isUnitUnlocked ? `<button data-jump-unit="${uIdx}" type="button" class="jump-unit-btn btn-3d self-start sm:self-center shrink-0 bg-white text-slate-900 font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow border-b-4 border-slate-200 whitespace-nowrap">🚀 Jump Here?</button>` : `<span class="text-2xl hidden sm:inline">📖</span>`}
-          </div>`;
+            <div class="flex items-center gap-2 shrink-0">
+              ${!isUnitUnlocked ? `<button data-jump-unit="${uIdx}" type="button" class="jump-unit-btn hidden sm:inline-flex items-center gap-1 btn-3d bg-white text-slate-900 font-extrabold text-xs sm:text-sm px-3.5 py-2.5 rounded-xl shadow border-b-4 border-slate-200 whitespace-nowrap">🚀 Jump Here?</button>` : ""}
+              <button data-guidebook-unit="${uIdx}" type="button" aria-label="യൂണിറ്റ് ${unit.number} ഗൈഡ്‌ബുക്ക്" title="യൂണിറ്റ് ഗൈഡ്‌ബുക്ക്" class="guidebook-btn btn-3d inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs sm:text-sm px-3 py-2.5 rounded-xl border-2 border-b-4 border-white/30 whitespace-nowrap">
+                <span class="text-base leading-none" aria-hidden="true">📘</span><span class="hidden sm:inline">ഗൈഡ്</span>
+              </button>
+            </div>
+          </div>
+          ${!isUnitUnlocked ? `<div class="mt-3 sm:hidden"><button data-jump-unit="${uIdx}" type="button" class="jump-unit-btn btn-3d inline-flex items-center gap-1.5 bg-white text-slate-900 font-extrabold text-xs px-3.5 py-2 rounded-xl shadow border-b-4 border-slate-200 whitespace-nowrap">🚀 Jump Here?</button></div>` : ""}`;
         sec.appendChild(header);
 
-        const path = document.createElement("div");
-        path.className = "flex flex-col items-center space-y-6 py-2";
-        const offsets = ["translate-x-0", "-translate-x-10", "translate-x-0", "translate-x-10"];
+        // 8-Node Winding S-Curve Path Stage with Decorative Mascots
+        const pathStage = document.createElement("div");
+        pathStage.className = "relative max-w-[440px] mx-auto py-5 overflow-visible";
 
-        unit.lessons.forEach(lesson => {
+        // Subtle curved S-path dashed guide line behind nodes
+        const curveGuide = document.createElement("div");
+        curveGuide.className = "pointer-events-none select-none absolute inset-x-0 top-10 bottom-10 flex justify-center z-0 opacity-60";
+        curveGuide.setAttribute("aria-hidden", "true");
+        curveGuide.innerHTML = `
+          <svg viewBox="0 0 260 880" class="w-[260px] h-full" fill="none" preserveAspectRatio="none">
+            <path d="M130 20 C70 110, 40 200, 62 310 C84 410, 185 470, 200 580 C212 670, 175 760, 130 855" stroke="#CBD5E1" stroke-width="5" stroke-dasharray="10 12" stroke-linecap="round"/>
+          </svg>`;
+        pathStage.appendChild(curveGuide);
+
+        // Decorative Mascot #1 (Right curve pocket opposite Nodes 2-4)
+        const rightMascot = document.createElement("div");
+        rightMascot.className = "pointer-events-none select-none absolute right-0 sm:right-1 top-[175px] sm:top-[185px] z-0 flex flex-col items-center animate-float-slow";
+        rightMascot.setAttribute("aria-hidden", "true");
+        rightMascot.innerHTML = `
+          <div class="bg-white/95 border border-slate-200 rounded-xl px-2.5 pt-2 pb-1 shadow-xs mb-1.5 text-center">
+            <div class="font-arabic text-sm sm:text-base font-bold text-slate-800 leading-normal">${unit.mascot.greetingAr}</div>
+            <div class="text-[10px] font-bold text-slate-500">${unit.mascot.greetingTr}</div>
+          </div>
+          ${buildOwlMascotSvg(accentHex)}`;
+        pathStage.appendChild(rightMascot);
+
+        // Decorative Mascot #2 (Left curve pocket opposite Nodes 5-7)
+        const leftMascot = document.createElement("div");
+        leftMascot.className = "pointer-events-none select-none absolute left-0 sm:left-1 top-[550px] sm:top-[570px] z-0 flex flex-col items-center animate-float-slow";
+        leftMascot.style.animationDelay = "1.1s";
+        leftMascot.setAttribute("aria-hidden", "true");
+        leftMascot.innerHTML = `
+          ${buildCulturalCompanionSvg(unit.mascot.kind)}
+          <div class="mt-1.5 bg-white/95 border border-slate-200 rounded-xl px-2.5 pt-1.5 pb-1 text-center shadow-xs">
+            <div class="font-arabic text-xs sm:text-sm font-bold text-slate-800 leading-normal">${unit.mascot.secondaryAr || "مُمْتَازٌ"}</div>
+            <div class="text-[10px] font-bold text-slate-500">${unit.mascot.secondaryMl || "മികച്ചത്"}</div>
+          </div>`;
+        pathStage.appendChild(leftMascot);
+
+        // Winding Nodes Column
+        const path = document.createElement("div");
+        path.className = "relative z-10 flex flex-col items-center space-y-6";
+
+        unit.lessons.forEach((lesson, nIdx) => {
           const gIdx = allIds.indexOf(lesson.id);
           const isCompleted = userState.completedLessons.includes(lesson.id);
           const isUnlocked = isCompleted || gIdx === 0 || userState.completedLessons.includes(allIds[gIdx - 1]);
           const isCurrent = isUnlocked && !isCompleted;
+          const isChest = lesson.nodeType === "chest";
+          const isTrophy = lesson.nodeType === "trophy";
 
           const wrap = document.createElement("div");
-          wrap.className = `flex flex-col items-center ${offsets[gIdx % offsets.length]}`;
+          wrap.className = `flex flex-col items-center path-node-${nIdx}`;
+          wrap.dataset.nodeId = lesson.id;
+          wrap.dataset.nodeType = lesson.nodeType || "lesson";
 
           if (isCurrent) {
             const tip = document.createElement("div");
-            tip.className = "animate-bounce-slow mb-2 bg-white text-[#357A00] font-extrabold text-xs px-3 py-1 rounded-xl border-2 border-slate-200 shadow-sm";
-            tip.textContent = "തുടങ്ങുക";
+            tip.className = `animate-bounce-slow mb-2 bg-white font-extrabold text-xs px-3.5 py-1 rounded-xl border-2 border-slate-200 shadow-sm ${isChest ? "text-amber-600" : "text-[#357A00]"}`;
+            tip.textContent = isChest ? "തുറക്കുക! 🎁" : isTrophy ? "ട്രോഫി പരീക്ഷ!" : "തുടങ്ങുക";
             wrap.appendChild(tip);
           }
 
           const btn = document.createElement("button");
-          btn.type = "button"; btn.disabled = !isUnlocked;
-          btn.className = `btn-3d w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold border-b-[7px] shadow-md relative ${
-            isCompleted ? "bg-[#FFC800] border-[#E5A400] text-white"
-            : isCurrent ? `${unit.color} ${unit.borderColor} text-white ring-8 ring-slate-200/70`
-            : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
-          }`;
-          btn.innerHTML = isCompleted ? "⭐" : isUnlocked ? `<span class="font-arabic leading-none pt-1">${lesson.icon}</span>` : "🔒";
-          if (isUnlocked) btn.addEventListener("click", () => { playTone("tap"); startLesson(lesson); });
+          btn.type = "button";
+          btn.disabled = !isUnlocked;
+          btn.setAttribute("aria-label", `${lesson.title} — ${isCompleted ? "പൂർത്തിയായി" : isCurrent ? (isChest ? "നിധിപ്പെട്ടി തുറക്കുക" : "ഇപ്പോൾ തുടങ്ങുക") : "ലോക്ക് ചെയ്തിരിക്കുന്നു"}`);
+
+          if (isChest) {
+            btn.className = `btn-3d w-[84px] h-[76px] rounded-2xl flex items-center justify-center text-4xl font-bold border-b-[7px] shadow-md relative ${
+              isCompleted
+                ? "bg-amber-100 border-amber-400 text-amber-700"
+                : isUnlocked
+                  ? "bg-gradient-to-b from-amber-300 to-amber-500 border-amber-600 text-white ring-8 ring-amber-200/80"
+                  : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
+            }`;
+            btn.innerHTML = isCompleted
+              ? `<span aria-hidden="true">✨</span><span aria-hidden="true" class="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-[#58CC02] border-2 border-white text-white text-xs font-extrabold flex items-center justify-center">✓</span>`
+              : isUnlocked
+                ? `<span aria-hidden="true">🎁</span>`
+                : `<span aria-hidden="true" class="opacity-55 grayscale">🎁</span><span aria-hidden="true" class="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-slate-300 border-2 border-white text-slate-600 text-[11px] flex items-center justify-center">🔒</span>`;
+          } else {
+            const sizeCls = isTrophy ? "w-[86px] h-[86px] text-4xl" : "w-20 h-20 text-3xl";
+            btn.className = `btn-3d ${sizeCls} rounded-full flex items-center justify-center font-bold border-b-[7px] shadow-md relative ${
+              isCompleted
+                ? "bg-[#FFC800] border-[#E5A400] text-white"
+                : isCurrent
+                  ? `${unit.color} ${unit.borderColor} text-white ring-8 ring-slate-200/80`
+                  : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
+            }`;
+            btn.innerHTML = isCompleted
+              ? `<span aria-hidden="true">${isTrophy ? "🏆" : "⭐"}</span><span aria-hidden="true" class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#58CC02] border-2 border-white text-white text-xs font-extrabold flex items-center justify-center">✓</span>`
+              : isUnlocked
+                ? `<span aria-hidden="true">${lesson.icon}</span>`
+                : `<span aria-hidden="true" class="opacity-55 grayscale">${lesson.icon}</span><span aria-hidden="true" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-300 border-2 border-white text-slate-600 text-[11px] flex items-center justify-center">🔒</span>`;
+          }
+
+          if (isUnlocked) {
+            btn.addEventListener("click", () => {
+              playTone("tap");
+              if (isChest) openTreasureChest(lesson);
+              else startLesson(lesson);
+            });
+          }
 
           const lbl = document.createElement("span");
-          lbl.className = `mt-2 text-xs sm:text-sm font-bold text-center max-w-[175px] leading-snug ${isUnlocked ? "text-slate-800" : "text-slate-400"}`;
+          lbl.className = `mt-2 text-xs sm:text-sm font-bold text-center max-w-[165px] leading-snug ${isUnlocked ? "text-slate-800" : "text-slate-400"}`;
           lbl.textContent = lesson.title;
 
-          wrap.appendChild(btn); wrap.appendChild(lbl); path.appendChild(wrap);
+          const subLbl = document.createElement("span");
+          subLbl.className = `text-[11px] font-semibold text-center ${isChest && isUnlocked && !isCompleted ? "text-amber-600" : "text-slate-400"}`;
+          subLbl.textContent = isChest && isCompleted ? "ലഭിച്ചു · +25 XP" : (lesson.subtitle || "");
+
+          wrap.appendChild(btn);
+          wrap.appendChild(lbl);
+          if (subLbl.textContent) wrap.appendChild(subLbl);
+          path.appendChild(wrap);
         });
 
-        sec.appendChild(path);
+        pathStage.appendChild(path);
+        sec.appendChild(pathStage);
         container.appendChild(sec);
       });
 
       document.querySelectorAll(".jump-unit-btn").forEach(btn => {
         btn.addEventListener("click", () => { playTone("tap"); startUnitJumpTest(parseInt(btn.dataset.jumpUnit, 10)); });
       });
+      document.querySelectorAll(".guidebook-btn").forEach(btn => {
+        btn.addEventListener("click", () => { playTone("tap"); openGuidebookModal(parseInt(btn.dataset.guidebookUnit, 10)); });
+      });
     }
+
+    // ================= UNIT GUIDEBOOK & TREASURE CHEST HANDLERS =================
+    function openGuidebookModal(unitIndex) {
+      const unit = UNITS[unitIndex];
+      if (!unit) return;
+      history.pushState({ view: "guidebook" }, "");
+      const header = document.getElementById("guidebook-header");
+      header.className = `${unit.color} text-white p-5 flex items-start justify-between gap-3`;
+      document.getElementById("guidebook-kicker").textContent = `യൂണിറ്റ് ${unit.number} ഗൈഡ്‌ബുക്ക് 📘`;
+      document.getElementById("guidebook-title").textContent = unit.title;
+      document.getElementById("guidebook-subtitle").textContent = unit.subtitle;
+      document.getElementById("guidebook-tip").textContent = unit.guidebookTip || "";
+
+      const listEl = document.getElementById("guidebook-list");
+      listEl.innerHTML = "";
+      const arabicToPreload = [];
+      (unit.guidebook || []).forEach(entry => {
+        const primaryAr = entry.ar.split(" / ")[0].trim();
+        arabicToPreload.push(primaryAr);
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between gap-3 p-3.5 rounded-2xl border border-slate-200 bg-white";
+        row.innerHTML = `
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" class="gb-speak-btn btn-3d w-10 h-10 rounded-xl bg-[#1CB0F6] border-b-4 border-[#1899D6] text-white text-base flex items-center justify-center" aria-label="${escapeHtml(entry.tr)} കേൾക്കുക">🔊</button>
+            <button type="button" class="gb-slow-btn btn-3d w-9 h-10 rounded-xl bg-white border-2 border-b-4 border-slate-200 text-sm flex items-center justify-center" aria-label="${escapeHtml(entry.tr)} പതുക്കെ കേൾക്കുക" title="പതുക്കെ കേൾക്കുക">🐢</button>
+          </div>
+          <div class="flex-1 min-w-0 text-right">
+            <div class="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 leading-snug">${escapeHtml(entry.ar)}</div>
+            <div dir="ltr" class="text-xs sm:text-sm font-bold text-[#0369A1] mt-0.5">${escapeHtml(entry.tr)}</div>
+            <div dir="ltr" class="text-xs sm:text-sm font-extrabold text-slate-700">${escapeHtml(entry.ml)}</div>
+          </div>`;
+        row.querySelector(".gb-speak-btn").addEventListener("click", (e) => speakArabic(primaryAr, 1.0, e.currentTarget));
+        row.querySelector(".gb-slow-btn").addEventListener("click", (e) => speakArabic(primaryAr, 0.65, e.currentTarget));
+        listEl.appendChild(row);
+      });
+      preloadArabicAudioBatch(arabicToPreload);
+      document.getElementById("guidebook-modal").classList.remove("hidden");
+    }
+
+    function closeGuidebookModal() {
+      stopArabicAudio();
+      document.getElementById("guidebook-modal").classList.add("hidden");
+    }
+    document.getElementById("close-guidebook-btn").addEventListener("click", () => { playTone("tap"); closeGuidebookModal(); });
+    document.getElementById("guidebook-modal").addEventListener("click", (e) => {
+      if (e.target.id === "guidebook-modal") closeGuidebookModal();
+    });
+
+    function openTreasureChest(node) {
+      if (userState.completedLessons.includes(node.id)) {
+        showToast("ഈ നിധിപ്പെട്ടി ഇതിനകം തുറന്നതാണ്! (+25 XP & +1 ❤️ ലഭിച്ചു)");
+        return;
+      }
+      const bonusXp = node.xpReward || TREASURE_CHEST_XP;
+      const bonusHearts = node.heartReward || TREASURE_CHEST_HEARTS;
+      userState.completedLessons.push(node.id);
+      userState.xp += bonusXp;
+      userState.hearts += bonusHearts;
+      saveState();
+      renderLearningPath();
+
+      playTone("complete");
+      history.pushState({ view: "chest" }, "");
+      document.getElementById("chest-xp-val").textContent = `+${bonusXp} ⭐`;
+      document.getElementById("chest-heart-val").textContent = `+${bonusHearts} ❤️`;
+      document.getElementById("chest-modal").classList.remove("hidden");
+      launchConfetti("chest-confetti-canvas");
+    }
+
+    function closeChestModal() {
+      document.getElementById("chest-modal").classList.add("hidden");
+    }
+    document.getElementById("chest-done-btn").addEventListener("click", () => { playTone("tap"); closeChestModal(); });
+    document.getElementById("chest-modal").addEventListener("click", (e) => {
+      if (e.target.id === "chest-modal") closeChestModal();
+    });
 
     // ================= ALPHABET & HARAKAT =================
     const VOWEL_LABELS = { base: "അടിസ്ഥാനം", fatha: "ഫത്ഹ് ( َ )", kasra: "കസ്റ് ( ِ )", damma: "ളമ്മ് ( ُ )", tanween: "തൻവീൻ ( ً )" };
@@ -1539,23 +2248,28 @@
     }
 
     function startLesson(lesson) {
+      if (lesson.nodeType === "chest") { openTreasureChest(lesson); return; }
       if (userState.hearts <= 0) { document.getElementById("out-of-hearts-modal").classList.remove("hidden"); return; }
-      activeSession = { mode: "lesson", lessonId: lesson.id, targetUnitIndex: null, questions: prepareSessionQuestions(lesson.questions), currentIndex: 0, score: 0, hearts: userState.hearts, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
-      openLessonModal(null);
+      activeSession = { mode: "lesson", lessonId: lesson.id, xpReward: lesson.xpReward || 15, targetUnitIndex: null, questions: prepareSessionQuestions(lesson.questions), currentIndex: 0, score: 0, hearts: userState.hearts, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
+      const banner = lesson.nodeType === "trophy" ? "🏆 യൂണിറ്റ് ട്രോഫി പരീക്ഷ — അടുത്ത യൂണിറ്റ് അൺലോക്ക് ചെയ്യാം!" : lesson.nodeType === "hard" ? "⚡ കഠിന പരിശീലനം (+20 XP)" : lesson.nodeType === "listening" ? "🎧 ശ്രവണ വെല്ലുവിളി (+20 XP)" : null;
+      openLessonModal(banner);
     }
 
     function startPlacementTest() {
-      activeSession = { mode: "placement", lessonId: null, targetUnitIndex: null, questions: prepareSessionQuestions(PLACEMENT_QUESTIONS), currentIndex: 0, score: 0, hearts: 5, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
+      activeSession = { mode: "placement", lessonId: null, xpReward: 120, targetUnitIndex: null, questions: prepareSessionQuestions(PLACEMENT_QUESTIONS), currentIndex: 0, score: 0, hearts: 5, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
       openLessonModal("🚀 നിലവാര നിർണ്ണയ പരീക്ഷ (Placement Test · 7–8 ശരി = യൂണിറ്റ് 5 അൺലോക്ക്)");
     }
 
     function startUnitJumpTest(targetUnitIndex) {
       const pool = [];
       for (let i = 0; i < targetUnitIndex; i++) {
-        UNITS[i].lessons.forEach(l => l.questions.forEach(q => { if (q.type !== "pairs") pool.push(q); }));
+        UNITS[i].lessons.forEach(l => {
+          if (l.nodeType === "chest" || !Array.isArray(l.questions)) return;
+          l.questions.forEach(q => { if (q.type !== "pairs") pool.push(q); });
+        });
       }
       const picked = shuffleArray(pool).slice(0, 5);
-      activeSession = { mode: "jump", lessonId: null, targetUnitIndex, questions: prepareSessionQuestions(picked), currentIndex: 0, score: 0, hearts: 3, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
+      activeSession = { mode: "jump", lessonId: null, xpReward: 40, targetUnitIndex, questions: prepareSessionQuestions(picked), currentIndex: 0, score: 0, hearts: 3, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
       openLessonModal(`🚀 യൂണിറ്റ് ${targetUnitIndex + 1}-ലേക്കുള്ള പ്രവേശന ടെസ്റ്റ് (5-ൽ 4 ശരി ആവശ്യം)`);
     }
 
@@ -1587,6 +2301,19 @@
       b.className = "btn-3d w-full sm:w-auto sm:min-w-[200px] py-3.5 px-8 rounded-2xl font-extrabold text-base bg-slate-200 text-slate-400 border-b-4 border-slate-300 cursor-not-allowed";
     }
 
+    function shouldShowArabicPromptCard(q) {
+      if (!q || !q.arabic) return false;
+      if (q.type === "listen") return true;
+      if (q.type === "wordbank") return !q.isArabicWords;
+      if (q.type === "mcq" && q.isArabicOption) {
+        const norm = q.arabic.trim();
+        if (q.answer.trim() === norm || (Array.isArray(q.options) && q.options.some(o => o.trim() === norm))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     function renderCurrentQuestion() {
       stopArabicAudio();
       const q = activeSession.questions[activeSession.currentIndex];
@@ -1609,7 +2336,7 @@
       header.className = "space-y-4";
       header.innerHTML = `<div class="text-xs font-bold text-slate-500 font-latin">ചോദ്യം ${activeSession.currentIndex + 1} / ${total}</div><h2 class="text-xl font-extrabold text-slate-900 leading-snug">${q.prompt}</h2>`;
 
-      if (q.arabic) {
+      if (shouldShowArabicPromptCard(q)) {
         const audioCard = document.createElement("div");
         audioCard.className = "bg-sky-50/80 border-2 border-sky-200 rounded-2xl p-4 flex items-center justify-between gap-3";
         audioCard.innerHTML = `
@@ -1822,10 +2549,15 @@
       document.getElementById("lesson-modal").classList.add("hidden");
       document.getElementById("feedback-drawer").classList.add("hidden");
       playTone("complete");
-      let xp = 15, title = "പാഠം പൂർത്തിയായി!", sub = "മികച്ച പ്രകടനം! അടുത്ത പാഠം അൺലോക്ക് ആയിരിക്കുന്നു.", emoji = "🎉";
+      let xp = activeSession.xpReward || 15, title = "പാഠം പൂർത്തിയായി!", sub = "മികച്ച പ്രകടനം! അടുത്ത ഘട്ടം അൺലോക്ക് ആയിരിക്കുന്നു.", emoji = "🎉";
 
       if (activeSession.mode === "lesson") {
         if (!userState.completedLessons.includes(activeSession.lessonId)) userState.completedLessons.push(activeSession.lessonId);
+        if (activeSession.lessonId && activeSession.lessonId.endsWith("_n8")) {
+          title = "യൂണിറ്റ് ട്രോഫി നേടി! 🏆";
+          sub = "അഭിനന്ദനങ്ങൾ! ഈ യൂണിറ്റ് പൂർത്തിയാക്കി അടുത്ത യൂണിറ്റ് അൺലോക്ക് ചെയ്തിരിക്കുന്നു.";
+          emoji = "🏆";
+        }
         userState.xp += xp;
       } else if (activeSession.mode === "placement") {
         const sc = activeSession.score;
@@ -1907,13 +2639,13 @@
       document.getElementById("stat-hearts").textContent = userState.hearts;
       document.getElementById("rail-streak").textContent = userState.streak;
       document.getElementById("rail-xp").textContent = userState.xp;
-      document.getElementById("rail-hearts").textContent = `${userState.hearts}/5`;
+      document.getElementById("rail-hearts").textContent = userState.hearts > 5 ? `${userState.hearts}` : `${userState.hearts}/5`;
       document.getElementById("rail-pct").textContent = `${pct}%`;
       document.getElementById("rail-bar").style.width = `${pct}%`;
-      document.getElementById("rail-lessons-text").textContent = `${done} / ${total} പാഠങ്ങൾ പൂർത്തിയായി`;
+      document.getElementById("rail-lessons-text").textContent = `${done} / ${total} ഘട്ടങ്ങൾ പൂർത്തിയായി`;
       document.getElementById("side-avatar").textContent = userState.avatar;
       document.getElementById("side-name").textContent = userState.name || "പഠിതാവ്";
-      document.getElementById("side-progress").textContent = `${userState.xp} XP · ${done} / ${total} പാഠം`;
+      document.getElementById("side-progress").textContent = `${userState.xp} XP · ${done} / ${total}`;
 
       document.getElementById("profile-avatar").textContent = userState.avatar;
       document.getElementById("profile-name").textContent = userState.name || "പഠിതാവ്";
@@ -1968,12 +2700,16 @@
 
     // Android Hardware / Gesture Back Button Handler
     window.addEventListener("popstate", () => {
-      if (!document.getElementById("lesson-modal").classList.contains("hidden")) closeLessonModal();
+      if (!document.getElementById("guidebook-modal").classList.contains("hidden")) closeGuidebookModal();
+      else if (!document.getElementById("chest-modal").classList.contains("hidden")) closeChestModal();
+      else if (!document.getElementById("lesson-modal").classList.contains("hidden")) closeLessonModal();
       else if (!document.getElementById("complete-modal").classList.contains("hidden")) document.getElementById("complete-modal").classList.add("hidden");
     });
 
-    function launchConfetti() {
-      const canvas = document.getElementById("confetti-canvas"), ctx = canvas.getContext("2d");
+    function launchConfetti(canvasId = "confetti-canvas") {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
       canvas.width = window.innerWidth; canvas.height = window.innerHeight;
       const colors = ["#58CC02", "#1CB0F6", "#FFC800", "#FF4B4B", "#00CD9C", "#8B5CF6"];
       const pieces = Array.from({ length: 65 }, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height, r: Math.random() * 6 + 4, c: colors[Math.floor(Math.random() * colors.length)], vy: Math.random() * 3 + 2, vx: Math.random() * 2 - 1 }));

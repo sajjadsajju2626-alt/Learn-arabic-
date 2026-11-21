@@ -12,9 +12,58 @@ import type {
 
 export const MAX_HEARTS = 5;
 export const LESSON_XP_REWARD = 15;
+export const TREASURE_CHEST_XP = 25;
+export const TREASURE_CHEST_HEARTS = 1;
 
 export function getAllLessonIds(units: Unit[] = UNITS): string[] {
   return units.flatMap((u) => u.lessons.map((l) => l.id));
+}
+
+export function migrateLegacyCompletedIds(
+  completedIds: string[],
+  units: Unit[] = UNITS
+): string[] {
+  const validIds = new Set(getAllLessonIds(units));
+  const out = new Set<string>();
+  for (const id of completedIds) {
+    if (validIds.has(id)) {
+      out.add(id);
+      continue;
+    }
+    const legacyMatch = /^u(\d+)_l(\d+)$/.exec(id);
+    if (legacyMatch) {
+      const mapped = `u${legacyMatch[1]}_n${legacyMatch[2]}`;
+      if (validIds.has(mapped)) out.add(mapped);
+    }
+  }
+  return Array.from(out);
+}
+
+export function claimTreasureChest(
+  user: UserState,
+  chestNodeId: string,
+  xpReward: number = TREASURE_CHEST_XP,
+  heartReward: number = TREASURE_CHEST_HEARTS
+): { user: UserState; alreadyClaimed: boolean; earnedXp: number; earnedHearts: number } {
+  if (user.completedLessons.includes(chestNodeId)) {
+    return {
+      user,
+      alreadyClaimed: true,
+      earnedXp: 0,
+      earnedHearts: 0,
+    };
+  }
+  return {
+    user: {
+      ...user,
+      xp: user.xp + xpReward,
+      hearts: user.hearts + heartReward,
+      completedLessons: [...user.completedLessons, chestNodeId],
+    },
+    alreadyClaimed: false,
+    earnedXp: xpReward,
+    earnedHearts: heartReward,
+  };
 }
 
 export function isLessonUnlocked(
@@ -348,6 +397,7 @@ export function buildUnitJumpQuestions(
   const pool: LessonQuestion[] = [];
   for (let i = 0; i < Math.min(targetUnitIndex, units.length); i++) {
     for (const lesson of units[i].lessons) {
+      if (lesson.nodeType === 'chest' || lesson.questions.length === 0) continue;
       for (const q of lesson.questions) {
         if (q.type !== 'pairs') {
           pool.push(q);

@@ -64,10 +64,37 @@ export type LessonQuestion =
   | WordBankQuestion
   | PairsQuestion;
 
+export type NodeKind =
+  | 'lesson'
+  | 'practice'
+  | 'wordbank'
+  | 'chest'
+  | 'dialogue'
+  | 'listening'
+  | 'hard'
+  | 'trophy';
+
+export interface GuidebookEntry {
+  ar: string;
+  tr: string;
+  ml: string;
+}
+
+export interface UnitMascot {
+  kind: 'owl' | 'lantern' | 'crescent' | 'book' | 'compass' | 'tea';
+  greetingAr: string;
+  greetingTr: string;
+  greetingMl: string;
+}
+
 export interface Lesson {
   id: string;
   title: string;
+  subtitle?: string;
   icon: string;
+  nodeType?: NodeKind;
+  xpReward?: number;
+  heartReward?: number;
   questions: LessonQuestion[];
 }
 
@@ -86,6 +113,9 @@ export interface Unit {
   title: string;
   subtitle: string;
   theme: UnitTheme;
+  guidebookTip?: string;
+  guidebook?: GuidebookEntry[];
+  mascot?: UnitMascot;
   lessons: Lesson[];
 }
 

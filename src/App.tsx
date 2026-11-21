@@ -4,9 +4,11 @@ import type { AppTab, Lesson, SessionConfig, SessionResult, UserState } from './
 import {
   applySessionResult,
   buildUnitJumpQuestions,
+  claimTreasureChest,
   computeStreakUpdate,
   MAX_HEARTS,
   mergeAndSortLeaderboard,
+  migrateLegacyCompletedIds,
   prepareSessionQuestions,
 } from './utils/learningEngine';
 import { OnboardingScreen } from './components/OnboardingScreen';
@@ -47,6 +49,7 @@ function createInitialUserState(): UserState {
     const merged: UserState = {
       ...fallback,
       ...parsed,
+      completedLessons: migrateLegacyCompletedIds(parsed.completedLessons ?? [], UNITS),
       onboarded: Boolean(parsed.onboarded && parsed.name) || autostart,
       name: parsed.name || (autostart ? 'അഹമ്മദ്' : ''),
     };
@@ -103,7 +106,23 @@ export default function App() {
     }
   };
 
+  const handleClaimChest = (lesson: Lesson) => {
+    setUser((prev) => {
+      const outcome = claimTreasureChest(prev, lesson.id, lesson.xpReward, lesson.heartReward);
+      if (outcome.alreadyClaimed) {
+        showToast('ഈ നിധിപ്പെട്ടി ഇതിനകം തുറന്നതാണ്!');
+      } else {
+        showToast(`🎁 നിധിപ്പെട്ടി തുറന്നു! +${outcome.earnedXp} XP & +${outcome.earnedHearts} ❤️`);
+      }
+      return outcome.user;
+    });
+  };
+
   const startLesson = (lesson: Lesson) => {
+    if (lesson.nodeType === 'chest') {
+      handleClaimChest(lesson);
+      return;
+    }
     if (user.hearts <= 0) {
       setUser((prev) => ({ ...prev, hearts: MAX_HEARTS }));
       showToast('ഹാർട്ടുകൾ സ്വയമേവ നിറച്ചിരിക്കുന്നു! പാഠം തുടങ്ങാം.');
@@ -191,6 +210,7 @@ export default function App() {
             completedLessons={user.completedLessons}
             soundEnabled={user.soundEnabled}
             onStartLesson={startLesson}
+            onClaimChest={handleClaimChest}
             onStartUnitJump={startUnitJumpTest}
           />
         )}

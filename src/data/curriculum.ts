@@ -1,5 +1,6 @@
 import type { ArabicLetter, LeaderboardEntry, LessonQuestion, Unit } from '../types/learning';
 import { ADVANCED_UNITS } from './advancedUnits';
+import { expandUnitsToEightNodes } from './unitExpansion';
 
 export const AVATAR_OPTIONS = [
   { id: 'hijab', emoji: '🧕', label: 'വിദ്യാർത്ഥിനി' },
@@ -40,7 +41,7 @@ export const ARABIC_ALPHABET: ArabicLetter[] = [
   { base: 'ي', name: 'യാ', fatha: 'يَ', fathaTr: 'യ', kasra: 'يِ', kasraTr: 'യി', damma: 'يُ', dammaTr: 'യു', tanween: 'يًا', tanweenTr: 'യൻ' },
 ];
 
-export const UNITS: Unit[] = [
+const BASE_UNITS: Unit[] = [
   {
     id: 'u1',
     number: 1,
@@ -559,6 +560,8 @@ export const UNITS: Unit[] = [
   },
   ...ADVANCED_UNITS,
 ];
+
+export const UNITS: Unit[] = expandUnitsToEightNodes(BASE_UNITS);
 
 export const PLACEMENT_QUESTIONS: LessonQuestion[] = [
   {

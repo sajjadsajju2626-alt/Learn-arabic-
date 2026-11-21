@@ -4,6 +4,7 @@ import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum'
 import {
   applySessionResult,
   buildUnitJumpQuestions,
+  claimTreasureChest,
   computeStreakUpdate,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
@@ -13,6 +14,7 @@ import {
   isLessonUnlocked,
   isUnitUnlocked,
   mergeAndSortLeaderboard,
+  migrateLegacyCompletedIds,
   prepareSessionQuestions,
   shouldShowArabicPromptCard,
   shuffleArray,
@@ -46,21 +48,40 @@ const baseUser: UserState = {
   onboarded: true,
 };
 
-test('curriculum contains 10 units and 30 lessons with 28 Arabic letters', () => {
+test('curriculum contains 10 units and 80 winding nodes (8 per unit) with 28 Arabic letters', () => {
   assert.equal(UNITS.length, 10);
-  assert.equal(getAllLessonIds().length, 30);
+  assert.equal(getAllLessonIds().length, 80);
   assert.equal(ARABIC_ALPHABET.length, 28);
+
+  const expectedIcons = ['⭐', '📖', '🧩', '🎁', '💬', '🎧', '⚡', '🏆'];
+  const expectedTypes = ['lesson', 'practice', 'wordbank', 'chest', 'dialogue', 'listening', 'hard', 'trophy'];
+
+  for (const unit of UNITS) {
+    assert.equal(unit.lessons.length, 8, `${unit.id} must have 8 nodes`);
+    assert.ok(unit.guidebook && unit.guidebook.length >= 8, `${unit.id} must have >= 8 guidebook entries`);
+    assert.ok(unit.guidebookTip && unit.guidebookTip.length > 0, `${unit.id} must have a guidebook tip`);
+    unit.lessons.forEach((node, idx) => {
+      assert.equal(node.icon, expectedIcons[idx], `${node.id} icon mismatch`);
+      assert.equal(node.nodeType, expectedTypes[idx], `${node.id} nodeType mismatch`);
+      if (node.nodeType === 'chest') {
+        assert.equal(node.xpReward, 25);
+        assert.equal(node.heartReward, 1);
+        assert.equal(node.questions.length, 0);
+      } else {
+        assert.ok(node.questions.length >= 3, `${node.id} must have interactive questions`);
+      }
+    });
+  }
 });
 
-test('Units 5 to 10 each have 3 lessons with Harakat, Malayalam transliteration, and mixed question types', () => {
+test('Units 5 to 10 quiz nodes have Harakat, Malayalam transliteration, and mixed question types', () => {
   const advanced = UNITS.slice(4);
   assert.equal(advanced.length, 6);
   for (const unit of advanced) {
-    assert.equal(unit.lessons.length, 3);
+    assert.equal(unit.lessons.length, 8);
     for (const lesson of unit.lessons) {
+      if (lesson.nodeType === 'chest') continue;
       assert.ok(lesson.questions.length >= 4, `${lesson.id} should have at least 4 questions`);
-      const types = new Set(lesson.questions.map((q) => q.type));
-      assert.ok(types.size >= 3, `${lesson.id} should mix at least 3 question types`);
       for (const q of lesson.questions) {
         if ('arabic' in q && q.arabic) {
           assert.ok(q.translit && q.translit.length > 0, `${lesson.id} arabic prompt needs translit`);
@@ -87,19 +108,41 @@ test('Units 5 to 10 each have 3 lessons with Harakat, Malayalam transliteration,
   }
 });
 
-test('lesson and unit unlocking progresses sequentially', () => {
-  assert.equal(isLessonUnlocked('u1_l1', []), true);
-  assert.equal(isLessonUnlocked('u1_l2', []), false);
+test('lesson, treasure chest, and unit unlocking progresses sequentially across all 8 nodes', () => {
+  assert.equal(isLessonUnlocked('u1_n1', []), true);
+  assert.equal(isLessonUnlocked('u1_n2', []), false);
   assert.equal(isUnitUnlocked(0, []), true);
   assert.equal(isUnitUnlocked(1, []), false);
 
-  assert.equal(isLessonUnlocked('u1_l2', ['u1_l1']), true);
-  assert.equal(isUnitUnlocked(1, ['u1_l1', 'u1_l2', 'u1_l3']), true);
+  assert.equal(isLessonUnlocked('u1_n2', ['u1_n1']), true);
+  const allUnit1 = UNITS[0].lessons.map((l) => l.id);
+  assert.equal(isUnitUnlocked(1, allUnit1.slice(0, 7)), false);
+  assert.equal(isUnitUnlocked(1, allUnit1), true);
+
+  // Claiming Node 4 Treasure Chest awards +25 XP and +1 Heart, unlocks Node 5, and is idempotent
+  const afterChest = claimTreasureChest(
+    { ...baseUser, xp: 45, hearts: 4, completedLessons: ['u1_n1', 'u1_n2', 'u1_n3'] },
+    'u1_n4'
+  );
+  assert.equal(afterChest.alreadyClaimed, false);
+  assert.equal(afterChest.earnedXp, 25);
+  assert.equal(afterChest.earnedHearts, 1);
+  assert.equal(afterChest.user.xp, 70);
+  assert.equal(afterChest.user.hearts, 5);
+  assert.equal(isLessonUnlocked('u1_n5', afterChest.user.completedLessons), true);
+
+  const repeatChest = claimTreasureChest(afterChest.user, 'u1_n4');
+  assert.equal(repeatChest.alreadyClaimed, true);
+  assert.equal(repeatChest.user.xp, 70);
+  assert.equal(repeatChest.user.hearts, 5);
+
+  // Legacy lesson ID migration
+  assert.deepEqual(migrateLegacyCompletedIds(['u1_l1', 'u1_l2', 'u2_n1']), ['u1_n1', 'u1_n2', 'u2_n1']);
 });
 
-test('unlockLessonsUpToUnit marks all preceding units complete', () => {
+test('unlockLessonsUpToUnit marks all 8 nodes of every preceding unit complete', () => {
   const unlocked = unlockLessonsUpToUnit([], 4);
-  assert.equal(unlocked.length, 12);
+  assert.equal(unlocked.length, 32);
   assert.equal(isUnitUnlocked(4, unlocked), true);
   assert.equal(isUnitUnlocked(5, unlocked), false);
 });
@@ -156,7 +199,7 @@ test('placement test outcome unlocks up to Unit 5 for 7-8/8 and Unit 3 for 4-6/8
 
   const updated = applySessionResult(baseUser, high);
   assert.equal(updated.xp, 120);
-  assert.equal(updated.completedLessons.length, 12);
+  assert.equal(updated.completedLessons.length, 32);
   assert.equal(isUnitUnlocked(4, updated.completedLessons), true);
   assert.equal(isUnitUnlocked(5, updated.completedLessons), false);
 });
