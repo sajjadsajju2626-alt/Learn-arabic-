@@ -6,6 +6,7 @@ import { getLetterDisplay } from '../utils/learningEngine';
 import {
   getArabicAudioState,
   playTone,
+  preloadArabicAudioBatch,
   speakArabic,
   stopArabicAudio,
   subscribeArabicAudioState,
@@ -36,6 +37,12 @@ export const AlphabetTab: React.FC<AlphabetTabProps> = ({ soundEnabled }) => {
       stopArabicAudio();
     };
   }, []);
+
+  useEffect(() => {
+    preloadArabicAudioBatch(
+      ARABIC_ALPHABET.map((letter) => getLetterDisplay(letter, vowel).arabic)
+    );
+  }, [vowel]);
 
   const activeVowelInfo = VOWEL_TABS.find((t) => t.id === vowel) ?? VOWEL_TABS[0];
   const activeDisplay = getLetterDisplay(activeLetter, vowel);

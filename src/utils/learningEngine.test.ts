@@ -17,11 +17,16 @@ import {
   unlockLessonsUpToUnit,
 } from './learningEngine';
 import {
+  audioCache,
+  BUFFER_TIMEOUT_MS,
   buildArabicAudioSources,
   buildArabicTtsUrl,
   buildStreamElementsTtsUrl,
   buildYoudaoTtsUrl,
+  clearArabicAudioCache,
+  collectQuestionArabicTexts,
   getArabicLetterAudioUrl,
+  preloadArabicAudio,
   resolveArabicPlaybackRate,
 } from './audio';
 import type { LessonQuestion, UserState } from '../types/learning';
@@ -329,10 +334,88 @@ test('multi-source Arabic audio pipeline routes 28 base letters to studio MP3s a
     assert.equal(buildYoudaoTtsUrl(sample), sources[1].url);
   }
 
-  // 3. Normal (1.0) and slow turtle (0.65) playback rates
+  // 3. Normal (1.0) and slow turtle (0.65) playback rates & 800ms buffer timeout
   assert.equal(resolveArabicPlaybackRate(1.0), 1.0);
   assert.equal(resolveArabicPlaybackRate(0.9), 1.0);
   assert.equal(resolveArabicPlaybackRate(0.65), 0.65);
   assert.equal(resolveArabicPlaybackRate(0.5), 0.65);
+  assert.equal(BUFFER_TIMEOUT_MS, 800);
+});
+
+test('collectQuestionArabicTexts extracts all Arabic prompt, option, wordbank, and matching pair strings', () => {
+  // Arabic MCQ options
+  const u1l1q2 = UNITS[0].lessons[0].questions[1];
+  assert.deepEqual(collectQuestionArabicTexts(u1l1q2), ['ا', 'ب', 'ت', 'ث']);
+
+  // Matching pairs
+  const u1l1q3 = UNITS[0].lessons[0].questions[2];
+  assert.deepEqual(collectQuestionArabicTexts(u1l1q3), ['ا', 'ب', 'ت', 'ث']);
+
+  // Listen question
+  const u1l1q4 = UNITS[0].lessons[0].questions[3];
+  assert.deepEqual(collectQuestionArabicTexts(u1l1q4), ['تَ']);
+
+  // Arabic wordbank question (Unit 4 Lesson 1 Q3 or synthetic)
+  const wbArabic: LessonQuestion = {
+    type: 'wordbank',
+    prompt: 'അറബിയിൽ വാക്യം നിർമ്മിക്കുക',
+    words: ['أَنَا', 'طَالِبٌ', 'جَدِيدٌ'],
+    isArabicWords: true,
+    answer: ['أَنَا', 'طَالِبٌ'],
+  };
+  assert.deepEqual(collectQuestionArabicTexts(wbArabic), ['أَنَا', 'طَالِبٌ', 'جَدِيدٌ']);
+});
+
+test('preloadArabicAudio caches HTMLAudioElement instances in audioCache Map and deduplicates loads', () => {
+  const OriginalAudio = (globalThis as unknown as { Audio?: unknown }).Audio;
+  const created: { src: string; preload: string; crossOrigin: string | null; loadCalls: number }[] = [];
+
+  class MockAudio {
+    src = '';
+    preload = '';
+    crossOrigin: string | null = null;
+    readyState = 0;
+    loadCalls = 0;
+    onerror: (() => void) | null = null;
+    private listeners = new Map<string, (() => void)[]>();
+    constructor() {
+      created.push(this);
+    }
+    addEventListener(evt: string, fn: () => void) {
+      const list = this.listeners.get(evt) ?? [];
+      list.push(fn);
+      this.listeners.set(evt, list);
+    }
+    load() {
+      this.loadCalls += 1;
+    }
+    pause() {}
+  }
+
+  clearArabicAudioCache();
+  (globalThis as unknown as { Audio: unknown }).Audio = MockAudio;
+  try {
+    const first = preloadArabicAudio('ب');
+    const second = preloadArabicAudio(' ب ');
+    assert.ok(first);
+    assert.equal(first, second, 'Repeated preload must return the exact cached HTMLAudioElement');
+    assert.equal(audioCache.size, 1);
+    assert.equal(audioCache.get('ب'), first);
+    assert.equal(created.length, 1);
+    assert.equal(created[0].preload, 'auto');
+    assert.equal(created[0].crossOrigin, 'anonymous');
+    assert.equal(created[0].loadCalls, 1);
+    assert.equal(
+      created[0].src,
+      'https://raw.githubusercontent.com/mustafa0x/arabic-alphabet-audio/master/mp3/02.mp3'
+    );
+  } finally {
+    clearArabicAudioCache();
+    if (OriginalAudio === undefined) {
+      delete (globalThis as unknown as { Audio?: unknown }).Audio;
+    } else {
+      (globalThis as unknown as { Audio: unknown }).Audio = OriginalAudio;
+    }
+  }
 });
 

@@ -890,17 +890,23 @@
     let currentVowel = "base";
     let selectedAlpha = ARABIC_ALPHABET[0];
 
-    // ================= AUDIO & MULTI-SOURCE HUMAN ARABIC TTS =================
+    // ================= AUDIO CACHE, PRELOADER & MULTI-SOURCE ARABIC TTS =================
     const BASE_ARABIC_LETTERS = [
       "ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص",
       "ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"
     ];
+    const BUFFER_TIMEOUT_MS = 800;
+
+    // In-memory cache of preloaded HTMLAudioElement objects keyed by trimmed Arabic text
+    const audioCache = new Map();
+    const audioCacheMeta = new WeakMap();
 
     let audioCtx = null;
     let activeCloudAudio = null;
     let activePlayToken = 0;
     let activeSpeakerBtn = null;
     let fallbackAudioTimer = null;
+    let bufferTimeoutTimer = null;
 
     function getArabicLetterAudioUrl(text) {
       const idx = BASE_ARABIC_LETTERS.indexOf(text);
@@ -925,6 +931,108 @@
         crossOrigin: false
       });
       return sources;
+    }
+
+    function collectQuestionArabicTexts(q) {
+      if (!q) return [];
+      const set = new Set();
+      const add = (val) => {
+        if (typeof val === "string" && val.trim()) set.add(val.trim());
+      };
+      add(q.arabic);
+      if (q.isArabicOption && Array.isArray(q.options)) {
+        q.options.forEach(add);
+      }
+      if (q.isArabicWords && Array.isArray(q.words)) {
+        q.words.forEach(add);
+      }
+      if (Array.isArray(q.pairs)) {
+        q.pairs.forEach(p => add(p && p.ar));
+      }
+      return Array.from(set);
+    }
+
+    function isAudioReady(audio) {
+      if (!audio) return false;
+      const meta = audioCacheMeta.get(audio);
+      return Boolean((meta && meta.ready) || (typeof audio.readyState === "number" && audio.readyState >= 2));
+    }
+
+    function attachBgErrorHandler(audio) {
+      const meta = audioCacheMeta.get(audio);
+      if (!meta) return;
+      audio.onerror = () => {
+        if (audioCache.get(meta.key) !== audio) return;
+        const nextIdx = meta.sourceIndex + 1;
+        if (nextIdx < meta.sources.length) {
+          createCachedAudioEntry(meta.key, meta.sources, nextIdx);
+        } else {
+          meta.failed = true;
+          audioCache.delete(meta.key);
+        }
+      };
+    }
+
+    function detachPlaybackHandlers(audio) {
+      if (!audio) return;
+      audio.onloadedmetadata = null;
+      audio.onplaying = null;
+      audio.onended = null;
+      attachBgErrorHandler(audio);
+    }
+
+    function createCachedAudioEntry(key, sources, sourceIndex) {
+      if (typeof Audio === "undefined" || sourceIndex >= sources.length) return null;
+      const source = sources[sourceIndex];
+      try {
+        const audio = new Audio();
+        if (source.crossOrigin) {
+          audio.crossOrigin = "anonymous";
+        }
+        audio.preload = "auto";
+        audio.src = source.url;
+
+        const meta = { key, sources, sourceIndex, ready: false, failed: false };
+        audioCacheMeta.set(audio, meta);
+
+        const markReady = () => { meta.ready = true; };
+        if (typeof audio.addEventListener === "function") {
+          audio.addEventListener("canplay", markReady);
+          audio.addEventListener("canplaythrough", markReady);
+          audio.addEventListener("loadeddata", markReady);
+        } else {
+          audio.oncanplay = markReady;
+          audio.onloadeddata = markReady;
+        }
+        attachBgErrorHandler(audio);
+
+        audioCache.set(key, audio);
+        if (typeof audio.load === "function") {
+          audio.load();
+        }
+        return audio;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function preloadArabicAudio(text) {
+      const cleaned = typeof text === "string" ? text.trim() : "";
+      if (!cleaned || typeof Audio === "undefined") return null;
+
+      const existing = audioCache.get(cleaned);
+      if (existing) {
+        const meta = audioCacheMeta.get(existing);
+        if (meta && !meta.failed) return existing;
+      }
+
+      const sources = buildArabicAudioSources(cleaned);
+      return createCachedAudioEntry(cleaned, sources, 0);
+    }
+
+    function preloadArabicAudioBatch(texts) {
+      if (!Array.isArray(texts)) return;
+      texts.forEach(t => preloadArabicAudio(t));
     }
 
     function setSpeakerButtonState(btn, state) {
@@ -954,20 +1062,22 @@
 
     function stopArabicAudio() {
       activePlayToken += 1;
+      if (bufferTimeoutTimer) {
+        clearTimeout(bufferTimeoutTimer);
+        bufferTimeoutTimer = null;
+      }
       if (fallbackAudioTimer) {
         clearTimeout(fallbackAudioTimer);
         fallbackAudioTimer = null;
       }
       if (activeCloudAudio) {
-        try {
-          activeCloudAudio.onloadedmetadata = null;
-          activeCloudAudio.onplaying = null;
-          activeCloudAudio.onended = null;
-          activeCloudAudio.onerror = null;
-          activeCloudAudio.pause();
-          activeCloudAudio.currentTime = 0;
-        } catch (e) {}
+        const prev = activeCloudAudio;
         activeCloudAudio = null;
+        try {
+          detachPlaybackHandlers(prev);
+          prev.pause();
+          prev.currentTime = 0;
+        } catch (e) {}
       }
       if ("speechSynthesis" in window) {
         try { window.speechSynthesis.cancel(); } catch (e) {}
@@ -1043,61 +1153,113 @@
 
       const token = ++activePlayToken;
       const targetRate = rate < 0.75 ? 0.65 : 1.0;
-      const sources = buildArabicAudioSources(cleaned);
-      setSpeakerButtonState(triggerBtn, "loading");
 
-      const trySource = (index) => {
+      if (typeof Audio === "undefined") {
+        speakOfflineFallback(cleaned, targetRate, token, triggerBtn);
+        return;
+      }
+
+      const playAudioElement = (audio) => {
         if (token !== activePlayToken) return;
-        if (index >= sources.length || typeof Audio === "undefined") {
+        if (!audio) {
           speakOfflineFallback(cleaned, targetRate, token, triggerBtn);
           return;
         }
 
-        const source = sources[index];
-        let advanced = false;
-        const tryNext = () => {
-          if (advanced || token !== activePlayToken) return;
-          advanced = true;
-          if (activeCloudAudio === audio) activeCloudAudio = null;
-          trySource(index + 1);
+        const meta = audioCacheMeta.get(audio);
+        const alreadyBuffered = isAudioReady(audio);
+        let settled = false;
+        let timedOut = false;
+
+        setSpeakerButtonState(triggerBtn, alreadyBuffered ? "playing" : "loading");
+        activeCloudAudio = audio;
+
+        const clearBufferTimer = () => {
+          if (bufferTimeoutTimer) {
+            clearTimeout(bufferTimeoutTimer);
+            bufferTimeoutTimer = null;
+          }
         };
 
-        let audio;
-        try {
-          audio = new Audio();
-          if (source.crossOrigin) {
-            audio.crossOrigin = "anonymous";
+        const advanceToBackup = () => {
+          if (settled || timedOut || token !== activePlayToken) return;
+          settled = true;
+          clearBufferTimer();
+          detachPlaybackHandlers(audio);
+          if (activeCloudAudio === audio) activeCloudAudio = null;
+
+          if (meta && meta.sourceIndex + 1 < meta.sources.length) {
+            const nextAudio = createCachedAudioEntry(meta.key, meta.sources, meta.sourceIndex + 1);
+            playAudioElement(nextAudio);
+          } else {
+            if (meta) {
+              meta.failed = true;
+              if (audioCache.get(meta.key) === audio) audioCache.delete(meta.key);
+            }
+            speakOfflineFallback(cleaned, targetRate, token, triggerBtn);
           }
-          audio.preload = "auto";
-          audio.src = source.url;
-          audio.playbackRate = targetRate;
-          activeCloudAudio = audio;
+        };
 
-          audio.onloadedmetadata = () => {
-            if (token === activePlayToken) audio.playbackRate = targetRate;
-          };
-          audio.onplaying = () => {
-            if (token !== activePlayToken) return;
-            audio.playbackRate = targetRate;
-            setSpeakerButtonState(triggerBtn, "playing");
-          };
-          audio.onended = () => {
-            if (token !== activePlayToken) return;
+        // Fast 800ms timeout fallback for non-cached / slow-buffering streams
+        if (!alreadyBuffered) {
+          bufferTimeoutTimer = setTimeout(() => {
+            if (settled || token !== activePlayToken) return;
+            timedOut = true;
+            settled = true;
+            bufferTimeoutTimer = null;
+            detachPlaybackHandlers(audio);
+            try {
+              audio.pause();
+              audio.currentTime = 0;
+              audio.preload = "auto";
+              if (!isAudioReady(audio) && typeof audio.load === "function") {
+                audio.load();
+              }
+            } catch (e) {}
             if (activeCloudAudio === audio) activeCloudAudio = null;
-            setSpeakerButtonState(triggerBtn, "idle");
-          };
-          audio.onerror = tryNext;
+            speakOfflineFallback(cleaned, targetRate, token, triggerBtn);
+          }, BUFFER_TIMEOUT_MS);
+        }
 
+        audio.onloadedmetadata = () => {
+          if (token === activePlayToken && !timedOut) {
+            audio.playbackRate = targetRate;
+          }
+        };
+
+        audio.onplaying = () => {
+          if (token !== activePlayToken || timedOut) return;
+          settled = true;
+          clearBufferTimer();
+          if (meta) meta.ready = true;
+          audio.playbackRate = targetRate;
+          setSpeakerButtonState(triggerBtn, "playing");
+        };
+
+        audio.onended = () => {
+          if (token !== activePlayToken) return;
+          clearBufferTimer();
+          detachPlaybackHandlers(audio);
+          if (activeCloudAudio === audio) activeCloudAudio = null;
+          setSpeakerButtonState(triggerBtn, "idle");
+        };
+
+        audio.onerror = advanceToBackup;
+
+        try {
+          try { audio.currentTime = 0; } catch (e) {}
+          audio.playbackRate = targetRate;
           const playPromise = audio.play();
           if (playPromise && typeof playPromise.catch === "function") {
-            playPromise.catch(tryNext);
+            playPromise.catch(advanceToBackup);
           }
         } catch (e) {
-          tryNext();
+          advanceToBackup();
         }
       };
 
-      trySource(0);
+      const cachedOrNew = preloadArabicAudio(cleaned);
+      playAudioElement(cachedOrNew);
     }
     if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 
@@ -1303,6 +1465,9 @@
         grid.appendChild(card);
       });
     }
+    function preloadAlphabetAudio() {
+      preloadArabicAudioBatch(ARABIC_ALPHABET.map(item => getAlphaText(item).ar));
+    }
     document.getElementById("alpha-speak-btn").addEventListener("click", (e) => speakArabic(getAlphaText(selectedAlpha).ar, 1.0, e.currentTarget));
     document.getElementById("alpha-slow-btn").addEventListener("click", (e) => speakArabic(getAlphaText(selectedAlpha).ar, 0.65, e.currentTarget));
     document.querySelectorAll(".vowel-btn").forEach(btn => {
@@ -1311,6 +1476,7 @@
         document.querySelectorAll(".vowel-btn").forEach(b => b.className = "vowel-btn btn-3d py-2.5 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-slate-200 bg-white text-slate-700");
         btn.className = "vowel-btn btn-3d py-2.5 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-[#46A302] bg-[#58CC02] text-white";
         renderAlphabetGrid();
+        preloadAlphabetAudio();
       });
     });
 
@@ -1403,7 +1569,9 @@
     }
 
     function renderCurrentQuestion() {
+      stopArabicAudio();
       const q = activeSession.questions[activeSession.currentIndex];
+      preloadArabicAudioBatch(collectQuestionArabicTexts(q));
       const total = activeSession.questions.length;
       document.getElementById("lesson-progress-bar").style.width = `${Math.max(Math.round((activeSession.currentIndex / total) * 100), 4)}%`;
       document.getElementById("lesson-hearts-count").textContent = activeSession.hearts;
@@ -1705,6 +1873,7 @@
           ? "side-nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-extrabold text-sm bg-green-50 text-[#357A00] border border-green-200"
           : "side-nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-extrabold text-sm text-slate-600 hover:bg-slate-100 border border-transparent";
       });
+      if (tabName === "alphabet") preloadAlphabetAudio();
       if (tabName === "leaderboard") loadLeaderboard();
       if (tabName === "profile") updateStatsUI();
     }

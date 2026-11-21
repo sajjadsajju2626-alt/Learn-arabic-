@@ -1,3 +1,5 @@
+import type { LessonQuestion } from '../types/learning';
+
 export type ToneType = 'correct' | 'wrong' | 'complete' | 'tap';
 
 export interface ArabicAudioState {
@@ -11,7 +13,17 @@ export interface ArabicAudioSource {
   provider: 'letter-mp3' | 'streamelements' | 'youdao';
 }
 
+interface CachedAudioMeta {
+  key: string;
+  sources: ArabicAudioSource[];
+  sourceIndex: number;
+  ready: boolean;
+  failed: boolean;
+}
+
 type AudioStateListener = (state: ArabicAudioState) => void;
+
+export const BUFFER_TIMEOUT_MS = 800;
 
 export const BASE_ARABIC_LETTERS = [
   'ا',
@@ -44,10 +56,14 @@ export const BASE_ARABIC_LETTERS = [
   'ي',
 ] as const;
 
+export const audioCache = new Map<string, HTMLAudioElement>();
+const audioCacheMeta = new WeakMap<HTMLAudioElement, CachedAudioMeta>();
+
 let sharedAudioCtx: AudioContext | null = null;
 let activeCloudAudio: HTMLAudioElement | null = null;
 let activePlayToken = 0;
 let fallbackSafetyTimer: number | null = null;
+let bufferTimeoutTimer: number | null = null;
 let currentAudioState: ArabicAudioState = { status: 'idle', sourceId: null };
 const audioListeners = new Set<AudioStateListener>();
 
@@ -124,6 +140,138 @@ export function resolveArabicPlaybackRate(rate: number): number {
   return rate < 0.75 ? 0.65 : 1.0;
 }
 
+export function collectQuestionArabicTexts(question: LessonQuestion): string[] {
+  const texts = new Set<string>();
+  const add = (value?: string) => {
+    const trimmed = value?.trim();
+    if (trimmed) texts.add(trimmed);
+  };
+
+  if ('arabic' in question && question.arabic) {
+    add(question.arabic);
+  }
+  if ((question.type === 'mcq' || question.type === 'listen') && question.isArabicOption) {
+    question.options.forEach(add);
+  }
+  if (question.type === 'wordbank' && question.isArabicWords) {
+    question.words.forEach(add);
+  }
+  if (question.type === 'pairs') {
+    question.pairs.forEach((pair) => add(pair.ar));
+  }
+
+  return Array.from(texts);
+}
+
+function isAudioReady(audio: HTMLAudioElement | null): boolean {
+  if (!audio) return false;
+  const meta = audioCacheMeta.get(audio);
+  return Boolean(meta?.ready || (typeof audio.readyState === 'number' && audio.readyState >= 2));
+}
+
+function attachBgErrorHandler(audio: HTMLAudioElement): void {
+  const meta = audioCacheMeta.get(audio);
+  if (!meta) return;
+  audio.onerror = () => {
+    if (audioCache.get(meta.key) !== audio) return;
+    const nextIdx = meta.sourceIndex + 1;
+    if (nextIdx < meta.sources.length) {
+      createCachedAudioEntry(meta.key, meta.sources, nextIdx);
+    } else {
+      meta.failed = true;
+      audioCache.delete(meta.key);
+    }
+  };
+}
+
+function detachPlaybackHandlers(audio: HTMLAudioElement | null): void {
+  if (!audio) return;
+  audio.onloadedmetadata = null;
+  audio.onplaying = null;
+  audio.onended = null;
+  attachBgErrorHandler(audio);
+}
+
+function createCachedAudioEntry(
+  key: string,
+  sources: ArabicAudioSource[],
+  sourceIndex: number
+): HTMLAudioElement | null {
+  if (typeof Audio === 'undefined' || sourceIndex >= sources.length) return null;
+  const source = sources[sourceIndex];
+  try {
+    const audio = new Audio();
+    if (source.crossOrigin) {
+      audio.crossOrigin = 'anonymous';
+    }
+    audio.preload = 'auto';
+    audio.src = source.url;
+
+    const meta: CachedAudioMeta = {
+      key,
+      sources,
+      sourceIndex,
+      ready: false,
+      failed: false,
+    };
+    audioCacheMeta.set(audio, meta);
+
+    const markReady = () => {
+      meta.ready = true;
+    };
+    if (typeof audio.addEventListener === 'function') {
+      audio.addEventListener('canplay', markReady);
+      audio.addEventListener('canplaythrough', markReady);
+      audio.addEventListener('loadeddata', markReady);
+    } else {
+      audio.oncanplay = markReady;
+      audio.onloadeddata = markReady;
+    }
+    attachBgErrorHandler(audio);
+
+    audioCache.set(key, audio);
+    if (typeof audio.load === 'function') {
+      audio.load();
+    }
+    return audio;
+  } catch {
+    return null;
+  }
+}
+
+export function preloadArabicAudio(text: string): HTMLAudioElement | null {
+  const cleaned = text?.trim();
+  if (!cleaned || typeof Audio === 'undefined') return null;
+
+  const existing = audioCache.get(cleaned);
+  if (existing) {
+    const meta = audioCacheMeta.get(existing);
+    if (meta && !meta.failed) {
+      return existing;
+    }
+  }
+
+  const sources = buildArabicAudioSources(cleaned);
+  return createCachedAudioEntry(cleaned, sources, 0);
+}
+
+export function preloadArabicAudioBatch(texts: string[]): void {
+  texts.forEach((t) => {
+    preloadArabicAudio(t);
+  });
+}
+
+export function clearArabicAudioCache(): void {
+  audioCache.forEach((audio) => {
+    try {
+      audio.pause();
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+  audioCache.clear();
+}
+
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   const AudioCtx =
@@ -191,23 +339,26 @@ export function playTone(type: ToneType, enabled: boolean): void {
 export function stopArabicAudio(): void {
   activePlayToken += 1;
 
+  if (bufferTimeoutTimer !== null && typeof window !== 'undefined') {
+    window.clearTimeout(bufferTimeoutTimer);
+    bufferTimeoutTimer = null;
+  }
+
   if (fallbackSafetyTimer !== null && typeof window !== 'undefined') {
     window.clearTimeout(fallbackSafetyTimer);
     fallbackSafetyTimer = null;
   }
 
   if (activeCloudAudio) {
+    const prev = activeCloudAudio;
+    activeCloudAudio = null;
     try {
-      activeCloudAudio.onloadedmetadata = null;
-      activeCloudAudio.onplaying = null;
-      activeCloudAudio.onended = null;
-      activeCloudAudio.onerror = null;
-      activeCloudAudio.pause();
-      activeCloudAudio.currentTime = 0;
+      detachPlaybackHandlers(prev);
+      prev.pause();
+      prev.currentTime = 0;
     } catch {
       // Ignore cleanup errors
     }
-    activeCloudAudio = null;
   }
 
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -303,70 +454,123 @@ export function speakArabic(
   const token = ++activePlayToken;
   const targetRate = resolveArabicPlaybackRate(rate);
   const resolvedSource = sourceId ?? null;
-  const sources = buildArabicAudioSources(cleaned);
 
-  setAudioState({ status: 'loading', sourceId: resolvedSource });
+  if (typeof Audio === 'undefined') {
+    speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
+    return;
+  }
 
-  const trySource = (index: number) => {
+  const playAudioElement = (audio: HTMLAudioElement | null) => {
     if (token !== activePlayToken) return;
-    if (index >= sources.length || typeof Audio === 'undefined') {
+    if (!audio) {
       speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
       return;
     }
 
-    const source = sources[index];
-    let advanced = false;
-    let audio: HTMLAudioElement | null = null;
+    const meta = audioCacheMeta.get(audio);
+    const alreadyBuffered = isAudioReady(audio);
+    let settled = false;
+    let timedOut = false;
 
-    const tryNext = () => {
-      if (advanced || token !== activePlayToken) return;
-      advanced = true;
+    setAudioState({ status: alreadyBuffered ? 'playing' : 'loading', sourceId: resolvedSource });
+    activeCloudAudio = audio;
+
+    const clearBufferTimer = () => {
+      if (bufferTimeoutTimer !== null) {
+        window.clearTimeout(bufferTimeoutTimer);
+        bufferTimeoutTimer = null;
+      }
+    };
+
+    const advanceToBackup = () => {
+      if (settled || timedOut || token !== activePlayToken) return;
+      settled = true;
+      clearBufferTimer();
+      detachPlaybackHandlers(audio);
       if (activeCloudAudio === audio) {
         activeCloudAudio = null;
       }
-      trySource(index + 1);
+
+      if (meta && meta.sourceIndex + 1 < meta.sources.length) {
+        const nextAudio = createCachedAudioEntry(meta.key, meta.sources, meta.sourceIndex + 1);
+        playAudioElement(nextAudio);
+      } else {
+        if (meta) {
+          meta.failed = true;
+          if (audioCache.get(meta.key) === audio) {
+            audioCache.delete(meta.key);
+          }
+        }
+        speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
+      }
     };
 
-    try {
-      audio = new Audio();
-      if (source.crossOrigin) {
-        audio.crossOrigin = 'anonymous';
-      }
-      audio.preload = 'auto';
-      audio.src = source.url;
-      audio.playbackRate = targetRate;
-      activeCloudAudio = audio;
-
-      audio.onloadedmetadata = () => {
-        if (token === activePlayToken && audio) {
-          audio.playbackRate = targetRate;
+    if (!alreadyBuffered) {
+      bufferTimeoutTimer = window.setTimeout(() => {
+        if (settled || token !== activePlayToken) return;
+        timedOut = true;
+        settled = true;
+        bufferTimeoutTimer = null;
+        detachPlaybackHandlers(audio);
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.preload = 'auto';
+          if (!isAudioReady(audio) && typeof audio.load === 'function') {
+            audio.load();
+          }
+        } catch {
+          // Ignore pause/load errors
         }
-      };
-
-      audio.onplaying = () => {
-        if (token !== activePlayToken || !audio) return;
-        audio.playbackRate = targetRate;
-        setAudioState({ status: 'playing', sourceId: resolvedSource });
-      };
-
-      audio.onended = () => {
-        if (token !== activePlayToken) return;
         if (activeCloudAudio === audio) {
           activeCloudAudio = null;
         }
-        setAudioState({ status: 'idle', sourceId: null });
-      };
+        speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
+      }, BUFFER_TIMEOUT_MS);
+    }
 
-      audio.onerror = tryNext;
+    audio.onloadedmetadata = () => {
+      if (token === activePlayToken && !timedOut) {
+        audio.playbackRate = targetRate;
+      }
+    };
 
+    audio.onplaying = () => {
+      if (token !== activePlayToken || timedOut) return;
+      settled = true;
+      clearBufferTimer();
+      if (meta) meta.ready = true;
+      audio.playbackRate = targetRate;
+      setAudioState({ status: 'playing', sourceId: resolvedSource });
+    };
+
+    audio.onended = () => {
+      if (token !== activePlayToken) return;
+      clearBufferTimer();
+      detachPlaybackHandlers(audio);
+      if (activeCloudAudio === audio) {
+        activeCloudAudio = null;
+      }
+      setAudioState({ status: 'idle', sourceId: null });
+    };
+
+    audio.onerror = advanceToBackup;
+
+    try {
+      try {
+        audio.currentTime = 0;
+      } catch {
+        // Some browsers disallow setting currentTime before metadata loads
+      }
+      audio.playbackRate = targetRate;
       const playPromise = audio.play();
       if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(tryNext);
+        playPromise.catch(advanceToBackup);
       }
     } catch {
-      tryNext();
+      advanceToBackup();
     }
   };
 
-  trySource(0);
+  playAudioElement(preloadArabicAudio(cleaned));
 }

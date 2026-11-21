@@ -9,8 +9,10 @@ import {
   shouldShowArabicPromptCard,
 } from '../utils/learningEngine';
 import {
+  collectQuestionArabicTexts,
   getArabicAudioState,
   playTone,
+  preloadArabicAudioBatch,
   speakArabic,
   stopArabicAudio,
   subscribeArabicAudioState,
@@ -93,6 +95,11 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     );
     return { left, right };
   }, [question, currentIndex]);
+
+  // Preload all Arabic audio clips in this question (prompt, options, word bank, pairs)
+  useEffect(() => {
+    preloadArabicAudioBatch(collectQuestionArabicTexts(question));
+  }, [question]);
 
   // Auto-pronounce Arabic prompt only when the Arabic prompt card is shown
   useEffect(() => {
