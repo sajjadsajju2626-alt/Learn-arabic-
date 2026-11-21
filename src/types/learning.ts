@@ -29,6 +29,7 @@ export interface McqQuestion {
   optionTranslits?: Record<string, string>;
   answer: string;
   isReview?: boolean;
+  isSpacedRepetition?: boolean;
 }
 
 export interface ListenQuestion {
@@ -41,6 +42,7 @@ export interface ListenQuestion {
   optionTranslits?: Record<string, string>;
   answer: string;
   isReview?: boolean;
+  isSpacedRepetition?: boolean;
 }
 
 export interface WordBankQuestion {
@@ -53,6 +55,7 @@ export interface WordBankQuestion {
   wordTranslits?: Record<string, string>;
   answer: string[];
   isReview?: boolean;
+  isSpacedRepetition?: boolean;
 }
 
 export interface PairsQuestion {
@@ -60,6 +63,7 @@ export interface PairsQuestion {
   prompt: string;
   pairs: PairItem[];
   isReview?: boolean;
+  isSpacedRepetition?: boolean;
 }
 
 export interface FillBlankQuestion {
@@ -72,6 +76,7 @@ export interface FillBlankQuestion {
   optionTranslits?: Record<string, string>;
   answer: string;
   isReview?: boolean;
+  isSpacedRepetition?: boolean;
 }
 
 export type LessonQuestion =

@@ -3,6 +3,7 @@ import { PLACEMENT_QUESTIONS, UNITS } from './data/curriculum';
 import type { AppTab, Lesson, SessionConfig, SessionResult, UserState } from './types/learning';
 import {
   applySessionResult,
+  buildLessonSessionQuestions,
   buildUnitJumpQuestions,
   claimTreasureChest,
   computeStreakUpdate,
@@ -133,7 +134,7 @@ export default function App() {
       lessonTitle: lesson.title,
       targetUnitIndex: null,
       bannerText: null,
-      questions: prepareSessionQuestions(lesson.questions),
+      questions: buildLessonSessionQuestions(lesson, user.completedLessons, UNITS),
       initialHearts: Math.max(user.hearts, 1),
     });
   };

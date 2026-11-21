@@ -296,6 +296,13 @@ export const LessonModal: React.FC<LessonModalProps> = ({
             />
           </div>
 
+          <span
+            data-testid="lesson-progress-count"
+            className="text-xs font-extrabold text-slate-600 font-latin tabular-nums shrink-0"
+          >
+            {currentIndex + 1} / {questionQueue.length}
+          </span>
+
           <div
             className="flex items-center gap-1.5 font-extrabold text-rose-600 text-sm font-latin tabular-nums shrink-0"
             aria-label={`ശേഷിക്കുന്ന ഹാർട്ടുകൾ: ${hearts}`}
@@ -329,11 +336,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               <span>
                 ചോദ്യം {currentIndex + 1} / {questionQueue.length}
               </span>
-              {question.isReview && (
+              {question.isReview ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-extrabold">
                   🔄 തെറ്റിയ ചോദ്യം
                 </span>
-              )}
+              ) : question.isSpacedRepetition ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-extrabold">
+                  🧠 പുനരവലോകനം
+                </span>
+              ) : null}
             </div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
               {question.prompt}

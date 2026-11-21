@@ -2,9 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum';
 import {
+  ALL_QUESTION_TYPES,
   applySessionResult,
   areWordBankAnswersEqual,
   buildFilledSentence,
+  buildLessonSessionQuestions,
   buildUnitJumpQuestions,
   claimTreasureChest,
   computeStreakUpdate,
@@ -14,6 +16,7 @@ import {
   fisherYatesShuffle,
   getAllLessonIds,
   getLetterDisplay,
+  getQuestionFingerprint,
   isLessonUnlocked,
   isUnitUnlocked,
   mergeAndSortLeaderboard,
@@ -998,5 +1001,109 @@ test('fill_blank supports buildFilledSentence, Fisher-Yates shuffling, audio pre
   assert.equal(enqueueMistakeForReview([sampleFb], sampleFb, 'placement').length, 1);
   assert.equal(enqueueMistakeForReview([sampleFb], sampleFb, 'jump').length, 1);
 });
+
+test('buildLessonSessionQuestions delivers 10-12 unique balanced 5-type questions across all 245 non-chest nodes in all 35 units', () => {
+  let deterministicSeed = 42;
+  const seededRng = () => {
+    deterministicSeed = (deterministicSeed * 1664525 + 1013904223) % 4294967296;
+    return deterministicSeed / 4294967296;
+  };
+
+  let checkedNodes = 0;
+  for (let uIdx = 0; uIdx < UNITS.length; uIdx++) {
+    const unit = UNITS[uIdx];
+    const priorCompleted = unlockLessonsUpToUnit([], uIdx);
+    for (const lesson of unit.lessons) {
+      if (lesson.nodeType === 'chest') continue;
+      checkedNodes += 1;
+
+      const session = buildLessonSessionQuestions(lesson, priorCompleted, UNITS, seededRng);
+      assert.ok(
+        session.length >= 10 && session.length <= 12,
+        `${lesson.id} expected 10-12 questions, got ${session.length}`
+      );
+      if (lesson.nodeType === 'trophy') {
+        assert.equal(session.length, 12, `${lesson.id} trophy node must deliver exactly 12 questions`);
+      }
+
+      // Zero duplicate questions inside the same session
+      const fingerprints = new Set(session.map((q) => getQuestionFingerprint(q)));
+      assert.equal(
+        fingerprints.size,
+        session.length,
+        `${lesson.id} session contains duplicate questions`
+      );
+
+      // All 5 question types must be present
+      const presentTypes = new Set(session.map((q) => q.type));
+      for (const t of ALL_QUESTION_TYPES) {
+        assert.ok(
+          presentTypes.has(t),
+          `${lesson.id} session is missing question type "${t}" (has: ${[...presentTypes].join(', ')})`
+        );
+      }
+
+      // Spaced Repetition: 2 earlier-unit review questions whenever prior units are completed
+      const srQuestions = session.filter((q) => q.isSpacedRepetition === true);
+      if (uIdx > 0) {
+        assert.equal(
+          srQuestions.length,
+          2,
+          `${lesson.id} should include 2 Spaced-Repetition review questions from earlier completed units`
+        );
+        for (const sr of srQuestions) {
+          assert.equal(sr.isReview, undefined, `${lesson.id} SR question must not be marked as isReview`);
+        }
+      } else {
+        assert.equal(srQuestions.length, 0, `${lesson.id} in Unit 1 has no earlier units for SR`);
+      }
+
+      // Zero prompt/option mismatch or answer-spoiling prompt cards (handcrafted + dynamic)
+      for (const q of session) {
+        if (q.type === 'mcq' || q.type === 'listen' || q.type === 'fill_blank') {
+          assert.ok(
+            q.options.includes(q.answer),
+            `${lesson.id} shuffled options must include exact answer "${q.answer}"`
+          );
+        }
+        if (q.type === 'mcq') {
+          if (q.isArabicOption && q.arabic) {
+            assert.notEqual(
+              q.arabic.trim(),
+              q.answer.trim(),
+              `${lesson.id} spoils Arabic answer in prompt card`
+            );
+          }
+          // Verify no question asks for Arabic phrase while offering the exact prompt quote as option
+          const quotedMatch = q.prompt.match(/'([^']+)'/);
+          if (quotedMatch && q.prompt.includes('എങ്ങനെ') && !q.isArabicOption) {
+            assert.equal(
+              q.options.some((o) => o.trim() === quotedMatch[1].trim()),
+              false,
+              `${lesson.id} duplicates quoted prompt "${quotedMatch[1]}" as Malayalam option`
+            );
+          }
+        }
+      }
+    }
+  }
+  assert.equal(checkedNodes, 245, 'Expected 245 non-chest lesson nodes across 35 units');
+
+  // Verify the exact Unit 8 price question and Unit 6 green tree question have Arabic options and no spoiling prompt card
+  const u8n2 = UNITS[7].lessons[1];
+  const priceQ = u8n2.questions.find((q) => q.prompt.includes('ഇതിന് എത്ര വിലയാണ്'));
+  assert.ok(priceQ && priceQ.type === 'mcq');
+  assert.equal(priceQ.isArabicOption, true);
+  assert.equal(priceQ.answer, 'بِكَمْ هٰذَا؟');
+  assert.equal(shouldShowArabicPromptCard(priceQ), false);
+
+  const u6n5 = UNITS[5].lessons[4];
+  const greenTreeQ = u6n5.questions.find((q) => q.prompt.includes('പച്ച മരം'));
+  assert.ok(greenTreeQ && greenTreeQ.type === 'mcq');
+  assert.equal(greenTreeQ.isArabicOption, true);
+  assert.equal(greenTreeQ.answer, 'شَجَرَةٌ خَضْرَاءُ');
+  assert.equal(shouldShowArabicPromptCard(greenTreeQ), false);
+});
+
 
 

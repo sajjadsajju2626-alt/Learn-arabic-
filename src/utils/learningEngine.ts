@@ -450,6 +450,378 @@ export function prepareSessionQuestions(
   });
 }
 
+export const ALL_QUESTION_TYPES: readonly LessonQuestion['type'][] = [
+  'mcq',
+  'listen',
+  'pairs',
+  'wordbank',
+  'fill_blank',
+] as const;
+
+export function resolveLessonTargetCount(lesson: Pick<Lesson, 'nodeType'>): number {
+  if (lesson.nodeType === 'trophy') return 12;
+  if (
+    lesson.nodeType === 'hard' ||
+    lesson.nodeType === 'listening' ||
+    lesson.nodeType === 'dialogue'
+  ) {
+    return 11;
+  }
+  return 10;
+}
+
+export function getQuestionFingerprint(q: LessonQuestion): string {
+  const norm = (s?: string) => normalizeWordBankText(s ?? '').toLowerCase();
+  if (q.type === 'mcq') {
+    return `mcq|${norm(q.prompt)}|${norm(q.arabic)}|${norm(q.answer)}`;
+  }
+  if (q.type === 'listen') {
+    return `listen|${norm(q.arabic)}|${norm(q.answer)}`;
+  }
+  if (q.type === 'wordbank') {
+    return `wordbank|${norm(q.arabic || q.prompt)}|${norm(q.answer.join(' '))}`;
+  }
+  if (q.type === 'fill_blank') {
+    return `fill_blank|${norm(q.sentence)}|${norm(q.answer)}`;
+  }
+  const pairSig = q.pairs
+    .map((p) => norm(p.ar))
+    .sort()
+    .join(',');
+  return `pairs|${pairSig}`;
+}
+
+interface VocabEntry {
+  ar: string;
+  tr: string;
+  ml: string;
+}
+
+function collectUnitVocabPool(unit: Unit): VocabEntry[] {
+  const seenAr = new Set<string>();
+  const seenMl = new Set<string>();
+  const clean: VocabEntry[] = [];
+
+  const pushEntry = (ar: string, tr: string, ml: string) => {
+    const cleanAr = ar.trim();
+    const cleanMl = ml.trim();
+    if (!cleanAr || !cleanMl) return;
+    // Skip compound comparison rows (with arrows or slashes) for cleaner single-answer MCQs
+    if (/[→\/]/.test(cleanAr)) return;
+    const arKey = normalizeWordBankText(cleanAr);
+    const mlKey = cleanMl.toLowerCase();
+    if (!arKey || seenAr.has(arKey) || seenMl.has(mlKey)) return;
+    seenAr.add(arKey);
+    seenMl.add(mlKey);
+    clean.push({ ar: cleanAr, tr: (tr || '').trim(), ml: cleanMl });
+  };
+
+  for (const g of unit.guidebook ?? []) {
+    pushEntry(g.ar, g.tr, g.ml);
+  }
+  for (const l of unit.lessons) {
+    for (const q of l.questions) {
+      if (q.type === 'pairs') {
+        for (const p of q.pairs) {
+          pushEntry(p.ar, p.tr ?? '', p.ml);
+        }
+      }
+    }
+  }
+  return clean;
+}
+
+function generateDynamicUnitQuestions(
+  unit: Unit,
+  rng: () => number
+): LessonQuestion[] {
+  const vocab = shuffleArray(collectUnitVocabPool(unit), rng);
+  if (vocab.length < 4) return [];
+
+  const generated: LessonQuestion[] = [];
+  const allArabicWords = vocab
+    .flatMap((v) => v.ar.split(/\s+/))
+    .map((w) => w.trim())
+    .filter((w) => w.length > 0 && /[\u0600-\u06FF]/.test(w));
+
+  // 1. Arabic -> Malayalam MCQs & Malayalam -> Arabic MCQs (zero prompt spoilage)
+  for (let i = 0; i < vocab.length; i++) {
+    const target = vocab[i];
+    const distractors = shuffleArray(
+      vocab.filter((_, idx) => idx !== i),
+      rng
+    ).slice(0, 3);
+    if (distractors.length < 3) continue;
+
+    // Arabic -> Malayalam MCQ
+    generated.push({
+      type: 'mcq',
+      prompt: 'ഈ അറബി പ്രയോഗത്തിന്റെ ശരിയായ മലയാളം അർത്ഥം ഏതാണ്?',
+      arabic: target.ar,
+      translit: target.tr || undefined,
+      options: [target.ml, ...distractors.map((d) => d.ml)],
+      answer: target.ml,
+    });
+
+    // Malayalam -> Arabic MCQ (NO arabic/translit field on prompt card!)
+    const optTranslits: Record<string, string> = {};
+    const arChoices = [target, ...distractors];
+    for (const item of arChoices) {
+      if (item.tr) optTranslits[item.ar] = item.tr;
+    }
+    generated.push({
+      type: 'mcq',
+      prompt: `'${target.ml}' എന്നതിന്റെ ശരിയായ അറബി രൂപം ഏതാണ്?`,
+      options: arChoices.map((c) => c.ar),
+      isArabicOption: true,
+      optionTranslits: Object.keys(optTranslits).length > 0 ? optTranslits : undefined,
+      answer: target.ar,
+    });
+
+    // Listen & Choose
+    generated.push({
+      type: 'listen',
+      prompt: 'ശബ്ദം കേട്ട് ശരിയായ മലയാളം അർത്ഥം തിരഞ്ഞെടുക്കുക',
+      arabic: target.ar,
+      translit: target.tr || undefined,
+      options: [target.ml, ...distractors.map((d) => d.ml)],
+      answer: target.ml,
+    });
+
+    // Dynamic Word Bank for 2-5 word Arabic phrases
+    const words = target.ar.split(/\s+/).filter(Boolean);
+    if (words.length >= 2 && words.length <= 5) {
+      const normalizedSet = new Set(words.map((w) => normalizeWordBankText(w)));
+      const extraDistractor = shuffleArray(allArabicWords, rng).find(
+        (w) => !normalizedSet.has(normalizeWordBankText(w))
+      );
+      const wbWords = extraDistractor ? [...words, extraDistractor] : [...words];
+      generated.push({
+        type: 'wordbank',
+        prompt: `'${target.ml}' എന്ന് അറബിയിൽ ക്രമീകരിക്കുക`,
+        words: wbWords,
+        isArabicWords: true,
+        answer: words,
+      });
+    }
+  }
+
+  // 2. Dynamic Matching Pairs (sets of 4 distinct unit items)
+  if (vocab.length >= 4) {
+    generated.push({
+      type: 'pairs',
+      prompt: 'ഈ യൂണിറ്റിലെ വാക്കുകളും അർത്ഥങ്ങളും യോജിപ്പിക്കുക',
+      pairs: vocab.slice(0, 4).map((v) => ({
+        ar: v.ar,
+        tr: v.tr || undefined,
+        ml: v.ml,
+      })),
+    });
+    if (vocab.length >= 8) {
+      generated.push({
+        type: 'pairs',
+        prompt: 'കൂടുതൽ അറബി പ്രയോഗങ്ങൾ അർത്ഥവുമായി യോജിപ്പിക്കുക',
+        pairs: vocab.slice(4, 8).map((v) => ({
+          ar: v.ar,
+          tr: v.tr || undefined,
+          ml: v.ml,
+        })),
+      });
+    }
+  }
+
+  return generated;
+}
+
+/**
+ * Builds a full Duolingo-grade 10-12 question lesson session:
+ * - Combines all handcrafted questions for the node with same-unit reinforcement
+ *   questions (other unit nodes + dynamically generated unit vocab/grammar questions)
+ *   and up to 2 Spaced-Repetition review questions from earlier completed units.
+ * - Guarantees 10-12 questions (12 for Unit Mastery Trophy nodes).
+ * - Guarantees zero duplicate questions within the session.
+ * - Guarantees a balanced mix across all 5 question types (mcq, listen, pairs, wordbank, fill_blank).
+ * - Applies Fisher-Yates option shuffling while preserving exact answer matching.
+ */
+export function buildLessonSessionQuestions(
+  lesson: Lesson,
+  completedLessons: readonly string[] = [],
+  units: readonly Unit[] = UNITS,
+  rng: () => number = Math.random
+): LessonQuestion[] {
+  const targetCount = resolveLessonTargetCount(lesson);
+  const unitIndex = units.findIndex((u) => u.lessons.some((l) => l.id === lesson.id));
+  const unit = unitIndex >= 0 ? units[unitIndex] : null;
+
+  const seen = new Set<string>();
+  const cloneQ = (q: LessonQuestion): LessonQuestion =>
+    JSON.parse(JSON.stringify(q)) as LessonQuestion;
+
+  const tryAccept = (
+    list: LessonQuestion[],
+    q: LessonQuestion,
+    markSpacedRepetition = false
+  ): boolean => {
+    const fp = getQuestionFingerprint(q);
+    if (seen.has(fp)) return false;
+    seen.add(fp);
+    const copy = cloneQ(q);
+    delete copy.isReview;
+    if (markSpacedRepetition) {
+      copy.isSpacedRepetition = true;
+    } else {
+      delete copy.isSpacedRepetition;
+    }
+    list.push(copy);
+    return true;
+  };
+
+  // 1. Handcrafted questions for the active node
+  const handcrafted: LessonQuestion[] = [];
+  for (const q of lesson.questions) {
+    if (handcrafted.length >= targetCount) break;
+    tryAccept(handcrafted, q, false);
+  }
+
+  // 2. Spaced-Repetition pool: up to 2 review questions from earlier completed units
+  const spacedRepetition: LessonQuestion[] = [];
+  if (unitIndex > 0 && completedLessons.length > 0) {
+    const completedSet = new Set(completedLessons);
+    const earlierPool: LessonQuestion[] = [];
+    for (let i = 0; i < unitIndex; i++) {
+      const earlierUnit = units[i];
+      const hasCompletedInUnit = earlierUnit.lessons.some((l) => completedSet.has(l.id));
+      if (!hasCompletedInUnit) continue;
+      for (const l of earlierUnit.lessons) {
+        if (l.nodeType === 'chest' || l.questions.length === 0) continue;
+        for (const q of l.questions) {
+          earlierPool.push(q);
+        }
+      }
+    }
+    const shuffledEarlier = shuffleArray(earlierPool, rng);
+    const srTarget = Math.min(2, Math.max(0, targetCount - handcrafted.length));
+    // Prefer non-pairs first for crisp recall, fall back to any earlier question
+    const preferredEarlier = [
+      ...shuffledEarlier.filter((q) => q.type !== 'pairs'),
+      ...shuffledEarlier.filter((q) => q.type === 'pairs'),
+    ];
+    for (const q of preferredEarlier) {
+      if (spacedRepetition.length >= srTarget) break;
+      tryAccept(spacedRepetition, q, true);
+    }
+  }
+
+  // 3. Same-unit reinforcement pool (unused handcrafted questions from sibling nodes + dynamic generator)
+  const siblingHandcrafted: LessonQuestion[] = [];
+  if (unit) {
+    for (const sibling of unit.lessons) {
+      if (sibling.id === lesson.id || sibling.nodeType === 'chest') continue;
+      for (const q of sibling.questions) {
+        siblingHandcrafted.push(q);
+      }
+    }
+  }
+  const dynamicUnitQs = unit ? generateDynamicUnitQuestions(unit, rng) : [];
+  const unitPool: LessonQuestion[] = [
+    ...shuffleArray(siblingHandcrafted, rng),
+    ...shuffleArray(dynamicUnitQs, rng),
+  ];
+
+  // Fallback cross-unit pool (only if a unit somehow ever lacked enough unique candidates)
+  const fallbackPool: LessonQuestion[] = [];
+  if (unitPool.length < 15) {
+    for (const u of units) {
+      if (unit && u.id === unit.id) continue;
+      for (const l of u.lessons) {
+        if (l.nodeType === 'chest') continue;
+        for (const q of l.questions) fallbackPool.push(q);
+      }
+    }
+  }
+  const allCandidates = [...unitPool, ...shuffleArray(fallbackPool, rng)];
+
+  // 4. Guarantee balanced 5-type coverage (mcq, listen, pairs, wordbank, fill_blank)
+  const reinforcements: LessonQuestion[] = [];
+  const currentTotal = () =>
+    handcrafted.length + spacedRepetition.length + reinforcements.length;
+  const hasType = (t: LessonQuestion['type']) =>
+    handcrafted.some((q) => q.type === t) ||
+    spacedRepetition.some((q) => q.type === t) ||
+    reinforcements.some((q) => q.type === t);
+
+  for (const requiredType of ALL_QUESTION_TYPES) {
+    if (currentTotal() >= targetCount) break;
+    if (hasType(requiredType)) continue;
+    for (const cand of allCandidates) {
+      if (cand.type !== requiredType) continue;
+      if (tryAccept(reinforcements, cand, false)) break;
+    }
+  }
+
+  // 5. Fill remaining slots up to targetCount (10-12) balancing across question types
+  const typeCounts: Record<LessonQuestion['type'], number> = {
+    mcq: 0,
+    listen: 0,
+    pairs: 0,
+    wordbank: 0,
+    fill_blank: 0,
+  };
+  for (const q of [...handcrafted, ...spacedRepetition, ...reinforcements]) {
+    typeCounts[q.type] += 1;
+  }
+
+  while (currentTotal() < targetCount) {
+    // Pick the least-represented question type (capping pairs at 2 so sessions stay snappy)
+    const prioritizedTypes = [...ALL_QUESTION_TYPES].sort((a, b) => {
+      const penA = a === 'pairs' && typeCounts.pairs >= 2 ? 10 : 0;
+      const penB = b === 'pairs' && typeCounts.pairs >= 2 ? 10 : 0;
+      return typeCounts[a] + penA - (typeCounts[b] + penB);
+    });
+
+    let added = false;
+    for (const t of prioritizedTypes) {
+      for (const cand of allCandidates) {
+        if (cand.type !== t) continue;
+        if (tryAccept(reinforcements, cand, false)) {
+          typeCounts[t] += 1;
+          added = true;
+          break;
+        }
+      }
+      if (added) break;
+    }
+    if (!added) break;
+  }
+
+  // 6. Smart Duolingo sequencing: anchor first handcrafted core question, interleave types, place SR mid/late
+  const ordered: LessonQuestion[] = [];
+  if (handcrafted.length > 0) {
+    ordered.push(handcrafted[0]);
+  }
+  const restUnit = [...handcrafted.slice(1), ...reinforcements];
+  const remaining = [...restUnit];
+
+  while (remaining.length > 0) {
+    const prevType = ordered.length > 0 ? ordered[ordered.length - 1].type : null;
+    const diffIdx = remaining.findIndex((q) => q.type !== prevType);
+    const pickIdx = diffIdx >= 0 ? diffIdx : 0;
+    ordered.push(remaining.splice(pickIdx, 1)[0]);
+  }
+
+  // Weave Spaced-Repetition review questions cleanly at mid & late positions
+  if (spacedRepetition.length >= 1) {
+    const midPos = Math.min(4, ordered.length);
+    ordered.splice(midPos, 0, spacedRepetition[0]);
+  }
+  if (spacedRepetition.length >= 2) {
+    const latePos = Math.min(8, ordered.length);
+    ordered.splice(latePos, 0, spacedRepetition[1]);
+  }
+
+  return prepareSessionQuestions(ordered.slice(0, targetCount), rng);
+}
+
 export function buildUnitJumpQuestions(
   targetUnitIndex: number,
   units: Unit[] = UNITS,
