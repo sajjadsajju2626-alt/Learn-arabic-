@@ -98,15 +98,86 @@ export function getArabicLetterAudioUrl(arabicText: string): string | null {
   return `https://raw.githubusercontent.com/mustafa0x/arabic-alphabet-audio/master/mp3/${letterIndex}.mp3`;
 }
 
+const ALLAH_BARE_FORMS = new Set(['الله', 'لله', 'بالله', 'والله', 'تالله', 'فالله']);
+
+/**
+ * Formats vocalized Arabic text for natural spoken TTS pronunciation without
+ * altering the visual text shown to learners:
+ * 1. Sun-letter (Al-Shamsiyyah) assimilation: strips silent Lam (and silent
+ *    connective Alif after prefixes كَـ / بِـ / وَ / فَـ) before any Sun letter
+ *    carrying Shadda (e.g. كَالسَّيْفِ -> كَسَّيْفْ).
+ * 2. Natural pausal ending (Al-Waqf): on isolated words or sentence-final words
+ *    (>= 3 Arabic base letters), replaces a trailing short case vowel (َ ِ ُ)
+ *    with Sukoon (ْ) while keeping Tanween Fath (ـًا) and single-letter Harakat
+ *    syllables intact.
+ */
+export function formatForArabicTTS(rawText: string): string {
+  const cleaned = String(rawText ?? '').trim();
+  if (!cleaned) return '';
+
+  const tokens = cleaned.split(/\s+/);
+  const lastIdx = tokens.length - 1;
+
+  const formattedTokens = tokens.map((token, idx) => {
+    const match = token.match(
+      /^([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)([\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]+)([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)$/
+    );
+    if (!match) return token;
+
+    const [, leadPunct, core, trailPunct] = match;
+    let word = core;
+
+    const bareWord = word.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+    const isAllahForm = ALLAH_BARE_FORMS.has(bareWord);
+
+    // 1. Sun-letter (Al-Shamsiyyah) assimilation
+    if (!isAllahForm) {
+      // Prefixed ال (كَالـ, بِالـ, وَالـ, فَالـ) + Sun letter + Shadda -> strip Alif + silent Lam
+      word = word.replace(
+        /^([كبوف][\u064E-\u0650]?)ا[\u064E]?ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
+        '$1$2$3'
+      );
+      // Word-initial ال / اَل + Sun letter + Shadda -> strip silent Lam, keep Alif
+      word = word.replace(
+        /^ا([\u064E]?)ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
+        'ا$1$2$3'
+      );
+      // Preposition لِـ + ال (لِلـ) + Sun letter + Shadda -> strip silent Lam
+      word = word.replace(
+        /^(ل[\u0650]?)ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
+        '$1$2$3'
+      );
+    }
+
+    // 2. Natural Pausal Ending (Al-Waqf) on isolated word or final word of sentence
+    if (idx === lastIdx) {
+      const baseLetters = word.match(/[\u0621-\u064A]/g);
+      if (baseLetters && baseLetters.length >= 3) {
+        if (/\u0651[\u064E\u064F\u0650]$/.test(word)) {
+          word = word.slice(0, -1);
+        } else if (/[\u064E\u064F\u0650]$/.test(word)) {
+          word = word.slice(0, -1) + '\u0652';
+        }
+      }
+    }
+
+    return `${leadPunct}${word}${trailPunct}`;
+  });
+
+  return formattedTokens.join(' ');
+}
+
 export function buildStreamElementsTtsUrl(arabicText: string): string {
+  const ttsText = formatForArabicTTS(arabicText);
   return `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(
-    arabicText.trim()
+    ttsText
   )}`;
 }
 
 export function buildYoudaoTtsUrl(arabicText: string): string {
+  const ttsText = formatForArabicTTS(arabicText);
   return `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(
-    arabicText.trim()
+    ttsText
   )}&le=ar`;
 }
 
@@ -458,16 +529,17 @@ export function speakArabic(
   const token = ++activePlayToken;
   const targetRate = resolveArabicPlaybackRate(rate);
   const resolvedSource = sourceId ?? null;
+  const ttsText = formatForArabicTTS(cleaned);
 
   if (typeof Audio === 'undefined') {
-    speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
+    speakOfflineFallback(ttsText, targetRate, token, resolvedSource);
     return;
   }
 
   const playAudioElement = (audio: HTMLAudioElement | null) => {
     if (token !== activePlayToken) return;
     if (!audio) {
-      speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
+      speakOfflineFallback(ttsText, targetRate, token, resolvedSource);
       return;
     }
 
@@ -505,7 +577,7 @@ export function speakArabic(
             audioCache.delete(meta.key);
           }
         }
-        speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
+        speakOfflineFallback(ttsText, targetRate, token, resolvedSource);
       }
     };
 
@@ -529,7 +601,7 @@ export function speakArabic(
         if (activeCloudAudio === audio) {
           activeCloudAudio = null;
         }
-        speakOfflineFallback(cleaned, targetRate, token, resolvedSource);
+        speakOfflineFallback(ttsText, targetRate, token, resolvedSource);
       }, BUFFER_TIMEOUT_MS);
     }
 

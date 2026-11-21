@@ -49,6 +49,7 @@ import {
   buildYoudaoTtsUrl,
   clearArabicAudioCache,
   collectQuestionArabicTexts,
+  formatForArabicTTS,
   getArabicLetterAudioUrl,
   preloadArabicAudio,
   resolveArabicPlaybackRate,
@@ -380,20 +381,22 @@ test('multi-source Arabic audio pipeline routes 28 base letters to studio MP3s a
   });
 
   // 2. Harakat syllables, words, and sentences route to StreamElements ar-XA-Wavenet-B then Youdao backup
+  // using formatForArabicTTS for natural spoken pronunciation
   for (const sample of ['بَ', 'أَقْرَأُ', 'السَّلَامُ عَلَيْكُمْ']) {
     assert.equal(getArabicLetterAudioUrl(sample), null);
+    const ttsFormatted = formatForArabicTTS(sample);
     const sources = buildArabicAudioSources(sample);
     assert.equal(sources.length, 2);
     assert.equal(sources[0].provider, 'streamelements');
     assert.equal(
       sources[0].url,
-      `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(sample)}`
+      `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(ttsFormatted)}`
     );
     assert.equal(sources[0].crossOrigin, true);
     assert.equal(sources[1].provider, 'youdao');
     assert.equal(
       sources[1].url,
-      `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(sample)}&le=ar`
+      `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(ttsFormatted)}&le=ar`
     );
     assert.equal(buildStreamElementsTtsUrl(sample), sources[0].url);
     assert.equal(buildYoudaoTtsUrl(sample), sources[1].url);
@@ -1253,6 +1256,60 @@ test('Review (+5 XP, 5 questions) and Legendary (+40 XP, 10 zero-hint questions,
   assert.equal(afterLegendaryAgain.xp, 100);
   assert.deepEqual(afterLegendaryAgain.legendaryLessons, ['u15_n2']);
 });
+
+test('formatForArabicTTS applies Sun-letter assimilation, natural pausal endings, and preserves Tanween Fath, Harakat, and Divine Name', () => {
+  // Sun-letter assimilation + pausal ending
+  assert.equal(formatForArabicTTS('كَالسَّيْفِ'), 'كَسَّيْفْ');
+  assert.equal(formatForArabicTTS('بِالسَّيَّارَةِ'), 'بِسَّيَّارَةْ');
+  assert.equal(formatForArabicTTS('وَالشَّمْسُ'), 'وَشَّمْسْ');
+  assert.equal(formatForArabicTTS('فَالسَّفَرُ'), 'فَسَّفَرْ');
+  assert.equal(formatForArabicTTS('لِلسَّفَرِ'), 'لِسَّفَرْ');
+  assert.equal(formatForArabicTTS('السَّلَامُ عَلَيْكُمْ'), 'اسَّلَامُ عَلَيْكُمْ');
+
+  // Moon letters keep Lam, apply natural pausal ending (Sukoon)
+  assert.equal(formatForArabicTTS('كَالْمَاءِ'), 'كَالْمَاءْ');
+  assert.equal(formatForArabicTTS('كَالْبَيْتِ'), 'كَالْبَيْتْ');
+  assert.equal(formatForArabicTTS('أَيْنَ الْمَسْجِدُ؟'), 'أَيْنَ الْمَسْجِدْ؟');
+
+  // Full proverb sentence: mid-sentence Sun assimilation + sentence-final pausal ending
+  assert.equal(formatForArabicTTS('الْوَقْتُ كَالسَّيْفِ'), 'الْوَقْتُ كَسَّيْفْ');
+  assert.equal(
+    formatForArabicTTS('الْوَقْتُ كَالسَّيْفِ إِنْ لَمْ تَقْطَعْهُ قَطَعَكَ'),
+    'الْوَقْتُ كَسَّيْفِ إِنْ لَمْ تَقْطَعْهُ قَطَعَكْ'
+  );
+
+  // Tanween Fath (-an) stays intact
+  assert.equal(formatForArabicTTS('شُكْرًا'), 'شُكْرًا');
+  assert.equal(formatForArabicTTS('مَرْحَبًا'), 'مَرْحَبًا');
+  assert.equal(formatForArabicTTS('سَفَرًا سَعِيدًا'), 'سَفَرًا سَعِيدًا');
+
+  // Single-letter Harakat syllables stay intact for Alphabet & Unit 1
+  assert.equal(formatForArabicTTS('ب'), 'ب');
+  assert.equal(formatForArabicTTS('بَ'), 'بَ');
+  assert.equal(formatForArabicTTS('جِ'), 'جِ');
+  assert.equal(formatForArabicTTS('تُ'), 'تُ');
+
+  // Divine Name Allah is never stripped of its Lam
+  assert.equal(formatForArabicTTS('إِنْ شَاءَ اللّٰهُ'), 'إِنْ شَاءَ اللّٰهْ');
+  assert.equal(formatForArabicTTS('الْحَمْدُ لِلّٰهِ'), 'الْحَمْدُ لِلّٰهْ');
+
+  // StreamElements URL encodes the formatted pronunciation (كَسَّيْفْ) while UI keeps كَالسَّيْفِ
+  assert.equal(
+    buildStreamElementsTtsUrl('كَالسَّيْفِ'),
+    `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent('كَسَّيْفْ')}`
+  );
+
+  // Verify Malayalam transliterations for كَالسَّيْفِ / كَالْمَاءِ / كَالْبَيْتِ match natural spoken Arabic
+  const u25n2 = UNITS[24].lessons[1];
+  const swordFb = u25n2.questions.find(
+    (q) => q.type === 'fill_blank' && q.options.includes('كَالسَّيْفِ')
+  );
+  assert.ok(swordFb && swordFb.type === 'fill_blank');
+  assert.equal(swordFb.optionTranslits?.['كَالسَّيْفِ'], 'കസ്സയ്ഫ്');
+  assert.equal(swordFb.optionTranslits?.['كَالْمَاءِ'], 'കൽമാഅ്');
+  assert.equal(swordFb.optionTranslits?.['كَالْبَيْتِ'], 'കൽബയ്ത്');
+});
+
 
 
 
