@@ -174,6 +174,12 @@ export function areWordBankAnswersEqual(
   return Boolean(expectedNormalized) && pickedNormalized === expectedNormalized;
 }
 
+export function buildFilledSentence(sentence: string, word: string): string {
+  const cleanedWord = word.trim();
+  if (!cleanedWord) return sentence.trim();
+  return sentence.replace(/_+/, cleanedWord).replace(/\s+/g, ' ').trim();
+}
+
 export function enqueueMistakeForReview(
   questions: readonly LessonQuestion[],
   missedQuestion: LessonQuestion,
@@ -185,7 +191,10 @@ export function enqueueMistakeForReview(
   }
   const cloned = JSON.parse(JSON.stringify(missedQuestion)) as LessonQuestion;
   cloned.isReview = true;
-  if ((cloned.type === 'mcq' || cloned.type === 'listen') && Array.isArray(cloned.options)) {
+  if (
+    (cloned.type === 'mcq' || cloned.type === 'listen' || cloned.type === 'fill_blank') &&
+    Array.isArray(cloned.options)
+  ) {
     cloned.options = shuffleArray(cloned.options, rng);
   }
   return [...questions, cloned];
@@ -200,6 +209,13 @@ export function evaluateQuestionAnswer(
     return {
       correct: selectedOption === question.answer,
       expectedDisplay: question.answer,
+    };
+  }
+
+  if (question.type === 'fill_blank') {
+    return {
+      correct: selectedOption === question.answer,
+      expectedDisplay: buildFilledSentence(question.sentence, question.answer),
     };
   }
   if (question.type === 'wordbank') {
@@ -421,7 +437,10 @@ export function prepareSessionQuestions(
   rng: () => number = Math.random
 ): LessonQuestion[] {
   return rawQuestions.map((q) => {
-    if ((q.type === 'mcq' || q.type === 'listen') && Array.isArray(q.options)) {
+    if (
+      (q.type === 'mcq' || q.type === 'listen' || q.type === 'fill_blank') &&
+      Array.isArray(q.options)
+    ) {
       return {
         ...q,
         options: shuffleArray(q.options, rng),

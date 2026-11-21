@@ -159,6 +159,10 @@ export function collectQuestionArabicTexts(question: LessonQuestion): string[] {
   if (question.type === 'pairs') {
     question.pairs.forEach((pair) => add(pair.ar));
   }
+  if (question.type === 'fill_blank') {
+    question.options.forEach(add);
+    add(question.sentence.replace(/_+/, question.answer.trim()).replace(/\s+/g, ' ').trim());
+  }
 
   return Array.from(texts);
 }

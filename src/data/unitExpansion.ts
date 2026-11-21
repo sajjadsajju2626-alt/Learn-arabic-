@@ -1,4 +1,4 @@
-import type { GuidebookEntry, Lesson, LessonQuestion, Unit, UnitMascot } from '../types/learning';
+import type { FillBlankQuestion, GuidebookEntry, Lesson, LessonQuestion, Unit, UnitMascot } from '../types/learning';
 
 export const TREASURE_CHEST_XP = 25;
 export const TREASURE_CHEST_HEARTS = 1;
@@ -978,6 +978,432 @@ export const UNIT_EXPANSION_PACKS: Record<string, UnitExpansionPack> = {
   },
 };
 
+export const UNIT_FILL_BLANK_QUESTIONS: Record<
+  string,
+  [FillBlankQuestion, FillBlankQuestion, FillBlankQuestion, FillBlankQuestion]
+> = {
+  u1: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَحْمَدُ ______ الدَّرْسَ',
+      hintMl: 'അഹമ്മദ് പാഠം എഴുതി',
+      avatar: '🦉',
+      options: ['كَتَبَ', 'بَابٌ', 'بَيْتٌ'],
+      optionTranslits: { 'كَتَبَ': 'കതബ', 'بَابٌ': 'ബാബുൻ', 'بَيْتٌ': 'ബയ്തുൻ' },
+      answer: 'كَتَبَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'عَلِيٌّ ______ الْكِتَابَ',
+      hintMl: 'അലി പുസ്തകം വായിച്ചു',
+      avatar: '👳‍♂️',
+      options: ['قَرَأَ', 'دَرْسٌ', 'قَلَمٌ'],
+      optionTranslits: { 'قَرَأَ': 'ഖറഅ', 'دَرْسٌ': 'ദർസുൻ', 'قَلَمٌ': 'ഖലമുൻ' },
+      answer: 'قَرَأَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'اَلطَّالِبُ ______ الْعَرَبِيَّةَ',
+      hintMl: 'വിദ്യാർത്ഥി അറബി പഠിച്ചു',
+      avatar: '🦉',
+      options: ['دَرَسَ', 'شَرِبَ', 'خَرَجَ'],
+      optionTranslits: { 'دَرَسَ': 'ദറസ', 'شَرِبَ': 'ശരിബ', 'خَرَجَ': 'ഖറജ' },
+      answer: 'دَرَسَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'هٰذَا ______ جَدِيدٌ',
+      hintMl: 'ഇതൊരു പുതിയ പുസ്തകമാണ്',
+      avatar: '👳‍♂️',
+      options: ['كِتَابٌ', 'كَتَبَ', 'دَرَسَ'],
+      optionTranslits: { 'كِتَابٌ': 'കിതാബുൻ', 'كَتَبَ': 'കതബ', 'دَرَسَ': 'ദറസ' },
+      answer: 'كِتَابٌ',
+    },
+  ],
+  u2: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'صَبَاحَ ______ يَا صَدِيقِي',
+      hintMl: 'സുപ്രഭാതം എന്റെ സുഹൃത്തേ',
+      avatar: '🦉',
+      options: ['الْخَيْرِ', 'الشُّكْرِ', 'السَّلَامِ'],
+      optionTranslits: { 'الْخَيْرِ': 'അൽ-ഖൈർ', 'الشُّكْرِ': 'അശ്-ശുക്ർ', 'السَّلَامِ': 'അസ്-സലാം' },
+      answer: 'الْخَيْرِ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'اَلسَّلَامُ ______ وَرَحْمَةُ اللّٰهِ',
+      hintMl: 'നിങ്ങൾക്ക് സമാധാനവും ദൈവകാരുണ്യവും ഉണ്ടാകട്ടെ',
+      avatar: '👳‍♂️',
+      options: ['عَلَيْكُمْ', 'فِيكُمْ', 'مِنْكُمْ'],
+      optionTranslits: { 'عَلَيْكُمْ': 'അലൈക്കും', 'فِيكُمْ': 'ഫീക്കും', 'مِنْكُمْ': 'മിൻക്കും' },
+      answer: 'عَلَيْكُمْ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَعْطِنِي مَاءً ______ فَضْلِكَ',
+      hintMl: 'ദയവായി എനിക്ക് വെള്ളം തരൂ',
+      avatar: '🦉',
+      options: ['مِنْ', 'إِلَى', 'عَلَى'],
+      optionTranslits: { 'مِنْ': 'മിൻ', 'إِلَى': 'ഇല', 'عَلَى': 'അലാ' },
+      answer: 'مِنْ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَنَا بِخَيْرٍ ______ لِلّٰهِ',
+      hintMl: 'എനിക്ക് സുഖമാണ്, സർവ്വസ്തുതിയും ദൈവത്തിന്',
+      avatar: '👳‍♂️',
+      options: ['وَالْحَمْدُ', 'وَمَرْحَبًا', 'وَآسِفٌ'],
+      optionTranslits: { 'وَالْحَمْدُ': 'വൽഹംദു', 'وَمَرْحَبًا': 'വ മർഹബൻ', 'وَآسِفٌ': 'വ ആസിഫ്' },
+      answer: 'وَالْحَمْدُ',
+    },
+  ],
+  u3: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَنَا ______ الْهِنْدِ',
+      hintMl: 'ഞാൻ ഇന്ത്യയിൽ നിന്നാണ്',
+      avatar: '🦉',
+      options: ['مِنَ', 'إِلَى', 'فِي'],
+      optionTranslits: { 'مِنَ': 'മിന', 'إِلَى': 'ഇല', 'فِي': 'ഫീ' },
+      answer: 'مِنَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: '______ اسْمُكَ يَا أَخِي؟',
+      hintMl: 'എന്റെ സഹോദരാ, നിന്റെ പേരെന്താണ്?',
+      avatar: '👳‍♂️',
+      options: ['مَا', 'أَيْنَ', 'مَتَى'],
+      optionTranslits: { 'مَا': 'മാ', 'أَيْنَ': 'അയ്ന', 'مَتَى': 'മതാ' },
+      answer: 'مَا',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: '______ طَالِبَةٌ مُجْتَهِدَةٌ',
+      hintMl: 'അവൾ മിടുക്കിയായ വിദ്യാർത്ഥിനിയാണ്',
+      avatar: '🦉',
+      options: ['هِيَ', 'هُوَ', 'نَحْنُ'],
+      optionTranslits: { 'هِيَ': 'ഹിയ', 'هُوَ': 'ഹുവ', 'نَحْنُ': 'നഹ്നു' },
+      answer: 'هِيَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: '______ تَسْكُنُ يَا عَلِيُّ؟',
+      hintMl: 'അലീ, നീ എവിടെയാണ് താമസിക്കുന്നത്?',
+      avatar: '👳‍♂️',
+      options: ['أَيْنَ', 'مَنْ', 'كَمْ'],
+      optionTranslits: { 'أَيْنَ': 'അയ്ന', 'مَنْ': 'മൻ', 'كَمْ': 'കം' },
+      answer: 'أَيْنَ',
+    },
+  ],
+  u4: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أُمِّي ______ الْبَيْتِ',
+      hintMl: 'എന്റെ ഉമ്മ വീട്ടിലാണ്',
+      avatar: '🦉',
+      options: ['فِي', 'إِلَى', 'مِنْ'],
+      optionTranslits: { 'فِي': 'ഫീ', 'إِلَى': 'ഇല', 'مِنْ': 'മിൻ' },
+      answer: 'فِي',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: '______ أُخْتِي الصَّغِيرَةُ',
+      hintMl: 'ഇത് എന്റെ ഇളയ സഹോദരിയാണ്',
+      avatar: '👳‍♂️',
+      options: ['هٰذِهِ', 'هٰذَا', 'هُوَ'],
+      optionTranslits: { 'هٰذِهِ': 'ഹാദിഹി', 'هٰذَا': 'ഹാദാ', 'هُوَ': 'ഹുവ' },
+      answer: 'هٰذِهِ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أُرِيدُ كُوبًا ______ الشَّايِ',
+      hintMl: 'എനിക്ക് ഒരു കപ്പ് ചായ വേണം',
+      avatar: '🦉',
+      options: ['مِنَ', 'عَلَى', 'إِلَى'],
+      optionTranslits: { 'مِنَ': 'മിന', 'عَلَى': 'അലാ', 'إِلَى': 'ഇല' },
+      answer: 'مِنَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'اَلْكِتَابُ ______ الطَّاوِلَةِ',
+      hintMl: 'പുസ്തകം മേശയുടെ മുകളിലാണ്',
+      avatar: '👳‍♂️',
+      options: ['عَلَى', 'مِنْ', 'إِلَى'],
+      optionTranslits: { 'عَلَى': 'അലാ', 'مِنْ': 'മിൻ', 'إِلَى': 'ഇല' },
+      answer: 'عَلَى',
+    },
+  ],
+  u5: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'نَذْهَبُ إِلَى الْمَسْجِدِ ______ الْجُمُعَةِ',
+      hintMl: 'വെള്ളിയാഴ്ച ദിവസം നമ്മൾ പള്ളിയിൽ പോകുന്നു',
+      avatar: '🦉',
+      options: ['يَوْمَ', 'سَاعَةَ', 'لَيْلَ'],
+      optionTranslits: { 'يَوْمَ': 'യൗമ', 'سَاعَةَ': 'സാഅത', 'لَيْلَ': 'ലയ്ല' },
+      answer: 'يَوْمَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَسْتَيْقِظُ مُبَكِّرًا ______ الصَّبَاحِ',
+      hintMl: 'ഞാൻ രാവിലെ നേരത്തെ ഉണരുന്നു',
+      avatar: '👳‍♂️',
+      options: ['فِي', 'إِلَى', 'مِنْ'],
+      optionTranslits: { 'فِي': 'ഫീ', 'إِلَى': 'ഇല', 'مِنْ': 'മിൻ' },
+      answer: 'فِي',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: '______ السَّاعَةُ الْآنَ؟',
+      hintMl: 'ഇപ്പോൾ സമയം എത്രയായി?',
+      avatar: '🦉',
+      options: ['كَمِ', 'أَيْنَ', 'مَنْ'],
+      optionTranslits: { 'كَمِ': 'കമി', 'أَيْنَ': 'അയ്ന', 'مَنْ': 'മൻ' },
+      answer: 'كَمِ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'نَلْتَقِي ______ مَسَاءً',
+      hintMl: 'നമുക്ക് നാളെ വൈകുന്നേരം കാണാം',
+      avatar: '👳‍♂️',
+      options: ['غَدًا', 'أَمْسِ', 'نِصْفٌ'],
+      optionTranslits: { 'غَدًا': 'ഗദൻ', 'أَمْسِ': 'അംസി', 'نِصْفٌ': 'നിസ്ഫ്' },
+      answer: 'غَدًا',
+    },
+  ],
+  u6: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'هٰذِهِ سَيَّارَةٌ ______',
+      hintMl: 'ഇതൊരു ചുവന്ന കാറാണ്',
+      avatar: '🦉',
+      options: ['حَمْرَاءُ', 'أَحْمَرُ', 'أَسْوَدُ'],
+      optionTranslits: { 'حَمْرَاءُ': 'ഹംറാഅ്', 'أَحْمَرُ': 'അഹ്മർ', 'أَسْوَدُ': 'അസ്വദ്' },
+      answer: 'حَمْرَاءُ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'هٰذَا بَيْتٌ ______ وَنَظِيفٌ',
+      hintMl: 'ഇതൊരു വലിയ, വൃത്തിയുള്ള വീടാണ്',
+      avatar: '👳‍♂️',
+      options: ['كَبِيرٌ', 'كَبِيرَةٌ', 'حَمْرَاءُ'],
+      optionTranslits: { 'كَبِيرٌ': 'കബീറുൻ', 'كَبِيرَةٌ': 'കബീറതുൻ', 'حَمْرَاءُ': 'ഹംറാഅ്' },
+      answer: 'كَبِيرٌ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'عِنْدِي قَلَمٌ ______',
+      hintMl: 'എന്റെ കയ്യിൽ ഒരു നീല പേനയുണ്ട്',
+      avatar: '🦉',
+      options: ['أَزْرَقُ', 'زَرْقَاءُ', 'خَضْرَاءُ'],
+      optionTranslits: { 'أَزْرَقُ': 'അസ്റഖ്', 'زَرْقَاءُ': 'സർഖാഅ്', 'خَضْرَاءُ': 'ഖള്റാഅ്' },
+      answer: 'أَزْرَقُ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'اَلشَّجَرَةُ ______ وَجَمِيلَةٌ',
+      hintMl: 'മരം പച്ചയും മനോഹരവുമാണ്',
+      avatar: '👳‍♂️',
+      options: ['خَضْرَاءُ', 'أَخْضَرُ', 'قَدِيمٌ'],
+      optionTranslits: { 'خَضْرَاءُ': 'ഖള്റാഅ്', 'أَخْضَرُ': 'അഖ്ളർ', 'قَدِيمٌ': 'ഖദീം' },
+      answer: 'خَضْرَاءُ',
+    },
+  ],
+  u7: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'اَلْمَدْرَسَةُ ______ الْبَيْتِ',
+      hintMl: 'സ്കൂൾ വീടിന് മുന്നിലാണ്',
+      avatar: '👳‍♂️',
+      options: ['أَمَامَ', 'إِلَى', 'مِنْ'],
+      optionTranslits: { 'أَمَامَ': 'അമാമ', 'إِلَى': 'ഇല', 'مِنْ': 'മിൻ' },
+      answer: 'أَمَامَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَنَا أَذْهَبُ ______ الْمَسْجِدِ',
+      hintMl: 'ഞാൻ പള്ളിയിലേക്ക് പോകുന്നു',
+      avatar: '🦉',
+      options: ['إِلَى', 'مِنْ', 'فِي'],
+      optionTranslits: { 'إِلَى': 'ഇല', 'مِنْ': 'മിൻ', 'فِي': 'ഫീ' },
+      answer: 'إِلَى',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'اَلْمُسْتَشْفَى ______ الْيَسَارِ',
+      hintMl: 'ആശുപത്രി ഇടതുവശത്താണ്',
+      avatar: '🦉',
+      options: ['عَلَى', 'مِنْ', 'تَحْتَ'],
+      optionTranslits: { 'عَلَى': 'അലാ', 'مِنْ': 'മിൻ', 'تَحْتَ': 'തഹ്ത' },
+      answer: 'عَلَى',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أُسَافِرُ إِلَى الْمَطَارِ ______ أَخِي',
+      hintMl: 'ഞാൻ എന്റെ സഹോദരനോടൊപ്പം വിമാനത്താവളത്തിലേക്ക് പോകുന്നു',
+      avatar: '👳‍♂️',
+      options: ['مَعَ', 'مِنْ', 'فِي'],
+      optionTranslits: { 'مَعَ': 'മഅ', 'مِنْ': 'മിൻ', 'فِي': 'ഫീ' },
+      answer: 'مَعَ',
+    },
+  ],
+  u8: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: '______ هٰذَا الْكِتَابُ؟',
+      hintMl: 'ഈ പുസ്തകത്തിന് എത്ര വിലയാണ്?',
+      avatar: '🦉',
+      options: ['بِكَمْ', 'أَيْنَ', 'مَتَى'],
+      optionTranslits: { 'بِكَمْ': 'ബികം', 'أَيْنَ': 'അയ്ന', 'مَتَى': 'മതാ' },
+      answer: 'بِكَمْ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَشْتَرِي الْفَوَاكِهَ ______ السُّوقِ',
+      hintMl: 'ഞാൻ മാർക്കറ്റിൽ നിന്ന് പഴങ്ങൾ വാങ്ങുന്നു',
+      avatar: '👳‍♂️',
+      options: ['مِنَ', 'إِلَى', 'عَلَى'],
+      optionTranslits: { 'مِنَ': 'മിന', 'إِلَى': 'ഇല', 'عَلَى': 'അലാ' },
+      answer: 'مِنَ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'هٰذَا الْقَمِيصُ ______ جِدًّا',
+      hintMl: 'ഈ ഷർട്ടിന് വളരെ വില കുറവാണ്',
+      avatar: '🦉',
+      options: ['رَخِيصٌ', 'رَخِيصَةٌ', 'نُقُودٌ'],
+      optionTranslits: { 'رَخِيصٌ': 'റഖീസുൻ', 'رَخِيصَةٌ': 'റഖീസതുൻ', 'نُقُودٌ': 'നുഖൂദ്' },
+      answer: 'رَخِيصٌ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'عِنْدِي ______ رِيَالَاتٍ',
+      hintMl: 'എന്റെ കയ്യിൽ പത്ത് റിയാൽ ഉണ്ട്',
+      avatar: '👳‍♂️',
+      options: ['عَشَرَةُ', 'وَاحِدٌ', 'غَالٍ'],
+      optionTranslits: { 'عَشَرَةُ': 'അശറതു', 'وَاحِدٌ': 'വാഹിദ്', 'غَالٍ': 'ഗാലീ' },
+      answer: 'عَشَرَةُ',
+    },
+  ],
+  u9: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَنَا ______ الْكِتَابَ كُلَّ يَوْمٍ',
+      hintMl: 'ഞാൻ എല്ലാ ദിവസവും പുസ്തകം വായിക്കുന്നു',
+      avatar: '🦉',
+      options: ['أَقْرَأُ', 'أَشْرَبُ', 'أَنَامُ'],
+      optionTranslits: { 'أَقْرَأُ': 'അഖ്റഉ', 'أَشْرَبُ': 'അശ്റബു', 'أَنَامُ': 'അനാമു' },
+      answer: 'أَقْرَأُ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَنَا أَكْتُبُ الدَّرْسَ ______ الدَّفْتَرِ',
+      hintMl: 'ഞാൻ നോട്ടുബുക്കിൽ പാഠം എഴുതുന്നു',
+      avatar: '👳‍♂️',
+      options: ['فِي', 'مِنْ', 'إِلَى'],
+      optionTranslits: { 'فِي': 'ഫീ', 'مِنْ': 'മിൻ', 'إِلَى': 'ഇല' },
+      answer: 'فِي',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'هُوَ ______ الْمَاءَ الْبَارِدَ',
+      hintMl: 'അവൻ തണുത്ത വെള്ളം കുടിക്കുന്നു',
+      avatar: '🦉',
+      options: ['يَشْرَبُ', 'أَشْرَبُ', 'تَشْرَبُ'],
+      optionTranslits: { 'يَشْرَبُ': 'യശ്റബു', 'أَشْرَبُ': 'അശ്റബു', 'تَشْرَبُ': 'തശ്റബു' },
+      answer: 'يَشْرَبُ',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَنَا أَرْجِعُ ______ الْمَدْرَسَةِ مَسَاءً',
+      hintMl: 'ഞാൻ വൈകുന്നേരം സ്കൂളിൽ നിന്ന് മടങ്ങുന്നു',
+      avatar: '👳‍♂️',
+      options: ['مِنَ', 'إِلَى', 'عَلَى'],
+      optionTranslits: { 'مِنَ': 'മിന', 'إِلَى': 'ഇല', 'عَلَى': 'അലാ' },
+      answer: 'مِنَ',
+    },
+  ],
+  u10: [
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أُرِيدُ طَعَامًا ______ مِنْ فَضْلِكَ',
+      hintMl: 'ദയവായി എനിക്ക് രുചികരമായ ഭക്ഷണം വേണം',
+      avatar: '🦉',
+      options: ['لَذِيذًا', 'مَرِيضًا', 'طَوِيلًا'],
+      optionTranslits: { 'لَذِيذًا': 'ലദീദൻ', 'مَرِيضًا': 'മരീള്വൻ', 'طَوِيلًا': 'ത്വവീലൻ' },
+      answer: 'لَذِيذًا',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَشْعُرُ بِأَلَمٍ ______ رَأْسِي',
+      hintMl: 'എന്റെ തലയിൽ വേദന അനുഭവപ്പെടുന്നു',
+      avatar: '👳‍♂️',
+      options: ['فِي', 'إِلَى', 'مِنْ'],
+      optionTranslits: { 'فِي': 'ഫീ', 'إِلَى': 'ഇല', 'مِنْ': 'മിൻ' },
+      answer: 'فِي',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'ذَهَبَ أَخِي ______ الطَّبِيبِ',
+      hintMl: 'എന്റെ സഹോദരൻ ഡോക്ടറുടെ അടുത്തേക്ക് പോയി',
+      avatar: '🦉',
+      options: ['إِلَى', 'عَلَى', 'مِنْ'],
+      optionTranslits: { 'إِلَى': 'ഇല', 'عَلَى': 'അലാ', 'مِنْ': 'മിൻ' },
+      answer: 'إِلَى',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+      sentence: 'أَعْطِنِي ______ مِنْ فَضْلِكَ',
+      hintMl: 'ദയവായി എനിക്ക് ബില്ല് തരൂ',
+      avatar: '👳‍♂️',
+      options: ['الْحِسَابَ', 'الدَّوَاءَ', 'الْمَطَارَ'],
+      optionTranslits: { 'الْحِسَابَ': 'അൽ-ഹിസാബ്', 'الدَّوَاءَ': 'അദ്-ദവാഅ്', 'الْمَطَارَ': 'അൽ-മത്വാർ' },
+      answer: 'الْحِسَابَ',
+    },
+  ],
+};
+
 function cloneQuestions(qs: LessonQuestion[]): LessonQuestion[] {
   return JSON.parse(JSON.stringify(qs)) as LessonQuestion[];
 }
@@ -985,6 +1411,7 @@ function cloneQuestions(qs: LessonQuestion[]): LessonQuestion[] {
 export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
   return baseUnits.map((unit) => {
     const pack = UNIT_EXPANSION_PACKS[unit.id];
+    const fillBlanks = UNIT_FILL_BLANK_QUESTIONS[unit.id];
     const [base1, base2, base3] = unit.lessons;
     const allBaseQuestions = unit.lessons.flatMap((l) => l.questions);
 
@@ -993,9 +1420,20 @@ export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
     const wordbankFromBase = allBaseQuestions.filter((q) => q.type === 'wordbank');
     const mcqFromBase = allBaseQuestions.filter((q) => q.type === 'mcq');
 
-    // Node 6: Audio & Listening Challenge (focused listen + rapid guidebook pairs)
+    // Node 2 (Lesson 2): Guided Practice + Fill-in-the-Blank
+    const node2Questions: LessonQuestion[] = fillBlanks?.[0]
+      ? [...base2.questions, fillBlanks[0]]
+      : base2.questions;
+
+    // Node 5 (Lesson 4): Everyday Dialogue opening with Fill-in-the-Blank
+    const dialogueNodeQuestions: LessonQuestion[] = fillBlanks?.[1]
+      ? [fillBlanks[1], ...(pack?.dialogueQuestions ?? base3.questions)]
+      : (pack?.dialogueQuestions ?? base3.questions);
+
+    // Node 6 (Lesson 5): Audio & Listening Challenge + Fill-in-the-Blank
     const listeningQuestions: LessonQuestion[] = [];
     if (pack?.extraListeningQuestions[0]) listeningQuestions.push(pack.extraListeningQuestions[0]);
+    if (fillBlanks?.[2]) listeningQuestions.push(fillBlanks[2]);
     if (listenFromBase[0]) listeningQuestions.push(listenFromBase[0]);
     if (pack?.extraListeningQuestions[1]) listeningQuestions.push(pack.extraListeningQuestions[1]);
     if (pack?.guidebook && pack.guidebook.length >= 4) {
@@ -1008,8 +1446,9 @@ export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
       listeningQuestions.push(pairsFromBase[0]);
     }
 
-    // Node 7: Hard Practice (challenging mix from the unit)
+    // Node 7: Hard Practice (opens with Fill-in-the-Blank + challenging mix)
     const hardQuestions: LessonQuestion[] = [];
+    if (fillBlanks?.[3]) hardQuestions.push(fillBlanks[3]);
     if (pack?.hardExtraQuestions[0]) hardQuestions.push(pack.hardExtraQuestions[0]);
     if (wordbankFromBase[0]) hardQuestions.push(wordbankFromBase[0]);
     if (pack?.dialogueQuestions[3]) hardQuestions.push(pack.dialogueQuestions[3]);
@@ -1041,7 +1480,7 @@ export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
         icon: '📖',
         nodeType: 'practice',
         xpReward: 15,
-        questions: cloneQuestions(base2.questions),
+        questions: cloneQuestions(node2Questions),
       },
       {
         id: `${unit.id}_n3`,
@@ -1069,7 +1508,7 @@ export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
         icon: '💬',
         nodeType: 'dialogue',
         xpReward: 15,
-        questions: cloneQuestions(pack?.dialogueQuestions ?? base3.questions),
+        questions: cloneQuestions(dialogueNodeQuestions),
       },
       {
         id: `${unit.id}_n6`,

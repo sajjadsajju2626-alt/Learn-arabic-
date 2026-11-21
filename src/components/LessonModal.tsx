@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Heart, Loader2, Turtle, Volume2, X } from 'lucide-react';
 import type { LessonQuestion, SessionConfig, SessionResult } from '../types/learning';
 import {
+  buildFilledSentence,
   enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
@@ -77,9 +78,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     };
   }, []);
 
-  // Fisher-Yates shuffle for MCQ & Listen options (fresh per question, stable across re-renders)
+  // Fisher-Yates shuffle for MCQ, Listen & Fill-in-the-Blank options (fresh per question, stable across re-renders)
   const shuffledOptions = useMemo(() => {
-    if (question.type !== 'mcq' && question.type !== 'listen') return [];
+    if (
+      question.type !== 'mcq' &&
+      question.type !== 'listen' &&
+      question.type !== 'fill_blank'
+    ) {
+      return [];
+    }
     return fisherYatesShuffle(question.options);
   }, [question, currentIndex]);
 
@@ -188,7 +195,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
 
   const canCheck =
     !feedback &&
-    (question.type === 'mcq' || question.type === 'listen'
+    (question.type === 'mcq' || question.type === 'listen' || question.type === 'fill_blank'
       ? selectedOption !== null
       : question.type === 'wordbank'
         ? wordBankSelected.length > 0
@@ -204,9 +211,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     if (evaluation.correct) {
       setScore((s) => s + 1);
       playTone('correct', soundEnabled);
+      if (question.type === 'fill_blank') {
+        const filled = buildFilledSentence(question.sentence, question.answer);
+        window.setTimeout(() => {
+          speakArabic(filled, soundEnabled, 1.0, 'lesson-filled');
+        }, 160);
+      }
       setFeedback({
         isCorrect: true,
-        detail: 'ശരിയായ ഉത്തരം!',
+        detail: question.isReview ? 'തെറ്റ് ശരിയാക്കി! മികച്ചത്!' : 'ശരിയായ ഉത്തരം!',
       });
     } else {
       playTone('wrong', soundEnabled);
@@ -468,6 +481,133 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                 })}
               </div>
             )}
+
+            {question.type === 'fill_blank' && (() => {
+              const parts = question.sentence.split(/_+/);
+              const beforeBlank = parts[0] ?? '';
+              const afterBlank = parts[1] ?? '';
+              const selectedTr = selectedOption ? question.optionTranslits?.[selectedOption] : null;
+              const slotTone = feedback
+                ? feedback.isCorrect
+                  ? 'border-[#4AA802] bg-emerald-50 text-[#2E7D00]'
+                  : 'border-rose-500 bg-rose-50 text-rose-700'
+                : selectedOption
+                  ? 'border-[#0284C7] bg-sky-50 text-[#0369A1]'
+                  : 'border-slate-300 bg-slate-50/70 text-slate-400';
+
+              return (
+                <div className="space-y-6">
+                  {/* Duolingo-style Character Avatar + Speech Bubble */}
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div
+                      aria-hidden="true"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-emerald-50 to-sky-50 border-2 border-b-4 border-sky-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
+                    >
+                      {question.avatar ?? '🦉'}
+                    </div>
+
+                    <div
+                      data-testid="fill-blank-bubble"
+                      className="relative flex-1 bg-white border-2 border-b-4 border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs"
+                    >
+                      {/* Speech bubble pointer */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute -left-2.5 top-6 w-4 h-4 bg-white border-l-2 border-b-2 border-slate-200 rotate-45"
+                      />
+
+                      <div
+                        dir="rtl"
+                        className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 leading-[2.1] flex flex-wrap items-baseline gap-x-2.5 gap-y-2"
+                      >
+                        {beforeBlank.trim() && <span>{beforeBlank.trim()}</span>}
+                        <span
+                          data-testid="fill-blank-slot"
+                          className={`inline-flex flex-col items-center justify-center align-middle min-w-[92px] sm:min-w-[108px] px-3 py-1 rounded-xl border-b-4 transition-all ${slotTone}`}
+                        >
+                          <span className="font-arabic text-2xl sm:text-3xl leading-snug">
+                            {selectedOption ?? '\u00A0'}
+                          </span>
+                          {selectedTr && (
+                            <span
+                              dir="ltr"
+                              className="font-sans text-[11px] font-extrabold leading-tight opacity-90"
+                            >
+                              {selectedTr}
+                            </span>
+                          )}
+                        </span>
+                        {afterBlank.trim() && <span>{afterBlank.trim()}</span>}
+                      </div>
+
+                      <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <p className="text-xs sm:text-sm font-bold text-slate-600 leading-snug">
+                          💡 {question.hintMl}
+                        </p>
+                        {feedback?.isCorrect && (
+                          <button
+                            type="button"
+                            aria-label="പൂർണ്ണ വാക്യം വീണ്ടും കേൾക്കുക"
+                            onClick={() =>
+                              speakArabic(
+                                buildFilledSentence(question.sentence, question.answer),
+                                soundEnabled,
+                                1.0,
+                                'lesson-filled'
+                              )
+                            }
+                            className="btn-3d w-9 h-9 rounded-xl bg-emerald-100 border-b-2 border-emerald-300 text-emerald-700 flex items-center justify-center shrink-0"
+                          >
+                            <Volume2 className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3 Shuffled Arabic Choice Buttons */}
+                  <div
+                    data-testid="fill-blank-options"
+                    className="grid grid-cols-3 gap-3"
+                  >
+                    {shuffledOptions.map((opt) => {
+                      const isSelected = selectedOption === opt;
+                      const optTr = question.optionTranslits?.[opt];
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          disabled={Boolean(feedback)}
+                          aria-pressed={isSelected}
+                          onClick={() => {
+                            playTone('tap', soundEnabled);
+                            speakArabic(opt, soundEnabled, 1.0, 'lesson-option');
+                            setSelectedOption(opt);
+                          }}
+                          className={`btn-3d w-full py-4 px-2.5 rounded-2xl border-2 border-b-4 font-bold flex flex-col items-center justify-center gap-1 transition ${
+                            isSelected
+                              ? 'border-[#0284C7] bg-sky-50 text-[#0369A1]'
+                              : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="font-arabic text-2xl sm:text-3xl leading-normal">
+                            {opt}
+                          </span>
+                          {optTr && (
+                            <span
+                              dir="ltr"
+                              className="text-xs font-bold text-[#0369A1] leading-snug"
+                            >
+                              {optTr}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {question.type === 'wordbank' && (
               <div className="space-y-6">

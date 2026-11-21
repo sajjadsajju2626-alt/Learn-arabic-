@@ -4,6 +4,7 @@ import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum'
 import {
   applySessionResult,
   areWordBankAnswersEqual,
+  buildFilledSentence,
   buildUnitJumpQuestions,
   claimTreasureChest,
   computeStreakUpdate,
@@ -584,6 +585,109 @@ test('diacritic-tolerant Word Bank matching validates RTL Arabic cleanly and rej
   };
   assert.equal(evaluateQuestionAnswer(wbQ, null, ['الْمَسْجِدُ', 'أَمَامَ', 'الْبَيْتِ']).correct, true);
   assert.equal(evaluateQuestionAnswer(wbQ, null, ['الْبَيْتِ', 'أَمَامَ', 'الْمَسْجِدُ']).correct, false);
+});
+
+test('all 10 units include fill_blank questions in Lessons 2, 4, 5, and 7 (nodes n2, n5, n6, n7) with 3 vocalized options and Malayalam hints', () => {
+  const targetNodeSuffixes = ['_n2', '_n5', '_n6', '_n7'];
+  let totalFillBlank = 0;
+
+  for (const unit of UNITS) {
+    for (const suffix of targetNodeSuffixes) {
+      const node = unit.lessons.find((l) => l.id === `${unit.id}${suffix}`);
+      assert.ok(node, `${unit.id}${suffix} must exist`);
+      const fbQuestions = node.questions.filter((q) => q.type === 'fill_blank');
+      assert.ok(
+        fbQuestions.length >= 1,
+        `${node.id} must include at least one fill_blank question`
+      );
+      for (const q of fbQuestions) {
+        if (q.type !== 'fill_blank') continue;
+        totalFillBlank += 1;
+        assert.ok(q.sentence.includes('______'), `${node.id} fill_blank sentence must contain ______`);
+        assert.ok(q.hintMl.trim().length > 0, `${node.id} fill_blank must have Malayalam hintMl`);
+        assert.equal(q.options.length, 3, `${node.id} fill_blank must have 3 options`);
+        assert.ok(q.options.includes(q.answer), `${node.id} fill_blank answer must be in options`);
+        assert.ok(q.optionTranslits, `${node.id} fill_blank must include optionTranslits`);
+        for (const opt of q.options) {
+          assert.ok(
+            q.optionTranslits?.[opt],
+            `${node.id} fill_blank missing Malayalam transliteration for ${opt}`
+          );
+        }
+        assert.equal(
+          shouldShowArabicPromptCard(q),
+          false,
+          `${node.id} fill_blank uses its own speech bubble UI instead of generic Arabic prompt card`
+        );
+      }
+    }
+  }
+
+  assert.equal(totalFillBlank, 40, 'Expected 40 fill_blank questions (4 per unit across 10 units)');
+
+  // Verify Unit 7 includes the canonical masjid preposition sentence
+  const u7n5 = UNITS[6].lessons.find((l) => l.id === 'u7_n5');
+  assert.ok(u7n5);
+  const masjidQ = u7n5.questions.find(
+    (q) => q.type === 'fill_blank' && q.sentence === 'أَنَا أَذْهَبُ ______ الْمَسْجِدِ'
+  );
+  assert.ok(masjidQ && masjidQ.type === 'fill_blank');
+  assert.equal(masjidQ.answer, 'إِلَى');
+  assert.equal(masjidQ.hintMl, 'ഞാൻ പള്ളിയിലേക്ക് പോകുന്നു');
+});
+
+test('fill_blank supports buildFilledSentence, Fisher-Yates shuffling, audio preloading, and Mistake Review re-queue', () => {
+  const sampleFb: LessonQuestion = {
+    type: 'fill_blank',
+    prompt: 'വിട്ടുപോയ ഭാഗം പൂരിപ്പിക്കുക',
+    sentence: 'أَنَا أَذْهَبُ ______ الْمَسْجِدِ',
+    hintMl: 'ഞാൻ പള്ളിയിലേക്ക് പോകുന്നു',
+    avatar: '🦉',
+    options: ['إِلَى', 'مِنْ', 'فِي'],
+    optionTranslits: { 'إِلَى': 'ഇല', 'مِنْ': 'മിൻ', 'فِي': 'ഫീ' },
+    answer: 'إِلَى',
+  };
+
+  // 1. Complete filled sentence construction & answer evaluation
+  assert.equal(
+    buildFilledSentence(sampleFb.sentence, sampleFb.answer),
+    'أَنَا أَذْهَبُ إِلَى الْمَسْجِدِ'
+  );
+  const goodEval = evaluateQuestionAnswer(sampleFb, 'إِلَى', []);
+  assert.equal(goodEval.correct, true);
+  assert.equal(goodEval.expectedDisplay, 'أَنَا أَذْهَبُ إِلَى الْمَسْجِدِ');
+  const badEval = evaluateQuestionAnswer(sampleFb, 'مِنْ', []);
+  assert.equal(badEval.correct, false);
+  assert.equal(badEval.expectedDisplay, 'أَنَا أَذْهَبُ إِلَى الْمَسْجِدِ');
+
+  // 2. Audio preloader collects all 3 choices + the complete filled Arabic sentence
+  const audioTexts = collectQuestionArabicTexts(sampleFb);
+  assert.deepEqual(audioTexts, ['إِلَى', 'مِنْ', 'فِي', 'أَنَا أَذْهَبُ إِلَى الْمَسْجِدِ']);
+
+  // 3. prepareSessionQuestions shuffles all 3 options across all positions while keeping answer intact
+  const seenPositions = new Set<number>();
+  for (let i = 0; i < 40; i++) {
+    const [prepared] = prepareSessionQuestions([sampleFb]);
+    assert.equal(prepared.type, 'fill_blank');
+    if (prepared.type === 'fill_blank') {
+      assert.equal(prepared.options.length, 3);
+      assert.ok(prepared.options.includes('إِلَى'));
+      seenPositions.add(prepared.options.indexOf('إِلَى'));
+    }
+  }
+  assert.equal(seenPositions.size, 3, 'Expected fill_blank answer to shuffle across all 3 positions');
+
+  // 4. Mistake Review Queue re-queues missed fill_blank with isReview: true only in lesson mode
+  const requeued = enqueueMistakeForReview([sampleFb], sampleFb, 'lesson');
+  assert.equal(requeued.length, 2);
+  assert.equal(requeued[1].isReview, true);
+  assert.equal(requeued[1].type, 'fill_blank');
+  if (requeued[1].type === 'fill_blank') {
+    assert.equal(requeued[1].answer, 'إِلَى');
+    assert.ok(requeued[1].options.includes('إِلَى'));
+  }
+  assert.equal(enqueueMistakeForReview([sampleFb], sampleFb, 'placement').length, 1);
+  assert.equal(enqueueMistakeForReview([sampleFb], sampleFb, 'jump').length, 1);
 });
 
 

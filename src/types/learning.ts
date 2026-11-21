@@ -62,11 +62,24 @@ export interface PairsQuestion {
   isReview?: boolean;
 }
 
+export interface FillBlankQuestion {
+  type: 'fill_blank';
+  prompt: string;
+  sentence: string;
+  hintMl: string;
+  avatar?: '🦉' | '👳‍♂️';
+  options: string[];
+  optionTranslits?: Record<string, string>;
+  answer: string;
+  isReview?: boolean;
+}
+
 export type LessonQuestion =
   | McqQuestion
   | ListenQuestion
   | WordBankQuestion
-  | PairsQuestion;
+  | PairsQuestion
+  | FillBlankQuestion;
 
 export type NodeKind =
   | 'lesson'
