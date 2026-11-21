@@ -53,9 +53,9 @@ const baseUser: UserState = {
   onboarded: true,
 };
 
-test('curriculum contains 10 units and 80 winding nodes (8 per unit) with 28 Arabic letters', () => {
-  assert.equal(UNITS.length, 10);
-  assert.equal(getAllLessonIds().length, 80);
+test('curriculum contains 20 units and 160 winding nodes (8 per unit) with 28 Arabic letters', () => {
+  assert.equal(UNITS.length, 20);
+  assert.equal(getAllLessonIds().length, 160);
   assert.equal(ARABIC_ALPHABET.length, 28);
 
   const expectedIcons = ['⭐', '📖', '🧩', '🎁', '💬', '🎧', '⚡', '🏆'];
@@ -79,9 +79,9 @@ test('curriculum contains 10 units and 80 winding nodes (8 per unit) with 28 Ara
   }
 });
 
-test('Units 5 to 10 quiz nodes have Harakat, Malayalam transliteration, and mixed question types', () => {
+test('Units 5 to 20 quiz nodes have Harakat, Malayalam transliteration, and mixed question types', () => {
   const advanced = UNITS.slice(4);
-  assert.equal(advanced.length, 6);
+  assert.equal(advanced.length, 16);
   for (const unit of advanced) {
     assert.equal(unit.lessons.length, 8);
     for (const lesson of unit.lessons) {
@@ -291,7 +291,7 @@ test('fisherYatesShuffle preserves elements, does not mutate input, and distribu
   );
 });
 
-test('no Malayalam-to-Arabic question across all 30 lessons or Placement Test leaks the Arabic answer in the prompt card', () => {
+test('no Malayalam-to-Arabic question across all 160 nodes or Placement Test leaks the Arabic answer in the prompt card', () => {
   const allQuestions: { label: string; q: LessonQuestion }[] = [
     ...UNITS.flatMap((u) =>
       u.lessons.flatMap((l) => l.questions.map((q, idx) => ({ label: `${l.id}#${idx + 1}`, q })))
@@ -587,7 +587,7 @@ test('diacritic-tolerant Word Bank matching validates RTL Arabic cleanly and rej
   assert.equal(evaluateQuestionAnswer(wbQ, null, ['الْبَيْتِ', 'أَمَامَ', 'الْمَسْجِدُ']).correct, false);
 });
 
-test('all 10 units include fill_blank questions in Lessons 2, 4, 5, and 7 (nodes n2, n5, n6, n7) with 3 vocalized options and Malayalam hints', () => {
+test('all 20 units include fill_blank questions in Lessons 2, 4, 5, and 7 (nodes n2, n5, n6, n7) with 3 vocalized options and Malayalam hints', () => {
   const targetNodeSuffixes = ['_n2', '_n5', '_n6', '_n7'];
   let totalFillBlank = 0;
 
@@ -623,7 +623,7 @@ test('all 10 units include fill_blank questions in Lessons 2, 4, 5, and 7 (nodes
     }
   }
 
-  assert.equal(totalFillBlank, 40, 'Expected 40 fill_blank questions (4 per unit across 10 units)');
+  assert.equal(totalFillBlank, 80, 'Expected 80 fill_blank questions (4 per unit across 20 units)');
 
   // Verify Unit 7 includes the canonical masjid preposition sentence
   const u7n5 = UNITS[6].lessons.find((l) => l.id === 'u7_n5');
@@ -634,6 +634,124 @@ test('all 10 units include fill_blank questions in Lessons 2, 4, 5, and 7 (nodes
   assert.ok(masjidQ && masjidQ.type === 'fill_blank');
   assert.equal(masjidQ.answer, 'إِلَى');
   assert.equal(masjidQ.hintMl, 'ഞാൻ പള്ളിയിലേക്ക് പോകുന്നു');
+});
+
+test('Units 11 to 15 have exact theme colors, key vocabulary, 8-node progression, and Unit 15 Jump Here / unlock math', () => {
+  const masteryUnits = UNITS.slice(10, 15);
+  assert.equal(masteryUnits.length, 5);
+
+  const expectedMeta = [
+    { id: 'u11', color: 'bg-[#0D9488]', border: 'border-[#0F766E]' },
+    { id: 'u12', color: 'bg-[#0284C7]', border: 'border-[#0369A1]' },
+    { id: 'u13', color: 'bg-[#E11D48]', border: 'border-[#BE123C]' },
+    { id: 'u14', color: 'bg-[#4F46E5]', border: 'border-[#4338CA]' },
+    { id: 'u15', color: 'bg-[#D97706]', border: 'border-[#B45309]' },
+  ];
+
+  masteryUnits.forEach((unit, idx) => {
+    assert.equal(unit.id, expectedMeta[idx].id);
+    assert.equal(unit.theme.bg, expectedMeta[idx].color);
+    assert.equal(unit.theme.border, expectedMeta[idx].border);
+    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons[3].nodeType, 'chest');
+    assert.equal(unit.lessons[7].nodeType, 'trophy');
+    assert.ok(unit.guidebook && unit.guidebook.length === 8, `${unit.id} must have 8 guidebook entries`);
+  });
+
+  // Verify key vocabulary coverage across Units 11-15
+  const serialized = JSON.stringify(masteryUnits);
+  const requiredArabicTerms = [
+    'مُعَلِّمٌ',
+    'طَبِيبٌ',
+    'مُهَنْدِسٌ',
+    'مَكْتَبٌ',
+    'كَيْفَ الْجَوُّ الْيَوْمَ؟',
+    'قَمِيصٌ',
+    'ثَوْبٌ',
+    'حِذَاءٌ',
+    'هَلْ يُوجَدُ لَوْنٌ آخَرُ؟',
+    'هَاتِفٌ',
+    'أَلُو، مَنْ مَعِي؟',
+    'سَأَتَّصِلُ بِكَ لَاحِقًا',
+    'جَوَازُ السَّفَرِ',
+    'تَأْشِيرَةٌ',
+    'أَيْنَ مَكْتَبُ الْجَوَازَاتِ؟',
+    'سَفَرًا سَعِيدًا',
+  ];
+  for (const term of requiredArabicTerms) {
+    assert.ok(serialized.includes(term), `Missing required Units 11–15 term: ${term}`);
+  }
+
+  // Unit 15 (index 14) unlock & jump test verification
+  const unlockedUpTo15 = unlockLessonsUpToUnit([], 14);
+  assert.equal(unlockedUpTo15.length, 112);
+  assert.equal(isUnitUnlocked(14, unlockedUpTo15), true);
+  assert.equal(isLessonUnlocked('u15_n1', unlockedUpTo15), true);
+  assert.equal(isLessonUnlocked('u15_n2', unlockedUpTo15), false);
+
+  const jumpQs = buildUnitJumpQuestions(14);
+  assert.equal(jumpQs.length, 5);
+  assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
+});
+
+test('Units 16 to 20 cover Grammar & Long-Sentence Mastery with exact colors, Malayalam grammar guidebooks, signature sentences, and Unit 20 Jump Here math', () => {
+  const grammarUnits = UNITS.slice(15, 20);
+  assert.equal(grammarUnits.length, 5);
+
+  const expectedMeta = [
+    { id: 'u16', color: 'bg-[#7C3AED]', border: 'border-[#6D28D9]' },
+    { id: 'u17', color: 'bg-[#0891B2]', border: 'border-[#0E7490]' },
+    { id: 'u18', color: 'bg-[#059669]', border: 'border-[#047857]' },
+    { id: 'u19', color: 'bg-[#EA580C]', border: 'border-[#C2410C]' },
+    { id: 'u20', color: 'bg-[#1D4ED8]', border: 'border-[#1E40AF]' },
+  ];
+
+  grammarUnits.forEach((unit, idx) => {
+    assert.equal(unit.id, expectedMeta[idx].id);
+    assert.equal(unit.theme.bg, expectedMeta[idx].color);
+    assert.equal(unit.theme.border, expectedMeta[idx].border);
+    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons[3].nodeType, 'chest');
+    assert.equal(unit.lessons[7].nodeType, 'trophy');
+    assert.ok(unit.guidebook && unit.guidebook.length === 8, `${unit.id} must have 8 guidebook entries`);
+    assert.ok(
+      unit.guidebookTip && unit.guidebookTip.includes('വ്യാകരണ നിയമം'),
+      `${unit.id} guidebookTip must clearly explain the grammar rule in Malayalam`
+    );
+  });
+
+  // Verify signature sentences & grammar forms across Units 16-20
+  const serialized = JSON.stringify(grammarUnits);
+  const requiredGrammarSentences = [
+    'هٰذِهِ طَالِبَةٌ مُجْتَهِدَةٌ',
+    'عِنْدِي كِتَابَانِ جَدِيدَانِ',
+    'أَمْسِ ذَهَبْتُ إِلَى السُّوقِ وَالْيَوْمَ أَذْهَبُ إِلَى الْمَكْتَبِ',
+    'الْقَلَمُ الْأَزْرَقُ عَلَى الطَّاوِلَةِ بِجَانِبِ حَقِيبَتِكَ',
+    'أَسْتَيْقِظُ مُبَكِّرًا كُلَّ يَوْمٍ لِأَنَّ عَمَلِي يَبْدَأُ فِي السَّاعَةِ الثَّامِنَةِ صَبَاحًا',
+    'مُعَلِّمُونَ',
+    'طَالِبَاتٌ',
+    'كِتَابِي',
+    'كِتَابُكَ',
+    'كِتَابُهُ',
+    'لِأَنَّ',
+    'لٰكِنَّ',
+    'عِنْدَمَا',
+    'أُرِيدُ أَنْ',
+  ];
+  for (const term of requiredGrammarSentences) {
+    assert.ok(serialized.includes(term), `Missing required Units 16–20 grammar term/sentence: ${term}`);
+  }
+
+  // Unit 20 (index 19) unlock & jump test verification
+  const unlockedUpTo20 = unlockLessonsUpToUnit([], 19);
+  assert.equal(unlockedUpTo20.length, 152);
+  assert.equal(isUnitUnlocked(19, unlockedUpTo20), true);
+  assert.equal(isLessonUnlocked('u20_n1', unlockedUpTo20), true);
+  assert.equal(isLessonUnlocked('u20_n2', unlockedUpTo20), false);
+
+  const jumpQs = buildUnitJumpQuestions(19);
+  assert.equal(jumpQs.length, 5);
+  assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
 });
 
 test('fill_blank supports buildFilledSentence, Fisher-Yates shuffling, audio preloading, and Mistake Review re-queue', () => {

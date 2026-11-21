@@ -1,5 +1,7 @@
 import type { ArabicLetter, LeaderboardEntry, LessonQuestion, Unit } from '../types/learning';
 import { ADVANCED_UNITS } from './advancedUnits';
+import { MASTERY_UNITS } from './masteryUnits';
+import { GRAMMAR_UNITS } from './grammarUnits';
 import { expandUnitsToEightNodes } from './unitExpansion';
 
 export const AVATAR_OPTIONS = [
@@ -559,6 +561,8 @@ const BASE_UNITS: Unit[] = [
     ],
   },
   ...ADVANCED_UNITS,
+  ...MASTERY_UNITS,
+  ...GRAMMAR_UNITS,
 ];
 
 export const UNITS: Unit[] = expandUnitsToEightNodes(BASE_UNITS);
