@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum';
 import {
   applySessionResult,
+  areWordBankAnswersEqual,
   buildUnitJumpQuestions,
   claimTreasureChest,
   computeStreakUpdate,
+  enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
   fisherYatesShuffle,
@@ -15,6 +17,8 @@ import {
   isUnitUnlocked,
   mergeAndSortLeaderboard,
   migrateLegacyCompletedIds,
+  MISTAKE_REVIEW_BANNER_TEXT,
+  normalizeWordBankText,
   prepareSessionQuestions,
   shouldShowArabicPromptCard,
   shuffleArray,
@@ -503,4 +507,83 @@ test('prepareSessionQuestions shuffles mcq and listen options via shuffleArray w
     `Expected listen question correct answer across >= 3 positions, saw ${seenIndices.size}`
   );
 });
+
+test('enqueueMistakeForReview appends isReview copy only in lesson mode and preserves answer integrity', () => {
+  const sampleMcq: LessonQuestion = {
+    type: 'mcq',
+    prompt: 'ഈ അക്ഷരത്തിന്റെ പേര് എന്ത്?',
+    arabic: 'ب',
+    options: ['അലിഫ്', 'ബാ', 'താ', 'ഥാ'],
+    answer: 'ബാ',
+  };
+  const sampleWb: LessonQuestion = {
+    type: 'wordbank',
+    prompt: "'പള്ളി വീടിന് മുന്നിലാണ്' എന്ന് അറബിയിൽ ക്രമീകരിക്കുക",
+    words: ['اَلْمَسْجِدُ', 'أَمَامَ', 'الْبَيْتِ', 'خَلْفَ'],
+    isArabicWords: true,
+    answer: ['اَلْمَسْجِدُ', 'أَمَامَ', 'الْبَيْتِ'],
+  };
+
+  // In lesson mode, missed MCQ is cloned with isReview: true at the end of the queue
+  const initialQueue: LessonQuestion[] = [sampleMcq, sampleWb];
+  const afterMiss1 = enqueueMistakeForReview(initialQueue, sampleMcq, 'lesson');
+  assert.equal(afterMiss1.length, 3);
+  assert.equal(sampleMcq.isReview, undefined, 'original question must not be mutated');
+  assert.equal(afterMiss1[2].isReview, true);
+  assert.equal(afterMiss1[2].type, 'mcq');
+  if (afterMiss1[2].type === 'mcq') {
+    assert.equal(afterMiss1[2].answer, 'ബാ');
+    assert.ok(afterMiss1[2].options.includes('ബാ'));
+  }
+
+  // If missed again during review, it re-queues again so lesson cannot finish until corrected
+  const afterMiss2 = enqueueMistakeForReview(afterMiss1, afterMiss1[2], 'lesson');
+  assert.equal(afterMiss2.length, 4);
+  assert.equal(afterMiss2[3].isReview, true);
+
+  // In placement and jump modes, missed questions are NOT re-queued
+  assert.equal(enqueueMistakeForReview(initialQueue, sampleMcq, 'placement').length, 2);
+  assert.equal(enqueueMistakeForReview(initialQueue, sampleMcq, 'jump').length, 2);
+
+  // Verify required Duolingo banner text
+  assert.equal(
+    MISTAKE_REVIEW_BANNER_TEXT,
+    "🔄 തെറ്റിയവ ശരിയാക്കാം! (Let's correct the ones you missed)"
+  );
+});
+
+test('diacritic-tolerant Word Bank matching validates RTL Arabic cleanly and rejects wrong order', () => {
+  // Exact RTL Arabic phrase from Unit 7
+  const expected = ['اَلْمَسْجِدُ', 'أَمَامَ', 'الْبَيْتِ'];
+
+  // Exact match
+  assert.equal(areWordBankAnswersEqual(['اَلْمَسْجِدُ', 'أَمَامَ', 'الْبَيْتِ'], expected), true);
+
+  // Tolerates optional Alif Fatha (الْمَسْجِدُ vs اَلْمَسْجِدُ) and accidental spaces
+  assert.equal(areWordBankAnswersEqual([' الْـمَسْجِدُ ', 'أَمَامَ', ' الْبَيْتِ'], expected), true);
+
+  // Tolerates subtle Unicode Harakat ordering differences (Shadda+Fatha vs Fatha+Shadda)
+  const shaddaThenFatha = 'اَلْمَسْجِدُ';
+  const fathaThenShadda = 'مُحَم\u064E\u0651دٌ';
+  const normalShadda = 'مُحَم\u0651\u064Eدٌ';
+  assert.equal(normalizeWordBankText(fathaThenShadda), normalizeWordBankText(normalShadda));
+  assert.equal(areWordBankAnswersEqual([shaddaThenFatha, 'أَمَامَ', 'الْبَيْتِ'], expected), true);
+
+  // Strictly rejects reversed / wrong RTL word order or wrong words
+  assert.equal(areWordBankAnswersEqual(['الْبَيْتِ', 'أَمَامَ', 'اَلْمَسْجِدُ'], expected), false);
+  assert.equal(areWordBankAnswersEqual(['اَلْمَسْجِدُ', 'خَلْفَ', 'الْبَيْتِ'], expected), false);
+  assert.equal(areWordBankAnswersEqual([], expected), false);
+
+  // Works through evaluateQuestionAnswer as well
+  const wbQ: LessonQuestion = {
+    type: 'wordbank',
+    prompt: "'പള്ളി വീടിന് മുന്നിലാണ്' എന്ന് അറബിയിൽ ക്രമീകരിക്കുക",
+    words: ['اَلْمَسْجِدُ', 'أَمَامَ', 'الْبَيْتِ', 'خَلْفَ'],
+    isArabicWords: true,
+    answer: expected,
+  };
+  assert.equal(evaluateQuestionAnswer(wbQ, null, ['الْمَسْجِدُ', 'أَمَامَ', 'الْبَيْتِ']).correct, true);
+  assert.equal(evaluateQuestionAnswer(wbQ, null, ['الْبَيْتِ', 'أَمَامَ', 'الْمَسْجِدُ']).correct, false);
+});
+
 

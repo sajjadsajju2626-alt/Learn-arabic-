@@ -28,6 +28,7 @@ export interface McqQuestion {
   isArabicOption?: boolean;
   optionTranslits?: Record<string, string>;
   answer: string;
+  isReview?: boolean;
 }
 
 export interface ListenQuestion {
@@ -39,6 +40,7 @@ export interface ListenQuestion {
   isArabicOption?: boolean;
   optionTranslits?: Record<string, string>;
   answer: string;
+  isReview?: boolean;
 }
 
 export interface WordBankQuestion {
@@ -50,12 +52,14 @@ export interface WordBankQuestion {
   isArabicWords?: boolean;
   wordTranslits?: Record<string, string>;
   answer: string[];
+  isReview?: boolean;
 }
 
 export interface PairsQuestion {
   type: 'pairs';
   prompt: string;
   pairs: PairItem[];
+  isReview?: boolean;
 }
 
 export type LessonQuestion =

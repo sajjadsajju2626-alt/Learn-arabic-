@@ -390,6 +390,7 @@
         </div>
       </div>
       <div id="lesson-mode-banner" class="hidden bg-sky-50 text-[#0369A1] text-xs font-extrabold text-center py-1.5 border-t border-sky-100"></div>
+      <div id="lesson-review-banner" role="status" class="hidden bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white text-xs sm:text-sm font-extrabold text-center py-2 px-4 border-t border-orange-600/30 shadow-xs">🔄 തെറ്റിയവ ശരിയാക്കാം! (Let's correct the ones you missed)</div>
     </div>
 
     <div class="flex-1 overflow-y-auto">
@@ -2247,17 +2248,43 @@
       return cloned;
     }
 
+    function normalizeWordBankText(text) {
+      return String(text ?? "")
+        .normalize("NFC")
+        .replace(/[\u200B-\u200F\uFEFF\u0640\u064B-\u065F\u0670\u06D6-\u06ED]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function areWordBankAnswersEqual(pickedWords, expectedWords) {
+      const pickedNorm = normalizeWordBankText((pickedWords || []).join(" "));
+      const expectedNorm = normalizeWordBankText((expectedWords || []).join(" "));
+      return Boolean(expectedNorm) && pickedNorm === expectedNorm;
+    }
+
+    function enqueueMistakeForReview(missedQuestion) {
+      if (!activeSession || activeSession.mode !== "lesson") return false;
+      const copy = JSON.parse(JSON.stringify(missedQuestion));
+      copy.isReview = true;
+      if ((copy.type === "mcq" || copy.type === "listen") && Array.isArray(copy.options)) {
+        copy.options = shuffleArray(copy.options);
+      }
+      activeSession.questions.push(copy);
+      return true;
+    }
+
     function startLesson(lesson) {
       if (lesson.nodeType === "chest") { openTreasureChest(lesson); return; }
       if (userState.hearts <= 0) { document.getElementById("out-of-hearts-modal").classList.remove("hidden"); return; }
-      activeSession = { mode: "lesson", lessonId: lesson.id, xpReward: lesson.xpReward || 15, targetUnitIndex: null, questions: prepareSessionQuestions(lesson.questions), currentIndex: 0, score: 0, hearts: userState.hearts, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
       const banner = lesson.nodeType === "trophy" ? "🏆 യൂണിറ്റ് ട്രോഫി പരീക്ഷ — അടുത്ത യൂണിറ്റ് അൺലോക്ക് ചെയ്യാം!" : lesson.nodeType === "hard" ? "⚡ കഠിന പരിശീലനം (+20 XP)" : lesson.nodeType === "listening" ? "🎧 ശ്രവണ വെല്ലുവിളി (+20 XP)" : null;
+      activeSession = { mode: "lesson", lessonId: lesson.id, xpReward: lesson.xpReward || 15, targetUnitIndex: null, bannerText: banner, questions: prepareSessionQuestions(lesson.questions), currentIndex: 0, score: 0, hearts: userState.hearts, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
       openLessonModal(banner);
     }
 
     function startPlacementTest() {
-      activeSession = { mode: "placement", lessonId: null, xpReward: 120, targetUnitIndex: null, questions: prepareSessionQuestions(PLACEMENT_QUESTIONS), currentIndex: 0, score: 0, hearts: 5, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
-      openLessonModal("🚀 നിലവാര നിർണ്ണയ പരീക്ഷ (Placement Test · 7–8 ശരി = യൂണിറ്റ് 5 അൺലോക്ക്)");
+      const banner = "🚀 നിലവാര നിർണ്ണയ പരീക്ഷ (Placement Test · 7–8 ശരി = യൂണിറ്റ് 5 അൺലോക്ക്)";
+      activeSession = { mode: "placement", lessonId: null, xpReward: 120, targetUnitIndex: null, bannerText: banner, questions: prepareSessionQuestions(PLACEMENT_QUESTIONS), currentIndex: 0, score: 0, hearts: 5, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
+      openLessonModal(banner);
     }
 
     function startUnitJumpTest(targetUnitIndex) {
@@ -2269,13 +2296,16 @@
         });
       }
       const picked = shuffleArray(pool).slice(0, 5);
-      activeSession = { mode: "jump", lessonId: null, xpReward: 40, targetUnitIndex, questions: prepareSessionQuestions(picked), currentIndex: 0, score: 0, hearts: 3, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
-      openLessonModal(`🚀 യൂണിറ്റ് ${targetUnitIndex + 1}-ലേക്കുള്ള പ്രവേശന ടെസ്റ്റ് (5-ൽ 4 ശരി ആവശ്യം)`);
+      const banner = `🚀 യൂണിറ്റ് ${targetUnitIndex + 1}-ലേക്കുള്ള പ്രവേശന ടെസ്റ്റ് (5-ൽ 4 ശരി ആവശ്യം)`;
+      activeSession = { mode: "jump", lessonId: null, xpReward: 40, targetUnitIndex, bannerText: banner, questions: prepareSessionQuestions(picked), currentIndex: 0, score: 0, hearts: 3, selectedAnswer: null, wordBankSelected: [], pairsMatched: 0, selectedLeft: null, selectedRight: null, isAnswered: false };
+      openLessonModal(banner);
     }
 
     function openLessonModal(bannerText) {
       history.pushState({ view: "lesson" }, "");
       const banner = document.getElementById("lesson-mode-banner");
+      const reviewBanner = document.getElementById("lesson-review-banner");
+      reviewBanner.classList.add("hidden");
       if (bannerText) { banner.textContent = bannerText; banner.classList.remove("hidden"); }
       else banner.classList.add("hidden");
       document.getElementById("lesson-modal").classList.remove("hidden");
@@ -2285,6 +2315,7 @@
     function closeLessonModal() {
       stopArabicAudio();
       document.getElementById("lesson-modal").classList.add("hidden");
+      document.getElementById("lesson-review-banner").classList.add("hidden");
       document.getElementById("feedback-drawer").classList.add("hidden");
       renderLearningPath();
     }
@@ -2325,6 +2356,22 @@
       document.getElementById("check-area").classList.remove("hidden");
       disableCheckBtn();
 
+      // Toggle Duolingo-style Mistake Review Banner when reaching repeated missed questions
+      const modeBanner = document.getElementById("lesson-mode-banner");
+      const reviewBanner = document.getElementById("lesson-review-banner");
+      if (q.isReview) {
+        reviewBanner.classList.remove("hidden");
+        modeBanner.classList.add("hidden");
+      } else {
+        reviewBanner.classList.add("hidden");
+        if (activeSession.bannerText) {
+          modeBanner.textContent = activeSession.bannerText;
+          modeBanner.classList.remove("hidden");
+        } else {
+          modeBanner.classList.add("hidden");
+        }
+      }
+
       activeSession.selectedAnswer = null; activeSession.wordBankSelected = [];
       activeSession.pairsMatched = 0; activeSession.selectedLeft = null;
       activeSession.selectedRight = null; activeSession.isAnswered = false;
@@ -2334,7 +2381,12 @@
 
       const header = document.createElement("div");
       header.className = "space-y-4";
-      header.innerHTML = `<div class="text-xs font-bold text-slate-500 font-latin">ചോദ്യം ${activeSession.currentIndex + 1} / ${total}</div><h2 class="text-xl font-extrabold text-slate-900 leading-snug">${q.prompt}</h2>`;
+      header.innerHTML = `
+        <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-500 font-latin">
+          <span>ചോദ്യം ${activeSession.currentIndex + 1} / ${total}</span>
+          ${q.isReview ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-extrabold">🔄 തെറ്റിയ ചോദ്യം</span>` : ""}
+        </div>
+        <h2 class="text-xl font-extrabold text-slate-900 leading-snug">${q.prompt}</h2>`;
 
       if (shouldShowArabicPromptCard(q)) {
         const audioCard = document.createElement("div");
@@ -2388,22 +2440,30 @@
       } else if (q.type === "wordbank") {
         const tray = document.createElement("div");
         tray.dir = q.isArabicWords ? "rtl" : "ltr";
-        tray.className = "min-h-[82px] p-3.5 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-wrap gap-2.5 items-center mb-6";
+        tray.dataset.testid = "wordbank-tray";
+        tray.className = "min-h-[82px] p-3.5 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-wrap gap-2.5 items-center mb-2";
+        const removeHint = document.createElement("p");
+        removeHint.className = "text-[11px] text-slate-500 font-semibold text-center mb-5 min-h-[16px]";
         const bank = document.createElement("div");
         bank.dir = q.isArabicWords ? "rtl" : "ltr";
+        bank.dataset.testid = "wordbank-choices";
         bank.className = "flex flex-wrap justify-center gap-2.5";
-        const shuffled = [...q.words].sort(() => 0.5 - Math.random());
+        const shuffled = shuffleArray(q.words);
 
         function refreshWB() {
           tray.innerHTML = "";
           if (activeSession.wordBankSelected.length === 0) {
             tray.innerHTML = `<span class="text-xs text-slate-400 font-semibold mx-auto">താഴെ കാണുന്ന വാക്കുകളിൽ തൊട്ട് വാക്യം നിർമ്മിക്കുക</span>`;
+            removeHint.textContent = "";
           } else {
+            removeHint.textContent = "വാക്ക് മാറ്റാൻ മുകളിലുള്ള ബോക്സിൽ തൊടുക";
             activeSession.wordBankSelected.forEach((obj, idx) => {
               const tr = q.wordTranslits && q.wordTranslits[obj.text];
               const chip = document.createElement("button");
               chip.type = "button";
-              chip.className = "btn-3d px-4 py-2 rounded-xl bg-white border-2 border-b-4 border-[#1CB0F6] text-slate-900 font-bold flex flex-col items-center";
+              chip.setAttribute("aria-label", `${obj.text} നീക്കം ചെയ്യുക`);
+              chip.title = "നീക്കം ചെയ്യാൻ തൊടുക";
+              chip.className = "wb-tray-chip btn-3d px-4 py-2 rounded-xl bg-white border-2 border-b-4 border-[#1CB0F6] hover:border-rose-400 hover:bg-rose-50/40 text-slate-900 font-bold flex flex-col items-center transition";
               chip.innerHTML = `<span class="${q.isArabicWords ? "font-arabic text-2xl leading-snug" : "text-sm"}">${obj.text}</span>${tr ? `<span dir="ltr" class="text-[11px] font-bold text-[#0369A1]">${tr}</span>` : ""}`;
               chip.addEventListener("click", () => { if (activeSession.isAnswered) return; playTone("tap"); activeSession.wordBankSelected.splice(idx, 1); refreshWB(); });
               tray.appendChild(chip);
@@ -2415,7 +2475,8 @@
             const tr = q.wordTranslits && q.wordTranslits[w];
             const chip = document.createElement("button");
             chip.type = "button"; chip.disabled = used;
-            chip.className = `btn-3d px-4 py-2.5 rounded-xl border-2 border-b-4 font-bold flex flex-col items-center ${used ? "bg-slate-200 border-slate-200 text-transparent cursor-default" : "bg-white border-slate-300 text-slate-800 hover:bg-slate-50"}`;
+            chip.dataset.word = w;
+            chip.className = `wb-bank-chip btn-3d px-4 py-2.5 rounded-xl border-2 border-b-4 font-bold flex flex-col items-center ${used ? "bg-slate-200 border-slate-200 text-transparent cursor-default" : "bg-white border-slate-300 text-slate-800 hover:bg-slate-50"}`;
             chip.innerHTML = `<span class="${q.isArabicWords ? "font-arabic text-2xl leading-snug" : "text-sm"}">${w}</span>${tr ? `<span dir="ltr" class="text-[11px] font-bold ${used ? "text-transparent" : "text-[#0369A1]"}">${tr}</span>` : ""}`;
             chip.addEventListener("click", () => {
               if (activeSession.isAnswered) return;
@@ -2426,7 +2487,7 @@
           });
           if (activeSession.wordBankSelected.length > 0) enableCheckBtn(); else disableCheckBtn();
         }
-        body.appendChild(tray); body.appendChild(bank); refreshWB();
+        body.appendChild(tray); body.appendChild(removeHint); body.appendChild(bank); refreshWB();
       } else if (q.type === "pairs") {
         document.getElementById("check-area").classList.add("hidden");
         const grid = document.createElement("div"); grid.className = "grid grid-cols-2 gap-3.5";
@@ -2525,10 +2586,24 @@
       if (q.type === "mcq" || q.type === "listen") { ok = activeSession.selectedAnswer === q.answer; ansText = q.answer; }
       else if (q.type === "wordbank") {
         const picked = activeSession.wordBankSelected.map(w => w.text);
-        ok = JSON.stringify(picked) === JSON.stringify(q.answer); ansText = q.answer.join(" ");
+        ok = areWordBankAnswersEqual(picked, q.answer);
+        ansText = q.answer.join(" ");
       }
-      if (ok) { activeSession.score += 1; playTone("correct"); showFeedback(true, "ശരിയായ ഉത്തരം!"); }
-      else { playTone("wrong"); deductHeart(); showFeedback(false, `ശരിയായ ഉത്തരം: ${ansText}`); }
+      if (ok) {
+        activeSession.score += 1;
+        playTone("correct");
+        showFeedback(true, q.isReview ? "തെറ്റ് ശരിയാക്കി! മികച്ചത്!" : "ശരിയായ ഉത്തരം!");
+      } else {
+        playTone("wrong");
+        const requeued = enqueueMistakeForReview(q);
+        deductHeart();
+        showFeedback(
+          false,
+          requeued
+            ? `ശരിയായ ഉത്തരം: ${ansText} · ഈ ചോദ്യം അവസാനം വീണ്ടും വരും`
+            : `ശരിയായ ഉത്തരം: ${ansText}`
+        );
+      }
     });
 
     document.getElementById("continue-lesson-btn").addEventListener("click", () => {

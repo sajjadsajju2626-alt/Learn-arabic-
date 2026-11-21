@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Heart, Loader2, Turtle, Volume2, X } from 'lucide-react';
-import type { SessionConfig, SessionResult } from '../types/learning';
+import type { LessonQuestion, SessionConfig, SessionResult } from '../types/learning';
 import {
+  enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
   fisherYatesShuffle,
   MAX_HEARTS,
+  MISTAKE_REVIEW_BANNER_TEXT,
   shouldShowArabicPromptCard,
 } from '../utils/learningEngine';
 import {
@@ -41,6 +43,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   onComplete,
   onClose,
 }) => {
+  const [questionQueue, setQuestionQueue] = useState<LessonQuestion[]>(() => [...session.questions]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [hearts, setHearts] = useState(session.initialHearts);
@@ -55,8 +58,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const [hintRevealed, setHintRevealed] = useState(false);
   const [audioState, setAudioState] = useState<ArabicAudioState>(() => getArabicAudioState());
 
-  const question = session.questions[currentIndex];
-  const progressPct = Math.round((currentIndex / session.questions.length) * 100);
+  const question = questionQueue[currentIndex];
+  const progressPct = Math.round((currentIndex / questionQueue.length) * 100);
   const showArabicPromptCard = shouldShowArabicPromptCard(question);
   const shouldGateTranslit =
     showArabicPromptCard &&
@@ -208,9 +211,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     } else {
       playTone('wrong', soundEnabled);
       deductHeart();
+      if (session.mode === 'lesson') {
+        setQuestionQueue((prev) => enqueueMistakeForReview(prev, question, session.mode));
+      }
       setFeedback({
         isCorrect: false,
-        detail: `ശരിയായ ഉത്തരം: ${evaluation.expectedDisplay}`,
+        detail:
+          session.mode === 'lesson'
+            ? `ശരിയായ ഉത്തരം: ${evaluation.expectedDisplay} · ഈ ചോദ്യം അവസാനം വീണ്ടും വരും`
+            : `ശരിയായ ഉത്തരം: ${evaluation.expectedDisplay}`,
       });
     }
   };
@@ -222,7 +231,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       return;
     }
 
-    if (currentIndex + 1 < session.questions.length) {
+    if (currentIndex + 1 < questionQueue.length) {
       setCurrentIndex((i) => i + 1);
       resetQuestionState();
     } else {
@@ -231,7 +240,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
         lessonId: session.lessonId,
         targetUnitIndex: session.targetUnitIndex,
         score,
-        totalQuestions: session.questions.length,
+        totalQuestions: questionQueue.length,
       });
       onComplete(result);
     }
@@ -283,10 +292,19 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           </div>
         </div>
 
-        {session.bannerText && (
-          <div className="bg-sky-50 text-[#0369A1] text-xs font-extrabold text-center py-1.5 border-t border-sky-100">
-            {session.bannerText}
+        {question.isReview ? (
+          <div
+            data-testid="mistake-review-banner"
+            className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white text-xs sm:text-sm font-extrabold text-center py-2 px-4 border-t border-orange-600/30 shadow-xs"
+          >
+            {MISTAKE_REVIEW_BANNER_TEXT}
           </div>
+        ) : (
+          session.bannerText && (
+            <div className="bg-sky-50 text-[#0369A1] text-xs font-extrabold text-center py-1.5 border-t border-sky-100">
+              {session.bannerText}
+            </div>
+          )
         )}
       </header>
 
@@ -294,8 +312,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-h-full flex flex-col justify-between gap-6">
           <div className="space-y-5">
-            <div className="text-xs font-bold text-slate-500 font-latin tabular-nums">
-              ചോദ്യം {currentIndex + 1} / {session.questions.length}
+            <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-500 font-latin tabular-nums">
+              <span>
+                ചോദ്യം {currentIndex + 1} / {questionQueue.length}
+              </span>
+              {question.isReview && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-extrabold">
+                  🔄 തെറ്റിയ ചോദ്യം
+                </span>
+              )}
             </div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
               {question.prompt}
@@ -463,11 +488,13 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           key={`${chip.idx}-${i}`}
                           type="button"
                           disabled={Boolean(feedback)}
+                          aria-label={`${chip.text} നീക്കം ചെയ്യുക`}
+                          title="നീക്കം ചെയ്യാൻ തൊടുക"
                           onClick={() => {
                             playTone('tap', soundEnabled);
                             setWordBankSelected((prev) => prev.filter((_, idx) => idx !== i));
                           }}
-                          className="btn-3d px-4 py-2 rounded-xl bg-white border-2 border-b-4 border-[#0284C7] text-slate-900 font-bold flex flex-col items-center"
+                          className="btn-3d group relative px-4 py-2 rounded-xl bg-white border-2 border-b-4 border-[#0284C7] hover:border-rose-400 hover:bg-rose-50/40 text-slate-900 font-bold flex flex-col items-center transition"
                         >
                           <span
                             className={
@@ -488,6 +515,11 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                     })
                   )}
                 </div>
+                {wordBankSelected.length > 0 && !feedback && (
+                  <p className="text-[11px] text-slate-500 font-semibold text-center -mt-3">
+                    വാക്ക് മാറ്റാൻ മുകളിലുള്ള ബോക്സിൽ തൊടുക
+                  </p>
+                )}
 
                 <div
                   dir={question.isArabicWords ? 'rtl' : 'ltr'}

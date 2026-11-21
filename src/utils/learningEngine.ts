@@ -4,6 +4,7 @@ import type {
   LeaderboardEntry,
   Lesson,
   LessonQuestion,
+  SessionMode,
   SessionResult,
   Unit,
   UserState,
@@ -14,6 +15,8 @@ export const MAX_HEARTS = 5;
 export const LESSON_XP_REWARD = 15;
 export const TREASURE_CHEST_XP = 25;
 export const TREASURE_CHEST_HEARTS = 1;
+export const MISTAKE_REVIEW_BANNER_TEXT =
+  "🔄 തെറ്റിയവ ശരിയാക്കാം! (Let's correct the ones you missed)";
 
 export function getAllLessonIds(units: Unit[] = UNITS): string[] {
   return units.flatMap((u) => u.lessons.map((l) => l.id));
@@ -146,6 +149,48 @@ export function getLetterDisplay(
   }
 }
 
+/**
+ * Normalizes Arabic & Malayalam Word Bank text for clean, diacritic-tolerant matching.
+ * - Unicode NFC normalization
+ * - Removes zero-width marks, Arabic Tatweel (ـ), and combining Harakat/Tashkeel
+ *   so subtle Harakat ordering differences (e.g., Shadda+Fatha vs Fatha+Shadda) or
+ *   optional Alif diacritics never cause false negatives.
+ * - Collapses accidental extra whitespace and trims ends.
+ */
+export function normalizeWordBankText(text: string): string {
+  return String(text ?? '')
+    .normalize('NFC')
+    .replace(/[\u200B-\u200F\uFEFF\u0640\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function areWordBankAnswersEqual(
+  pickedWords: readonly string[],
+  expectedWords: readonly string[]
+): boolean {
+  const pickedNormalized = normalizeWordBankText(pickedWords.join(' '));
+  const expectedNormalized = normalizeWordBankText(expectedWords.join(' '));
+  return Boolean(expectedNormalized) && pickedNormalized === expectedNormalized;
+}
+
+export function enqueueMistakeForReview(
+  questions: readonly LessonQuestion[],
+  missedQuestion: LessonQuestion,
+  mode: SessionMode,
+  rng: () => number = Math.random
+): LessonQuestion[] {
+  if (mode !== 'lesson') {
+    return [...questions];
+  }
+  const cloned = JSON.parse(JSON.stringify(missedQuestion)) as LessonQuestion;
+  cloned.isReview = true;
+  if ((cloned.type === 'mcq' || cloned.type === 'listen') && Array.isArray(cloned.options)) {
+    cloned.options = shuffleArray(cloned.options, rng);
+  }
+  return [...questions, cloned];
+}
+
 export function evaluateQuestionAnswer(
   question: LessonQuestion,
   selectedOption: string | null,
@@ -158,11 +203,8 @@ export function evaluateQuestionAnswer(
     };
   }
   if (question.type === 'wordbank') {
-    const isExactMatch =
-      wordBankWords.length === question.answer.length &&
-      wordBankWords.every((w, i) => w === question.answer[i]);
     return {
-      correct: isExactMatch,
+      correct: areWordBankAnswersEqual(wordBankWords, question.answer),
       expectedDisplay: question.answer.join(' '),
     };
   }
