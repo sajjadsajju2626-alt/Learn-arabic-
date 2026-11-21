@@ -1,0 +1,2055 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>മലയാളത്തിലൂടെ അറബി പഠിക്കാം | Learn Arabic</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: 'Noto Sans Malayalam', sans-serif;
+      background-color: #F7F7F7;
+      color: #3C3C3C;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    .font-arabic {
+      font-family: 'Amiri', 'Cairo', serif;
+      direction: rtl;
+      line-height: 1.8;
+    }
+    .font-arabic-ui {
+      font-family: 'Cairo', 'Amiri', sans-serif;
+      direction: rtl;
+    }
+    .btn-3d {
+      transition: all 0.1s ease;
+    }
+    .btn-3d:active:not(:disabled) {
+      transform: translateY(3px);
+      border-bottom-width: 1px !important;
+    }
+    @keyframes bounceSlow {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-bounce-slow {
+      animation: bounceSlow 1.6s infinite ease-in-out;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .animate-shake {
+      animation: shake 0.4s ease-in-out;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    /* Custom scrollbar hide */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex justify-center">
+
+  <!-- Main Mobile Container -->
+  <div id="app" class="w-full max-w-md bg-white min-h-screen shadow-xl relative flex flex-col">
+
+    <!-- ================= ONBOARDING SCREEN ================= -->
+    <div id="onboarding-screen" class="hidden fixed inset-0 z-50 bg-white flex flex-col justify-between p-6 max-w-md mx-auto overflow-y-auto">
+      <div class="text-center mt-4">
+        <div class="w-20 h-20 bg-[#58CC02] rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-md border-b-4 border-[#46A302] mb-4">
+          🕌
+        </div>
+        <h1 class="text-2xl font-extrabold text-gray-800">മലയാളത്തിലൂടെ അറബി പഠിക്കാം</h1>
+        <p class="text-sm text-gray-500 mt-1">കളികളിലൂടെയും ക്വിസുകളിലൂടെയും എളുപ്പത്തിൽ അറബി ഭാഷ സ്വായത്തമാക്കൂ!</p>
+      </div>
+
+      <div class="space-y-5 my-6">
+        <!-- Avatar Picker -->
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase mb-2 text-center">നിങ്ങളുടെ അവതാർ തിരഞ്ഞെടുക്കുക</label>
+          <div id="avatar-selector" class="flex justify-center gap-3">
+            <button type="button" data-avatar="🧕" class="avatar-opt w-12 h-12 rounded-2xl text-2xl border-2 border-[#58CC02] bg-green-50 flex items-center justify-center transition">🧕</button>
+            <button type="button" data-avatar="👳‍♂️" class="avatar-opt w-12 h-12 rounded-2xl text-2xl border-2 border-gray-200 bg-white flex items-center justify-center transition">👳‍♂️</button>
+            <button type="button" data-avatar="🧑‍🎓" class="avatar-opt w-12 h-12 rounded-2xl text-2xl border-2 border-gray-200 bg-white flex items-center justify-center transition">🧑‍🎓</button>
+            <button type="button" data-avatar="🌟" class="avatar-opt w-12 h-12 rounded-2xl text-2xl border-2 border-gray-200 bg-white flex items-center justify-center transition">🌟</button>
+            <button type="button" data-avatar="🦁" class="avatar-opt w-12 h-12 rounded-2xl text-2xl border-2 border-gray-200 bg-white flex items-center justify-center transition">🦁</button>
+          </div>
+        </div>
+
+        <!-- Name Input -->
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1.5">നിങ്ങളുടെ പേര് നൽകുക</label>
+          <input id="onboarding-name" type="text" maxlength="25" placeholder="ഉദാ: അഹമ്മദ്, ഫാത്തിമ..."
+            class="w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 focus:border-[#1CB0F6] focus:outline-none text-base font-semibold bg-gray-50" />
+          <p id="name-error" class="text-xs text-red-500 font-semibold mt-1 hidden">ദയവായി നിങ്ങളുടെ പേര് നൽകുക!</p>
+        </div>
+
+        <!-- Level Selection -->
+        <div class="pt-2 space-y-3">
+          <p class="text-sm font-bold text-gray-700">എവിടെ നിന്ന് തുടങ്ങണം?</p>
+          
+          <button id="start-basics-btn" class="btn-3d w-full text-left p-4 rounded-2xl border-2 border-b-4 border-[#58CC02] bg-green-50/70 hover:bg-green-50 flex items-center gap-3.5">
+            <span class="text-3xl">🌱</span>
+            <div>
+              <div class="font-extrabold text-[#46A302] text-base">ആദ്യം മുതൽ തുടങ്ങാം</div>
+              <div class="text-xs text-gray-600 mt-0.5">അറബി അക്ഷരങ്ങൾ (അലിഫ്, ബാ, താ) മുതൽ പഠിച്ചു തുടങ്ങാം</div>
+            </div>
+          </button>
+
+          <button id="start-placement-btn" class="btn-3d w-full text-left p-4 rounded-2xl border-2 border-b-4 border-[#1CB0F6] bg-sky-50/70 hover:bg-sky-50 flex items-center gap-3.5">
+            <span class="text-3xl">🚀</span>
+            <div>
+              <div class="font-extrabold text-[#1899D6] text-base">എനിക്ക് അറബി കുറച്ചൊക്കെ അറിയാം</div>
+              <div class="text-xs text-gray-600 mt-0.5">ചെറിയൊരു ടെസ്റ്റ് എഴുതി നേരിട്ട് ഉയർന്ന ലെവലിലേക്ക് കടക്കാം</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <p class="text-center text-[11px] text-gray-400">പഠന പുരോഗതി സ്വയമേവ സേവ് ചെയ്യപ്പെടും</p>
+    </div>
+
+    <!-- ================= TOP STATS BAR ================= -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
+      <div class="flex items-center gap-1.5">
+        <span class="text-xl">🇸🇦</span>
+        <span id="sync-badge" title="Cloud Sync Status" class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+      </div>
+
+      <div class="flex items-center gap-4 font-extrabold text-sm">
+        <!-- Streak -->
+        <div class="flex items-center gap-1 text-orange-500" title="Daily Streak">
+          <span class="text-lg">🔥</span>
+          <span id="stat-streak">1</span>
+        </div>
+        <!-- XP -->
+        <div class="flex items-center gap-1 text-amber-500" title="Total XP">
+          <span class="text-lg">⭐</span>
+          <span id="stat-xp">0</span>
+        </div>
+        <!-- Hearts -->
+        <div class="flex items-center gap-1 text-rose-500" title="Hearts">
+          <span class="text-lg">❤️</span>
+          <span id="stat-hearts">5</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= MAIN TAB VIEWS ================= -->
+    <main class="flex-1 pb-24 overflow-y-auto">
+
+      <!-- TAB 1: LEARNING PATH -->
+      <section id="tab-path" class="p-4 space-y-8">
+        <!-- Units & Nodes rendered dynamically -->
+        <div id="units-container" class="space-y-8"></div>
+      </section>
+
+      <!-- TAB 2: ALPHABET & HARAKAT -->
+      <section id="tab-alphabet" class="hidden p-4">
+        <div class="text-center mb-4">
+          <h2 class="text-xl font-extrabold text-gray-800">അറബി അക്ഷരമാലയും ഹറകത്തുകളും</h2>
+          <p class="text-xs text-gray-500 mt-0.5">ഉച്ചാരണം കേൾക്കാൻ ഓരോ അക്ഷരത്തിലും തൊടുക 🔊</p>
+        </div>
+
+        <!-- Harakat Vowel Switcher -->
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-3 mb-3 sticky top-0 bg-white z-10 pt-1">
+          <button data-vowel="base" class="vowel-btn flex-1 min-w-[68px] py-2 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-[#58CC02] bg-green-50 text-[#46A302]">
+            അടിസ്ഥാനം<br><span class="font-arabic text-base">ا ب ت</span>
+          </button>
+          <button data-vowel="fatha" class="vowel-btn flex-1 min-w-[68px] py-2 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-gray-200 bg-white text-gray-600">
+            ഫത്ഹ് ( َ )<br><span class="font-arabic text-base">بَ تَ</span>
+          </button>
+          <button data-vowel="kasra" class="vowel-btn flex-1 min-w-[68px] py-2 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-gray-200 bg-white text-gray-600">
+            കസ്റ് ( ِ )<br><span class="font-arabic text-base">بِ تِ</span>
+          </button>
+          <button data-vowel="damma" class="vowel-btn flex-1 min-w-[68px] py-2 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-gray-200 bg-white text-gray-600">
+            ളമ്മ് ( ُ )<br><span class="font-arabic text-base">بُ تُ</span>
+          </button>
+          <button data-vowel="tanween" class="vowel-btn flex-1 min-w-[68px] py-2 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-gray-200 bg-white text-gray-600">
+            തൻവീൻ ( ً )<br><span class="font-arabic text-base">بًا تًا</span>
+          </button>
+        </div>
+
+        <!-- 28 Letters Grid (RTL order for Arabic) -->
+        <div id="alphabet-grid" dir="rtl" class="grid grid-cols-4 gap-2.5"></div>
+      </section>
+
+      <!-- TAB 3: LEADERBOARD -->
+      <section id="tab-leaderboard" class="hidden p-4">
+        <div class="bg-gradient-to-r from-amber-400 to-yellow-500 rounded-2xl p-4 text-white mb-4 shadow-sm flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-extrabold">ലീഡർബോർഡ് 🏆</h2>
+            <p class="text-xs text-amber-50">ഏറ്റവും കൂടുതൽ XP നേടിയ പഠിതാക്കൾ</p>
+          </div>
+          <button id="refresh-lb-btn" class="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl text-xs font-bold">
+            🔄 പുതുക്കുക
+          </button>
+        </div>
+
+        <div id="leaderboard-list" class="space-y-2.5">
+          <div class="text-center py-10 text-gray-400 text-sm">ലോഡ് ചെയ്യുന്നു...</div>
+        </div>
+      </section>
+
+      <!-- TAB 4: PROFILE -->
+      <section id="tab-profile" class="hidden p-4 space-y-5">
+        <div class="bg-white border-2 border-gray-200 rounded-3xl p-5 text-center relative">
+          <div id="profile-avatar" class="w-20 h-20 rounded-full bg-sky-100 border-4 border-[#1CB0F6] mx-auto flex items-center justify-center text-4xl mb-3">
+            🧕
+          </div>
+          <div class="flex items-center justify-center gap-2">
+            <h2 id="profile-name" class="text-xl font-extrabold text-gray-800">പഠിതാവ്</h2>
+            <button id="edit-name-btn" class="text-xs bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg font-bold text-gray-600">✏️ മാറ്റുക</button>
+          </div>
+          <p id="profile-uid" class="text-[11px] text-gray-400 mt-1">ID: ---</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="border-2 border-gray-200 rounded-2xl p-3 text-center">
+            <div class="text-2xl">🔥</div>
+            <div id="prof-streak" class="font-extrabold text-lg text-gray-800 mt-0.5">1</div>
+            <div class="text-[11px] text-gray-500 font-semibold">ദിവസം (Streak)</div>
+          </div>
+          <div class="border-2 border-gray-200 rounded-2xl p-3 text-center">
+            <div class="text-2xl">⭐</div>
+            <div id="prof-xp" class="font-extrabold text-lg text-gray-800 mt-0.5">0</div>
+            <div class="text-[11px] text-gray-500 font-semibold">ആകെ XP</div>
+          </div>
+          <div class="border-2 border-gray-200 rounded-2xl p-3 text-center">
+            <div class="text-2xl">🎯</div>
+            <div id="prof-lessons" class="font-extrabold text-lg text-gray-800 mt-0.5">0/12</div>
+            <div class="text-[11px] text-gray-500 font-semibold">പാഠങ്ങൾ</div>
+          </div>
+        </div>
+
+        <!-- Settings & Actions -->
+        <div class="border-2 border-gray-200 rounded-2xl divide-y divide-gray-100 overflow-hidden">
+          <div class="p-4 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-sm text-gray-800">ശബ്ദ ഇഫക്റ്റുകൾ (Sound Effects)</div>
+              <div class="text-xs text-gray-500">ഉത്തരങ്ങളുടെയും ഉച്ചാരണത്തിന്റെയും ശബ്ദം</div>
+            </div>
+            <input id="sound-toggle" type="checkbox" checked class="w-5 h-5 accent-[#58CC02] rounded cursor-pointer" />
+          </div>
+
+          <button id="retake-placement-btn" class="w-full p-4 text-left flex items-center justify-between hover:bg-gray-50">
+            <div>
+              <div class="font-bold text-sm text-[#1899D6]">നിലവാര നിർണ്ണയ പരീക്ഷ (Placement Test)</div>
+              <div class="text-xs text-gray-500">ടെസ്റ്റ് എഴുതി ഉയർന്ന യൂണിറ്റുകളിലേക്ക് നേരിട്ട് കടക്കുക</div>
+            </div>
+            <span class="text-lg">🚀</span>
+          </button>
+
+          <button id="refill-hearts-btn" class="w-full p-4 text-left flex items-center justify-between hover:bg-gray-50">
+            <div>
+              <div class="font-bold text-sm text-rose-500">ഹാർട്ടുകൾ നിറയ്ക്കുക (Refill Hearts)</div>
+              <div class="text-xs text-gray-500">5 ഹാർട്ടുകൾ സൗജന്യമായി തിരികെ നേടുക</div>
+            </div>
+            <span class="text-lg">❤️</span>
+          </button>
+
+          <button id="reset-progress-btn" class="w-full p-4 text-left flex items-center justify-between hover:bg-red-50">
+            <div>
+              <div class="font-bold text-sm text-red-600">പ്രോഗ്രസ് റീസെറ്റ് ചെയ്യുക (Reset)</div>
+              <div class="text-xs text-gray-500">എല്ലാ പാഠങ്ങളും ആദ്യം മുതൽ തുടങ്ങുക</div>
+            </div>
+            <span class="text-lg">⚠️</span>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ================= BOTTOM NAVIGATION BAR ================= -->
+    <nav class="fixed bottom-0 z-30 w-full max-w-md bg-white border-t-2 border-gray-200 px-2 py-1.5 flex justify-around items-center">
+      <button data-tab="path" class="nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-[#58CC02] bg-green-50 border border-green-200">
+        <span class="text-xl">🏠</span>
+        <span class="text-[11px] font-extrabold mt-0.5">പഠനം</span>
+      </button>
+      <button data-tab="alphabet" class="nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-gray-500 hover:bg-gray-50">
+        <span class="text-xl font-arabic font-bold leading-6">أ ب</span>
+        <span class="text-[11px] font-bold mt-0.5">അക്ഷരങ്ങൾ</span>
+      </button>
+      <button data-tab="leaderboard" class="nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-gray-500 hover:bg-gray-50">
+        <span class="text-xl">🏆</span>
+        <span class="text-[11px] font-bold mt-0.5">റാങ്ക്</span>
+      </button>
+      <button data-tab="profile" class="nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-gray-500 hover:bg-gray-50">
+        <span class="text-xl">👤</span>
+        <span class="text-[11px] font-bold mt-0.5">പ്രൊഫൈൽ</span>
+      </button>
+    </nav>
+
+    <!-- ================= FULL-SCREEN LESSON / TEST MODAL ================= -->
+    <div id="lesson-modal" class="hidden fixed inset-0 z-50 bg-white flex flex-col max-w-md mx-auto">
+      <!-- Top Bar -->
+      <div class="px-4 py-3 flex items-center gap-3 border-b border-gray-100">
+        <button id="close-lesson-btn" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1">✕</button>
+        <div class="flex-1 bg-gray-200 h-3.5 rounded-full overflow-hidden">
+          <div id="lesson-progress-bar" class="bg-[#58CC02] h-full w-0 transition-all duration-300 rounded-full"></div>
+        </div>
+        <div id="lesson-hearts-display" class="flex items-center gap-1 font-extrabold text-rose-500 text-sm">
+          <span>❤️</span><span id="lesson-hearts-count">5</span>
+        </div>
+      </div>
+
+      <!-- Mode Badge (e.g., Placement Test / Unit Jump) -->
+      <div id="lesson-mode-banner" class="hidden bg-sky-50 text-[#1899D6] text-xs font-extrabold text-center py-1.5 border-b border-sky-100">
+        നിലവാര നിർണ്ണയ പരീക്ഷ (Placement Test)
+      </div>
+
+      <!-- Question Body -->
+      <div id="question-container" class="flex-1 p-5 overflow-y-auto flex flex-col justify-between">
+        <!-- Injected dynamically -->
+      </div>
+
+      <!-- Bottom Check Button Area -->
+      <div id="check-area" class="p-4 border-t border-gray-200 bg-white">
+        <button id="check-answer-btn" disabled class="btn-3d w-full py-3.5 rounded-2xl font-extrabold text-base uppercase tracking-wide bg-gray-200 text-gray-400 border-b-4 border-gray-300 cursor-not-allowed">
+          പരിശോധിക്കുക
+        </button>
+      </div>
+
+      <!-- Slide-Up Instant Feedback Drawer -->
+      <div id="feedback-drawer" class="hidden fixed bottom-0 left-0 right-0 max-w-md mx-auto p-5 z-50 rounded-t-3xl shadow-2xl animate-pop">
+        <div class="flex items-start gap-3 mb-4">
+          <div id="feedback-icon" class="w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold shrink-0"></div>
+          <div>
+            <h3 id="feedback-title" class="font-extrabold text-lg"></h3>
+            <p id="feedback-detail" class="text-sm font-semibold mt-0.5"></p>
+          </div>
+        </div>
+        <button id="continue-lesson-btn" class="btn-3d w-full py-3.5 rounded-2xl font-extrabold text-base text-white border-b-4">
+          തുടരുക
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= LESSON / TEST COMPLETE SCREEN ================= -->
+    <div id="complete-modal" class="hidden fixed inset-0 z-50 bg-white flex flex-col items-center justify-between p-6 max-w-md mx-auto text-center">
+      <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-10"></canvas>
+      
+      <div class="mt-10 z-20 animate-pop">
+        <div id="complete-emoji" class="text-7xl mb-4">🎉</div>
+        <h2 id="complete-title" class="text-2xl font-extrabold text-[#58CC02]">പാഠം പൂർത്തിയായി!</h2>
+        <p id="complete-subtitle" class="text-sm text-gray-600 mt-2 max-w-xs mx-auto">മികച്ച പ്രകടനം! നിങ്ങൾ അടുത്ത ഘട്ടത്തിലേക്ക് കടന്നിരിക്കുന്നു.</p>
+
+        <div class="flex justify-center gap-4 mt-8">
+          <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl px-6 py-3">
+            <div class="text-xs font-bold text-amber-600 uppercase">നേടിയ XP</div>
+            <div id="complete-xp" class="text-2xl font-extrabold text-amber-500 mt-1">+15 ⭐</div>
+          </div>
+          <div class="bg-orange-50 border-2 border-orange-300 rounded-2xl px-6 py-3">
+            <div class="text-xs font-bold text-orange-600 uppercase">സ്ട്രീക്ക്</div>
+            <div id="complete-streak" class="text-2xl font-extrabold text-orange-500 mt-1">1 🔥</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="complete-done-btn" class="btn-3d z-20 w-full py-4 rounded-2xl bg-[#58CC02] border-b-4 border-[#46A302] text-white font-extrabold text-base">
+        തുടരുക
+      </button>
+    </div>
+
+    <!-- ================= OUT OF HEARTS MODAL ================= -->
+    <div id="out-of-hearts-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-5 max-w-md mx-auto">
+      <div class="bg-white rounded-3xl p-6 text-center w-full animate-pop">
+        <div class="text-6xl mb-3">💔</div>
+        <h3 class="text-xl font-extrabold text-gray-800">ഹാർട്ടുകൾ തീർന്നു!</h3>
+        <p class="text-sm text-gray-600 mt-2">തെറ്റായ ഉത്തരങ്ങൾ കാരണം നിങ്ങളുടെ ഹാർട്ടുകൾ തീർന്നിരിക്കുന്നു. ഹാർട്ടുകൾ നിറച്ച് വീണ്ടും ശ്രമിക്കാം.</p>
+        <div class="mt-6 space-y-2.5">
+          <button id="modal-refill-btn" class="btn-3d w-full py-3.5 rounded-2xl bg-[#58CC02] border-b-4 border-[#46A302] text-white font-extrabold">
+            ❤️ ഹാർട്ടുകൾ നിറയ്ക്കുക (സൗജന്യം)
+          </button>
+          <button id="modal-quit-btn" class="w-full py-2.5 rounded-xl text-gray-500 font-bold text-sm">
+            പുറത്തുകടക്കുക
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= FIREBASE & APPLICATION SCRIPT ================= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Your Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyC3bD97EJEeWLnDuaE56UTHVo8RPB5hZyY",
+      authDomain: "learn-arabic-8ac72.firebaseapp.com",
+      projectId: "learn-arabic-8ac72",
+      storageBucket: "learn-arabic-8ac72.firebasestorage.app",
+      messagingSenderId: "194181738236",
+      appId: "1:194181738236:web:a74043a43744262f74b179",
+      measurementId: "G-V96YX6QP5C"
+    };
+
+    let app, auth, db;
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+    } catch (e) {
+      console.warn("Firebase init offline fallback:", e);
+    }
+
+    // ================= CURRICULUM DATA (ARABIC - MALAYALAM) =================
+    const ARABIC_ALPHABET = [
+      { base: "ا", name: "അലിഫ്", fatha: "أَ", fathaTr: "അ", kasra: "إِ", kasraTr: "ഇ", damma: "أُ", dammaTr: "ഉ", tanween: "أً", tanweenTr: "അൻ" },
+      { base: "ب", name: "ബാ", fatha: "بَ", fathaTr: "ബ", kasra: "بِ", kasraTr: "ബി", damma: "بُ", dammaTr: "ബു", tanween: "بًا", tanweenTr: "ബൻ" },
+      { base: "ت", name: "താ", fatha: "تَ", fathaTr: "ത", kasra: "تِ", kasraTr: "തി", damma: "تُ", dammaTr: "തു", tanween: "تًا", tanweenTr: "തൻ" },
+      { base: "ث", name: "ഥാ", fatha: "ثَ", fathaTr: "ഥ", kasra: "ثِ", kasraTr: "ഥി", damma: "ثُ", dammaTr: "ഥു", tanween: "ثًا", tanweenTr: "ഥൻ" },
+      { base: "ج", name: "ജീം", fatha: "جَ", fathaTr: "ജ", kasra: "جِ", kasraTr: "ജി", damma: "جُ", dammaTr: "ജു", tanween: "جًا", tanweenTr: "ജൻ" },
+      { base: "ح", name: "ഹാ", fatha: "حَ", fathaTr: "ഹ", kasra: "حِ", kasraTr: "ഹി", damma: "حُ", dammaTr: "ഹു", tanween: "حًا", tanweenTr: "ഹൻ" },
+      { base: "خ", name: "ഖാ", fatha: "خَ", fathaTr: "ഖ", kasra: "خِ", kasraTr: "ഖി", damma: "خُ", dammaTr: "ഖു", tanween: "خًا", tanweenTr: "ഖൻ" },
+      { base: "د", name: "ദാൽ", fatha: "دَ", fathaTr: "ദ", kasra: "دِ", kasraTr: "ദി", damma: "دُ", dammaTr: "ദു", tanween: "دًا", tanweenTr: "ദൻ" },
+      { base: "ذ", name: "ദാൽ (ഥ്)", fatha: "ذَ", fathaTr: "ദ", kasra: "ذِ", kasraTr: "ദി", damma: "ذُ", dammaTr: "ദു", tanween: "ذًا", tanweenTr: "ദൻ" },
+      { base: "ر", name: "റാ", fatha: "رَ", fathaTr: "റ", kasra: "رِ", kasraTr: "രി", damma: "رُ", dammaTr: "റു", tanween: "رًا", tanweenTr: "റൻ" },
+      { base: "ز", name: "സായ്", fatha: "زَ", fathaTr: "സ", kasra: "زِ", kasraTr: "സി", damma: "زُ", dammaTr: "സു", tanween: "زًا", tanweenTr: "സൻ" },
+      { base: "س", name: "സീൻ", fatha: "سَ", fathaTr: "സ", kasra: "سِ", kasraTr: "സി", damma: "سُ", dammaTr: "സു", tanween: "سًا", tanweenTr: "സൻ" },
+      { base: "ش", name: "ഷീൻ", fatha: "شَ", fathaTr: "ഷ", kasra: "شِ", kasraTr: "ഷി", damma: "شُ", dammaTr: "ഷു", tanween: "شًا", tanweenTr: "ഷൻ" },
+      { base: "ص", name: "സ്വാദ്", fatha: "صَ", fathaTr: "സ്വ", kasra: "صِ", kasraTr: "സ്വി", damma: "صُ", dammaTr: "സ്വു", tanween: "صًا", tanweenTr: "സ്വൻ" },
+      { base: "ض", name: "ള്വാദ്", fatha: "ضَ", fathaTr: "ള്വ", kasra: "ضِ", kasraTr: "ള്വി", damma: "ضُ", dammaTr: "ള്വു", tanween: "ضًا", tanweenTr: "ള്വൻ" },
+      { base: "ط", name: "ത്വാ", fatha: "طَ", fathaTr: "ത്വ", kasra: "طِ", kasraTr: "ത്വി", damma: "طُ", dammaTr: "ത്വു", tanween: "طًا", tanweenTr: "ത്വൻ" },
+      { base: "ظ", name: "ള്വാ", fatha: "ظَ", fathaTr: "ള്വ", kasra: "ظِ", kasraTr: "ള്വി", damma: "ظُ", dammaTr: "ള്വു", tanween: "ظًا", tanweenTr: "ള്വൻ" },
+      { base: "ع", name: "ഐൻ", fatha: "عَ", fathaTr: "അ'", kasra: "عِ", kasraTr: "ഇ'", damma: "عُ", dammaTr: "ഉ'", tanween: "عًا", tanweenTr: "അൻ" },
+      { base: "غ", name: "ഗൈൻ", fatha: "غَ", fathaTr: "ഗ", kasra: "غِ", kasraTr: "ഗി", damma: "غُ", dammaTr: "ഗു", tanween: "غًا", tanweenTr: "ഗൻ" },
+      { base: "ف", name: "ഫാ", fatha: "فَ", fathaTr: "ഫ", kasra: "فِ", kasraTr: "ഫി", damma: "فُ", dammaTr: "ഫു", tanween: "فًا", tanweenTr: "ഫൻ" },
+      { base: "ق", name: "ഖാഫ്", fatha: "قَ", fathaTr: "ഖ", kasra: "قِ", kasraTr: "ഖി", damma: "قُ", dammaTr: "ഖു", tanween: "قًا", tanweenTr: "ഖൻ" },
+      { base: "ك", name: "കാഫ്", fatha: "كَ", fathaTr: "ക", kasra: "كِ", kasraTr: "കി", damma: "كُ", dammaTr: "കു", tanween: "كًا", tanweenTr: "കൻ" },
+      { base: "ل", name: "ലാം", fatha: "لَ", fathaTr: "ല", kasra: "لِ", kasraTr: "ലി", damma: "لُ", dammaTr: "ലു", tanween: "لًا", tanweenTr: "ലൻ" },
+      { base: "م", name: "മീം", fatha: "مَ", fathaTr: "മ", kasra: "مِ", kasraTr: "മി", damma: "مُ", dammaTr: "മു", tanween: "مًا", tanweenTr: "മൻ" },
+      { base: "ن", name: "നൂൻ", fatha: "نَ", fathaTr: "ന", kasra: "نِ", kasraTr: "നി", damma: "نُ", dammaTr: "നു", tanween: "نًا", tanweenTr: "നൻ" },
+      { base: "ه", name: "ഹാ", fatha: "هَ", fathaTr: "ഹ", kasra: "هِ", kasraTr: "ഹി", damma: "هُ", dammaTr: "ഹു", tanween: "هًا", tanweenTr: "ഹൻ" },
+      { base: "و", name: "വാവ്", fatha: "وَ", fathaTr: "വ", kasra: "وِ", kasraTr: "വി", damma: "وُ", dammaTr: "വു", tanween: "وًا", tanweenTr: "വൻ" },
+      { base: "ي", name: "യാ", fatha: "يَ", fathaTr: "യ", kasra: "يِ", kasraTr: "യി", damma: "يُ", dammaTr: "യു", tanween: "يًا", tanweenTr: "യൻ" }
+    ];
+
+    const UNITS = [
+      {
+        id: "u1",
+        number: 1,
+        title: "യൂണിറ്റ് 1: അറബി അക്ഷരങ്ങളും ഹറകത്തുകളും",
+        subtitle: "അക്ഷരങ്ങളും സ്വരചിഹ്നങ്ങളും പഠിക്കാം",
+        color: "bg-[#58CC02]",
+        borderColor: "border-[#46A302]",
+        lessons: [
+          {
+            id: "u1_l1",
+            title: "ആദ്യ അക്ഷരങ്ങൾ (അലിഫ്, ബാ, താ)",
+            icon: "أ",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "ഈ അറബി അക്ഷരം ഏതാണ്?",
+                arabic: "ب",
+                translit: "ബാ",
+                options: ["അലിഫ് (Alif)", "ബാ (Ba)", "താ (Ta)", "ജീം (Jeem)"],
+                answer: "ബാ (Ba)"
+              },
+              {
+                type: "mcq",
+                prompt: "'അലിഫ്' എന്ന അക്ഷരം തിരഞ്ഞെടുക്കുക",
+                options: ["ا", "ب", "ت", "ث"],
+                isArabicOption: true,
+                answer: "ا"
+              },
+              {
+                type: "pairs",
+                prompt: "അക്ഷരങ്ങളും പേരുകളും യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "ا", ml: "അലിഫ്" },
+                  { ar: "ب", ml: "ബാ" },
+                  { ar: "ت", ml: "താ" },
+                  { ar: "ث", ml: "ഥാ" }
+                ]
+              },
+              {
+                type: "listen",
+                prompt: "ശബ്ദം കേട്ട് ശരിയായ അക്ഷരം തിരഞ്ഞെടുക്കുക",
+                arabic: "تَ",
+                translit: "ത (Ta with Fatha)",
+                options: ["بَ (ബ)", "تَ (ത)", "ثَ (ഥ)", "أَ (അ)"],
+                answer: "تَ (ത)"
+              },
+              {
+                type: "mcq",
+                prompt: "മുകളിൽ 3 പുള്ളികളുള്ള അക്ഷരം ഏതാണ്?",
+                options: ["ب", "ت", "ث", "ن"],
+                isArabicOption: true,
+                answer: "ث"
+              }
+            ]
+          },
+          {
+            id: "u1_l2",
+            title: "ഹറകത്തുകൾ (ഫത്ഹ്, കസ്റ്, ളമ്മ്)",
+            icon: "بَ",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "അക്ഷരത്തിന് മുകളിൽ വരുന്ന ചെറിയ വര ( َ ) ഏതാണ്?",
+                arabic: "بَ",
+                translit: "ബ",
+                options: ["ഫത്ഹ് (Fatha)", "കസ്റ് (Kasra)", "ളമ്മ് (Damma)", "സുക്കൂൻ"],
+                answer: "ഫത്ഹ് (Fatha)"
+              },
+              {
+                type: "mcq",
+                prompt: "'ബി' എന്ന ശബ്ദം നൽകുന്ന അക്ഷരം ഏതാണ്?",
+                options: ["بَ", "بِ", "بُ", "بْ"],
+                isArabicOption: true,
+                answer: "بِ"
+              },
+              {
+                type: "pairs",
+                prompt: "ശബ്ദങ്ങൾ കൃത്യമായി യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "بَ", ml: "ബ" },
+                  { ar: "بِ", ml: "ബി" },
+                  { ar: "بُ", ml: "ബു" },
+                  { ar: "تُ", ml: "തു" }
+                ]
+              },
+              {
+                type: "listen",
+                prompt: "ശബ്ദം കേട്ട് ശരിയായ ഉച്ചാരണം തിരഞ്ഞെടുക്കുക",
+                arabic: "أُ",
+                translit: "ഉ (U)",
+                options: ["അ (أَ)", "ഇ (إِ)", "ഉ (أُ)", "ബ (بَ)"],
+                answer: "ഉ (أُ)"
+              },
+              {
+                type: "wordbank",
+                prompt: "ഈ അക്ഷരങ്ങൾ ചേർത്ത് വായിക്കൂ: 'കതബ' (അവൻ എഴുതി)",
+                arabic: "كَتَبَ",
+                translit: "ക - ത - ബ",
+                words: ["ക", "ത", "ബ", "കി", "തു"],
+                answer: ["ക", "ത", "ബ"]
+              }
+            ]
+          },
+          {
+            id: "u1_l3",
+            title: "കൂടുതൽ അക്ഷരങ്ങൾ (ജീം, ഹാ, ഖാ)",
+            icon: "ج",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "'ജീം' എന്ന അക്ഷരം ഏതാണ്?",
+                options: ["ج", "ح", "خ", "د"],
+                isArabicOption: true,
+                answer: "ج"
+              },
+              {
+                type: "mcq",
+                prompt: "ഈ അക്ഷരത്തിന്റെ ഉച്ചാരണം എന്താണ്?",
+                arabic: "خَ",
+                translit: "ഖ",
+                options: ["ജ", "ഹ", "ഖ", "ദ"],
+                answer: "ഖ"
+              },
+              {
+                type: "pairs",
+                prompt: "അക്ഷരങ്ങളും മലയാളം ശബ്ദങ്ങളും യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "جَ", ml: "ജ" },
+                  { ar: "حَ", ml: "ഹ" },
+                  { ar: "خَ", ml: "ഖ" },
+                  { ar: "دَ", ml: "ദ" }
+                ]
+              },
+              {
+                type: "listen",
+                prompt: "കേട്ട് ശരിയായ അക്ഷരം തിരഞ്ഞെടുക്കുക",
+                arabic: "رَ",
+                translit: "റ (Ra)",
+                options: ["دَ (ദ)", "رَ (റ)", "جَ (ജ)", "حَ (ഹ)"],
+                answer: "رَ (റ)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: "u2",
+        number: 2,
+        title: "യൂണിറ്റ് 2: അഭിവാദ്യങ്ങളും മര്യാദകളും",
+        subtitle: "സലാം, നന്ദി, സുഖവിവരങ്ങൾ എന്നിവ പറയാം",
+        color: "bg-[#1CB0F6]",
+        borderColor: "border-[#1899D6]",
+        lessons: [
+          {
+            id: "u2_l1",
+            title: "സലാമും സ്വാഗതവും",
+            icon: "👋",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "'മർഹബൻ' എന്നതിന്റെ അർത്ഥം എന്താണ്?",
+                arabic: "مَرْحَبًا",
+                translit: "മർഹബൻ",
+                options: ["സ്വാഗതം / ഹലോ", "വിട", "നന്ദി", "ക്ഷമിക്കണം"],
+                answer: "സ്വാഗതം / ഹലോ"
+              },
+              {
+                type: "listen",
+                prompt: "ഈ അഭിവാദ്യം ഏതാണ്?",
+                arabic: "اَلسَّلَامُ عَلَيْكُمْ",
+                translit: "അസ്സലാമു അലൈക്കും",
+                options: ["നിങ്ങൾക്ക് സമാധാനമുണ്ടാകട്ടെ", "എന്റെ പേര് അലി", "സുഖമാണോ?", "നന്ദി"],
+                answer: "നിങ്ങൾക്ക് സമാധാനമുണ്ടാകട്ടെ"
+              },
+              {
+                type: "pairs",
+                prompt: "അറബി വാക്കുകളും അർത്ഥങ്ങളും യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "مَرْحَبًا", ml: "സ്വാഗതം" },
+                  { ar: "أَهْلًا", ml: "ഹലോ / വരൂ" },
+                  { ar: "صَبَاحَ الْخَيْرِ", ml: "സുപ്രഭാതം" },
+                  { ar: "مَعَ السَّلَامَةِ", ml: "വിട / യാത്രാമംഗളം" }
+                ]
+              },
+              {
+                type: "wordbank",
+                prompt: "'സുപ്രഭാതം' എന്നതിന് അറബി വാക്യം നിർമ്മിക്കുക",
+                words: ["صَبَاحَ", "الْخَيْرِ", "مَرْحَبًا", "شُكْرًا"],
+                isArabicWords: true,
+                answer: ["صَبَاحَ", "الْخَيْرِ"]
+              }
+            ]
+          },
+          {
+            id: "u2_l2",
+            title: "നന്ദിയും ക്ഷമയും",
+            icon: "🙏",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "'നന്ദി' എന്ന് അറബിയിൽ എങ്ങനെ പറയും?",
+                options: ["شُكْرًا (ശുക്റൻ)", "عَفْوًا (അഫ്‌വൻ)", "نَعَمْ (നഅം)", "لَا (ലാ)"],
+                answer: "شُكْرًا (ശുക്റൻ)"
+              },
+              {
+                type: "mcq",
+                prompt: "ഒരാൾ 'ശുക്റൻ' പറഞ്ഞാൽ തിരിച്ച് എന്താണ് പറയുക?",
+                arabic: "عَفْوًا",
+                translit: "അഫ്‌വൻ",
+                options: ["സാരമില്ല / സ്വാഗതം", "സുപ്രഭാതം", "വിട", "അതെ"],
+                answer: "സാരമില്ല / സ്വാഗതം"
+              },
+              {
+                type: "pairs",
+                prompt: "വാക്കുകളും അർത്ഥങ്ങളും യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "شُكْرًا", ml: "നന്ദി" },
+                  { ar: "عَفْوًا", ml: "സാരമില്ല" },
+                  { ar: "نَعَمْ", ml: "അതെ" },
+                  { ar: "لَا", ml: "അല്ല / ഇല്ല" }
+                ]
+              },
+              {
+                type: "listen",
+                prompt: "ശബ്ദം കേട്ട് അർത്ഥം തിരഞ്ഞെടുക്കുക",
+                arabic: "مِنْ فَضْلِكَ",
+                translit: "മിൻ ഫള്‌ലിക",
+                options: ["ദയവായി (Please)", "നന്ദി (Thank you)", "ക്ഷമിക്കണം (Sorry)", "അതെ (Yes)"],
+                answer: "ദയവായി (Please)"
+              }
+            ]
+          },
+          {
+            id: "u2_l3",
+            title: "സുഖവിവരങ്ങൾ അന്വേഷിക്കാം",
+            icon: "😊",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "'നിങ്ങൾക്ക് സുഖമാണോ?' എന്ന് ചോദിക്കുന്നത് എങ്ങനെ?",
+                arabic: "كَيْفَ حَالُكَ؟",
+                translit: "കൈഫ ഹാലുക?",
+                options: ["നിങ്ങൾക്ക് സുഖമാണോ?", "നിങ്ങളുടെ പേരെന്താണ്?", "എവിടെയാണ് വീട്?", "എന്താണ് വിശേഷം?"],
+                answer: "നിങ്ങൾക്ക് സുഖമാണോ?"
+              },
+              {
+                type: "wordbank",
+                prompt: "'ഞാൻ സുഖമായിരിക്കുന്നു, നന്ദി' എന്ന് അറബിയിൽ എഴുതുക",
+                words: ["أَنَا", "بِخَيْرٍ", "شُكْرًا", "لَا"],
+                isArabicWords: true,
+                answer: ["أَنَا", "بِخَيْرٍ", "شُكْرًا"]
+              },
+              {
+                type: "pairs",
+                prompt: "സംഭാഷണങ്ങൾ യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "كَيْفَ حَالُكَ؟", ml: "സുഖമാണോ?" },
+                  { ar: "أَنَا بِخَيْرٍ", ml: "എനിക്ക് സുഖമാണ്" },
+                  { ar: "اَلْحَمْدُ لِلّٰهِ", ml: "സർവ്വസ്തുതിയും ദൈവത്തിന്" },
+                  { ar: "وَأَنْتَ؟", ml: "നിങ്ങൾക്കോ?" }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: "u3",
+        number: 3,
+        title: "യൂണിറ്റ് 3: സർവ്വനാമങ്ങളും ചോദ്യങ്ങളും",
+        subtitle: "സ്വയം പരിചയപ്പെടുത്താനും ചോദ്യങ്ങൾ ചോദിക്കാനും",
+        color: "bg-[#CE82FF]",
+        borderColor: "border-[#A55EEA]",
+        lessons: [
+          {
+            id: "u3_l1",
+            title: "ഞാൻ, നീ, അവൻ, അവൾ",
+            icon: "👥",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "'ഞാൻ' എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?",
+                options: ["أَنَا (അനാ)", "أَنْتَ (അൻത)", "هُوَ (ഹുവ)", "هِيَ (ഹിയ)"],
+                answer: "أَنَا (അനാ)"
+              },
+              {
+                type: "pairs",
+                prompt: "സർവ്വനാമങ്ങൾ യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "أَنَا", ml: "ഞാൻ" },
+                  { ar: "أَنْتَ", ml: "നീ (പുരുഷൻ)" },
+                  { ar: "هُوَ", ml: "അവൻ" },
+                  { ar: "هِيَ", ml: "അവൾ" }
+                ]
+              },
+              {
+                type: "wordbank",
+                prompt: "'അവൻ ഒരു വിദ്യാർത്ഥിയാണ്' എന്ന് വിവർത്തനം ചെയ്യുക",
+                arabic: "هُوَ طَالِبٌ",
+                translit: "ഹുവ ത്വാലിബുൻ",
+                words: ["അവൻ", "ഒരു", "വിദ്യാർത്ഥിയാണ്", "ഞാൻ", "അധ്യാപകൻ"],
+                answer: ["അവൻ", "ഒരു", "വിദ്യാർത്ഥിയാണ്"]
+              }
+            ]
+          },
+          {
+            id: "u3_l2",
+            title: "എന്ത്, എവിടെ, ആര്?",
+            icon: "❓",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "'എവിടെ' എന്ന് ചോദിക്കാൻ ഉപയോഗിക്കുന്ന വാക്ക്?",
+                arabic: "أَيْنَ",
+                translit: "അയ്ന",
+                options: ["എവിടെ", "ആര്", "എപ്പോൾ", "എന്തുകൊണ്ട്"],
+                answer: "എവിടെ"
+              },
+              {
+                type: "pairs",
+                prompt: "ചോദ്യവാക്കുകൾ യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "مَا", ml: "എന്ത്" },
+                  { ar: "أَيْنَ", ml: "എവിടെ" },
+                  { ar: "مَنْ", ml: "ആര്" },
+                  { ar: "كَيْفَ", ml: "എങ്ങനെ" }
+                ]
+              },
+              {
+                type: "wordbank",
+                prompt: "'നീ എവിടെയാണ്?' എന്ന് അറബിയിൽ ചോദിക്കുക",
+                words: ["أَيْنَ", "أَنْتَ؟", "مَنْ", "أَنَا"],
+                isArabicWords: true,
+                answer: ["أَيْنَ", "أَنْتَ؟"]
+              }
+            ]
+          },
+          {
+            id: "u3_l3",
+            title: "പരിചയപ്പെടൽ (Introduction)",
+            icon: "🪪",
+            questions: [
+              {
+                type: "mcq",
+                prompt: "'നിന്റെ പേരെന്താണ്?' എന്നതിന്റെ അറബി?",
+                arabic: "مَا اسْمُكَ؟",
+                translit: "മസ്മുക?",
+                options: ["നിന്റെ പേരെന്താണ്?", "നീ എവിടെ നിന്നാണ്?", "നിനക്ക് എത്ര വയസ്സായി?", "സുഖമാണോ?"],
+                answer: "നിന്റെ പേരെന്താണ്?"
+              },
+              {
+                type: "wordbank",
+                prompt: "'എന്റെ പേര് അഹമ്മദ്' എന്ന് അറബിയിൽ എഴുതുക",
+                words: ["اِسْمِي", "أَحْمَدُ", "أَنْتَ", "مَا"],
+                isArabicWords: true,
+                answer: ["اِسْمِي", "أَحْمَدُ"]
+              },
+              {
+                type: "listen",
+                prompt: "കേട്ട് അർത്ഥം തിരഞ്ഞെടുക്കുക",
+                arabic: "أَنَا مِنَ الْهِنْدِ",
+                translit: "അനാ മിനൽ ഹിന്ദ്",
+                options: ["ഞാൻ ഇന്ത്യയിൽ നിന്നാണ്", "ഞാൻ കേരളത്തിലാണ്", "എന്റെ വീട് വലുതാണ്", "ഞാൻ വിദ്യാർത്ഥിയാണ്"],
+                answer: "ഞാൻ ഇന്ത്യയിൽ നിന്നാണ്"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: "u4",
+        number: 4,
+        title: "യൂണിറ്റ് 4: ദൈനംദിന വാക്കുകളും വാക്യങ്ങളും",
+        subtitle: "കുടുംബം, ഭക്ഷണം, സംഖ്യകൾ എന്നിവ പഠിക്കാം",
+        color: "bg-[#FF9600]",
+        borderColor: "border-[#E07A00]",
+        lessons: [
+          {
+            id: "u4_l1",
+            title: "എന്റെ കുടുംബം (Family)",
+            icon: "🏡",
+            questions: [
+              {
+                type: "pairs",
+                prompt: "കുടുംബാംഗങ്ങളുടെ പേരുകൾ യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "أَبٌ", ml: "പിതാവ്" },
+                  { ar: "أُمٌّ", ml: "മാതാവ്" },
+                  { ar: "أَخٌ", ml: "സഹോദരൻ" },
+                  { ar: "أُخْتٌ", ml: "സഹോദരി" }
+                ]
+              },
+              {
+                type: "mcq",
+                prompt: "'ബയ്ത്' (بَيْتٌ) എന്നാൽ എന്ത്?",
+                arabic: "بَيْتٌ",
+                translit: "ബയ്തുൻ",
+                options: ["വീട്", "സ്കൂൾ", "പള്ളി", "കട"],
+                answer: "വീട്"
+              },
+              {
+                type: "wordbank",
+                prompt: "'ഇത് എന്റെ വീടാണ്' എന്ന് വിവർത്തനം ചെയ്യുക",
+                arabic: "هٰذَا بَيْتِي",
+                translit: "ഹാദാ ബയ്തീ",
+                words: ["ഇത്", "എന്റെ", "വീടാണ്", "അവന്റെ", "സ്കൂളാണ്"],
+                answer: ["ഇത്", "എന്റെ", "വീടാണ്"]
+              }
+            ]
+          },
+          {
+            id: "u4_l2",
+            title: "ഭക്ഷണവും വെള്ളവും",
+            icon: "🍎",
+            questions: [
+              {
+                type: "pairs",
+                prompt: "ഭക്ഷണ പദാർത്ഥങ്ങൾ യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "مَاءٌ", ml: "വെള്ളം" },
+                  { ar: "خُبْزٌ", ml: "റൊട്ടി" },
+                  { ar: "حَلِيبٌ", ml: "പാൽ" },
+                  { ar: "شَايٌ", ml: "ചായ" }
+                ]
+              },
+              {
+                type: "listen",
+                prompt: "ശബ്ദം കേട്ട് അർത്ഥം തിരഞ്ഞെടുക്കുക",
+                arabic: "أُرِيدُ مَاءً",
+                translit: "ഉരീദു മാഅൻ",
+                options: ["എനിക്ക് വെള്ളം വേണം", "എനിക്ക് ചായ വേണം", "ഇത് പാലാണ്", "ഭക്ഷണം നല്ലതാണ്"],
+                answer: "എനിക്ക് വെള്ളം വേണം"
+              },
+              {
+                type: "wordbank",
+                prompt: "'എനിക്ക് ചായ വേണം' എന്ന് അറബിയിൽ എഴുതുക",
+                words: ["أُرِيدُ", "شَايًا", "خُبْزًا", "لَا"],
+                isArabicWords: true,
+                answer: ["أُرِيدُ", "شَايًا"]
+              }
+            ]
+          },
+          {
+            id: "u4_l3",
+            title: "സംഖ്യകൾ 1-5 & വാക്യങ്ങൾ",
+            icon: "🔢",
+            questions: [
+              {
+                type: "pairs",
+                prompt: "അറബി സംഖ്യകൾ യോജിപ്പിക്കുക",
+                pairs: [
+                  { ar: "وَاحِدٌ", ml: "ഒന്ന് (1)" },
+                  { ar: "اِثْنَانِ", ml: "രണ്ട് (2)" },
+                  { ar: "ثَلَاثَةٌ", ml: "മൂന്ന് (3)" },
+                  { ar: "خَمْسَةٌ", ml: "അഞ്ച് (5)" }
+                ]
+              },
+              {
+                type: "mcq",
+                prompt: "'അർബഅ' (أَرْبَعَةٌ) എന്ന സംഖ്യ ഏതാണ്?",
+                arabic: "أَرْبَعَةٌ",
+                translit: "അർബഅതുൻ",
+                options: ["നാല് (4)", "രണ്ട് (2)", "അഞ്ച് (5)", "ഒന്ന് (1)"],
+                answer: "നാല് (4)"
+              },
+              {
+                type: "wordbank",
+                prompt: "'ഇതൊരു നല്ല പുസ്തകമാണ്' എന്ന് വിവർത്തനം ചെയ്യുക",
+                arabic: "هٰذَا كِتَابٌ جَمِيلٌ",
+                translit: "ഹാദാ കിതാബുൻ ജമീലുൻ",
+                words: ["ഇതൊരു", "നല്ല", "പുസ്തകമാണ്", "ചെറിയ", "വീടാണ്"],
+                answer: ["ഇതൊരു", "നല്ല", "പുസ്തകമാണ്"]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    // Progressive Placement Test Questions (8 Qs)
+    const PLACEMENT_QUESTIONS = [
+      {
+        type: "mcq",
+        prompt: "ചോദ്യം 1/8: 'ജി' (Ji) എന്ന ശബ്ദമുള്ള അക്ഷരം ഏതാണ്?",
+        options: ["جَ", "جِ", "جُ", "حِ"],
+        isArabicOption: true,
+        answer: "جِ"
+      },
+      {
+        type: "mcq",
+        prompt: "ചോദ്യം 2/8: 'ശുക്റൻ' (شُكْرًا) എന്നതിന്റെ അർത്ഥം?",
+        arabic: "شُكْرًا",
+        translit: "ശുക്റൻ",
+        options: ["നന്ദി", "സ്വാഗതം", "ക്ഷമിക്കണം", "വിട"],
+        answer: "നന്ദി"
+      },
+      {
+        type: "mcq",
+        prompt: "ചോദ്യം 3/8: 'നിങ്ങൾക്ക് സുഖമാണോ?' എന്ന് അറബിയിൽ എങ്ങനെ ചോദിക്കും?",
+        options: ["كَيْفَ حَالُكَ؟", "مَا اسْمُكَ؟", "أَيْنَ بَيْتُكَ؟", "مَنْ أَنْتَ؟"],
+        isArabicOption: true,
+        answer: "كَيْفَ حَالُكَ؟"
+      },
+      {
+        type: "mcq",
+        prompt: "ചോദ്യം 4/8: 'അവൾ' എന്നതിന്റെ അറബി സർവ്വനാമം ഏതാണ്?",
+        options: ["أَنَا", "أَنْتَ", "هُوَ", "هِيَ"],
+        isArabicOption: true,
+        answer: "هِيَ"
+      },
+      {
+        type: "wordbank",
+        prompt: "ചോദ്യം 5/8: 'എന്റെ പേര് അലി' എന്ന് അറബിയിൽ ക്രമീകരിക്കുക",
+        words: ["اِسْمِي", "عَلِيٌّ", "أَنْتَ", "أَيْنَ"],
+        isArabicWords: true,
+        answer: ["اِسْمِي", "عَلِيٌّ"]
+      },
+      {
+        type: "mcq",
+        prompt: "ചോദ്യം 6/8: 'അയ്ന' (أَيْنَ) എന്ന ചോദ്യവാക്കിന്റെ അർത്ഥം?",
+        arabic: "أَيْنَ",
+        translit: "അയ്ന",
+        options: ["എവിടെ", "എപ്പോൾ", "എന്ത്", "ആര്"],
+        answer: "എവിടെ"
+      },
+      {
+        type: "mcq",
+        prompt: "ചോദ്യം 7/8: 'വെള്ളം' എന്നതിന്റെ അറബി വാക്ക് ഏതാണ്?",
+        options: ["مَاءٌ (മാഅ്)", "خُبْزٌ (ഖുബ്സ്)", "بَيْتٌ (ബയ്ത്)", "أَبٌ (അബ്)"],
+        answer: "مَاءٌ (മാഅ്)"
+      },
+      {
+        type: "wordbank",
+        prompt: "ചോദ്യം 8/8: ഈ വാക്യം വിവർത്തനം ചെയ്യുക",
+        arabic: "أُرِيدُ شَايًا مِنْ فَضْلِكَ",
+        translit: "ഉരീദു ശായൻ മിൻ ഫള്‌ലിക",
+        words: ["ദയവായി", "എനിക്ക്", "ചായ", "വേണം", "വെള്ളം"],
+        answer: ["ദയവായി", "എനിക്ക്", "ചായ", "വേണം"]
+      }
+    ];
+
+    // ================= STATE MANAGEMENT =================
+    const STORAGE_KEY = "arabic_ml_app_state_v1";
+    let userState = {
+      uid: null,
+      name: "",
+      avatar: "🧕",
+      xp: 0,
+      streak: 1,
+      hearts: 5,
+      completedLessons: [],
+      lastActiveDate: new Date().toDateString(),
+      soundEnabled: true
+    };
+
+    let activeSession = {
+      mode: "lesson", // "lesson" | "placement" | "jump"
+      lessonId: null,
+      targetUnitIndex: null,
+      questions: [],
+      currentIndex: 0,
+      score: 0,
+      hearts: 5,
+      selectedAnswer: null,
+      wordBankSelected: [],
+      pairsMatched: 0,
+      selectedLeft: null,
+      selectedRight: null,
+      isAnswered: false,
+      isCorrect: false
+    };
+
+    // ================= AUDIO & TTS ENGINE =================
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(type) {
+      if (!userState.soundEnabled) return;
+      try {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+        if (type === "correct") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else if (type === "wrong") {
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.linearRampToValueAtTime(130, now + 0.25);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.28);
+        } else if (type === "complete") {
+          osc.type = "triangle";
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            osc.frequency.setValueAtTime(freq, now + i * 0.1);
+          });
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+          osc.start(now);
+          osc.stop(now + 0.55);
+        } else if (type === "tap") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(420, now);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        }
+      } catch (e) {}
+    }
+
+    function speakArabic(text, rate = 0.9) {
+      if (!userState.soundEnabled || !text) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = "ar-SA";
+        utter.rate = rate;
+        const voices = window.speechSynthesis.getVoices();
+        const arVoice = voices.find(v => v.lang.startsWith("ar"));
+        if (arVoice) utter.voice = arVoice;
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        console.warn("TTS fallback:", e);
+      }
+    }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    // ================= PERSISTENCE & FIREBASE SYNC =================
+    function loadLocalState() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        userState = { ...userState, ...JSON.parse(saved) };
+        checkStreak();
+        return true;
+      }
+      return false;
+    }
+
+    function checkStreak() {
+      const today = new Date().toDateString();
+      if (userState.lastActiveDate !== today) {
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        if (userState.lastActiveDate === yesterday) {
+          userState.streak += 1;
+        } else {
+          userState.streak = 1;
+        }
+        userState.hearts = 5;
+        userState.lastActiveDate = today;
+        saveState();
+      }
+    }
+
+    async function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(userState));
+      updateTopAndProfileUI();
+
+      if (db && userState.uid) {
+        const badge = document.getElementById("sync-badge");
+        badge.className = "w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse";
+        try {
+          await setDoc(doc(db, "users", userState.uid), {
+            name: userState.name,
+            avatar: userState.avatar,
+            xp: userState.xp,
+            streak: userState.streak,
+            hearts: userState.hearts,
+            completedLessons: userState.completedLessons,
+            lastActiveDate: userState.lastActiveDate,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+          badge.className = "w-2 h-2 rounded-full bg-green-500 inline-block";
+        } catch (err) {
+          console.warn("Cloud sync delayed:", err);
+          badge.className = "w-2 h-2 rounded-full bg-gray-400 inline-block";
+        }
+      }
+    }
+
+    async function ensureFirebaseAuth() {
+      if (!auth) return;
+      return new Promise((resolve) => {
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            userState.uid = user.uid;
+            saveState();
+            resolve(user);
+          } else {
+            try {
+              const cred = await signInAnonymously(auth);
+              userState.uid = cred.user.uid;
+              saveState();
+              resolve(cred.user);
+            } catch (e) {
+              console.warn("Anonymous auth failed offline:", e);
+              resolve(null);
+            }
+          }
+        });
+      });
+    }
+
+    // ================= ONBOARDING FLOW =================
+    let selectedAvatar = "🧕";
+    document.querySelectorAll(".avatar-opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        playTone("tap");
+        selectedAvatar = btn.dataset.avatar;
+        document.querySelectorAll(".avatar-opt").forEach(b => {
+          b.classList.remove("border-[#58CC02]", "bg-green-50");
+          b.classList.add("border-gray-200", "bg-white");
+        });
+        btn.classList.remove("border-gray-200", "bg-white");
+        btn.classList.add("border-[#58CC02]", "bg-green-50");
+      });
+    });
+
+    async function completeOnboarding(takePlacement) {
+      const nameInput = document.getElementById("onboarding-name").value.trim();
+      const errEl = document.getElementById("name-error");
+      if (!nameInput) {
+        errEl.classList.remove("hidden");
+        return;
+      }
+      errEl.classList.add("hidden");
+      playTone("tap");
+
+      userState.name = nameInput;
+      userState.avatar = selectedAvatar;
+      userState.xp = 0;
+      userState.streak = 1;
+      userState.hearts = 5;
+      userState.completedLessons = [];
+      userState.lastActiveDate = new Date().toDateString();
+
+      document.getElementById("onboarding-screen").classList.add("hidden");
+      await ensureFirebaseAuth();
+      await saveState();
+      renderLearningPath();
+
+      if (takePlacement) {
+        startPlacementTest();
+      }
+    }
+
+    document.getElementById("start-basics-btn").addEventListener("click", () => completeOnboarding(false));
+    document.getElementById("start-placement-btn").addEventListener("click", () => completeOnboarding(true));
+
+    // ================= UI RENDERING: LEARNING PATH =================
+    function getAllLessonIds() {
+      return UNITS.flatMap(u => u.lessons.map(l => l.id));
+    }
+
+    function renderLearningPath() {
+      const container = document.getElementById("units-container");
+      container.innerHTML = "";
+      const allIds = getAllLessonIds();
+
+      UNITS.forEach((unit, uIdx) => {
+        // Check if unit is unlocked (first lesson of unit is unlocked or completed)
+        const firstLessonId = unit.lessons[0].id;
+        const firstGlobalIdx = allIds.indexOf(firstLessonId);
+        const isUnitUnlocked = firstGlobalIdx === 0 || userState.completedLessons.includes(allIds[firstGlobalIdx - 1]) || userState.completedLessons.includes(firstLessonId);
+
+        const unitDiv = document.createElement("div");
+        unitDiv.className = "space-y-5";
+
+        // Unit Header Card
+        const header = document.createElement("div");
+        header.className = `${isUnitUnlocked ? unit.color : "bg-gray-400"} text-white rounded-2xl p-4 shadow-sm border-b-4 ${isUnitUnlocked ? unit.borderColor : "border-gray-500"}`;
+        header.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <h3 class="font-extrabold text-base leading-snug">${unit.title}</h3>
+              <p class="text-xs text-white/90 mt-0.5">${unit.subtitle}</p>
+            </div>
+            ${!isUnitUnlocked ? `
+              <button data-jump-unit="${uIdx}" class="jump-unit-btn shrink-0 bg-white text-gray-800 font-extrabold text-xs px-3 py-2 rounded-xl shadow border-b-2 border-gray-300 active:translate-y-0.5">
+                🚀 Jump Here?
+              </button>
+            ` : `<span class="text-2xl">📖</span>`}
+          </div>
+        `;
+        unitDiv.appendChild(header);
+
+        // Winding Lesson Nodes
+        const pathWrapper = document.createElement("div");
+        pathWrapper.className = "flex flex-col items-center space-y-6 py-2 relative";
+
+        const offsets = ["translate-x-0", "-translate-x-10", "translate-x-0", "translate-x-10"];
+
+        unit.lessons.forEach((lesson, lIdx) => {
+          const globalIdx = allIds.indexOf(lesson.id);
+          const isCompleted = userState.completedLessons.includes(lesson.id);
+          const isUnlocked = isCompleted || globalIdx === 0 || userState.completedLessons.includes(allIds[globalIdx - 1]);
+          const isCurrent = isUnlocked && !isCompleted;
+
+          const nodeWrapper = document.createElement("div");
+          nodeWrapper.className = `relative flex flex-col items-center ${offsets[(globalIdx) % offsets.length]}`;
+
+          // Bouncing START tooltip for current lesson
+          if (isCurrent) {
+            const tooltip = document.createElement("div");
+            tooltip.className = "animate-bounce-slow mb-2 bg-white text-[#58CC02] font-extrabold text-xs px-3 py-1 rounded-xl border-2 border-gray-200 shadow-sm uppercase tracking-wider";
+            tooltip.textContent = "തുടങ്ങുക";
+            nodeWrapper.appendChild(tooltip);
+          }
+
+          const btn = document.createElement("button");
+          btn.disabled = !isUnlocked;
+          let btnClasses = "btn-3d w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold border-b-8 shadow-md relative transition ";
+          if (isCompleted) {
+            btnClasses += "bg-[#FFC800] border-[#E5A400] text-white";
+          } else if (isCurrent) {
+            btnClasses += `${unit.color} ${unit.borderColor} text-white ring-4 ring-green-200`;
+          } else {
+            btnClasses += "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed";
+          }
+          btn.className = btnClasses;
+          btn.innerHTML = isCompleted ? "⭐" : (isUnlocked ? `<span class="font-arabic">${lesson.icon}</span>` : "🔒");
+
+          if (isUnlocked) {
+            btn.addEventListener("click", () => {
+              playTone("tap");
+              startLesson(lesson);
+            });
+          }
+
+          const label = document.createElement("span");
+          label.className = `mt-2 text-xs font-extrabold text-center max-w-[140px] ${isUnlocked ? "text-gray-700" : "text-gray-400"}`;
+          label.textContent = lesson.title;
+
+          nodeWrapper.appendChild(btn);
+          nodeWrapper.appendChild(label);
+          pathWrapper.appendChild(nodeWrapper);
+        });
+
+        unitDiv.appendChild(pathWrapper);
+        container.appendChild(unitDiv);
+      });
+
+      // Attach Jump Here listeners
+      document.querySelectorAll(".jump-unit-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          playTone("tap");
+          const targetIdx = parseInt(btn.dataset.jumpUnit, 10);
+          startUnitJumpTest(targetIdx);
+        });
+      });
+    }
+
+    // ================= UI RENDERING: ALPHABET TAB =================
+    let currentVowel = "base";
+    function renderAlphabetGrid() {
+      const grid = document.getElementById("alphabet-grid");
+      grid.innerHTML = "";
+
+      ARABIC_ALPHABET.forEach(item => {
+        let displayAr = item.base;
+        let displayMl = item.name;
+        if (currentVowel !== "base") {
+          displayAr = item[currentVowel];
+          displayMl = item[currentVowel + "Tr"];
+        }
+
+        const card = document.createElement("button");
+        card.className = "btn-3d bg-white border-2 border-b-4 border-gray-200 hover:border-[#1CB0F6] rounded-2xl p-3 flex flex-col items-center justify-center transition";
+        card.innerHTML = `
+          <span class="font-arabic text-3xl font-bold text-gray-800 leading-tight">${displayAr}</span>
+          <span class="text-xs font-extrabold text-[#1899D6] mt-1">${displayMl}</span>
+        `;
+        card.addEventListener("click", () => {
+          playTone("tap");
+          speakArabic(displayAr, 0.8);
+          card.classList.add("bg-sky-50", "border-[#1CB0F6]");
+          setTimeout(() => card.classList.remove("bg-sky-50", "border-[#1CB0F6]"), 350);
+        });
+        grid.appendChild(card);
+      });
+    }
+
+    document.querySelectorAll(".vowel-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        playTone("tap");
+        currentVowel = btn.dataset.vowel;
+        document.querySelectorAll(".vowel-btn").forEach(b => {
+          b.className = "vowel-btn flex-1 min-w-[68px] py-2 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-gray-200 bg-white text-gray-600";
+        });
+        btn.className = "vowel-btn flex-1 min-w-[68px] py-2 px-2 rounded-xl text-xs font-extrabold border-2 border-b-4 border-[#58CC02] bg-green-50 text-[#46A302]";
+        renderAlphabetGrid();
+      });
+    });
+
+    // ================= UI RENDERING: LEADERBOARD =================
+    async function loadLeaderboard() {
+      const listEl = document.getElementById("leaderboard-list");
+      listEl.innerHTML = `<div class="text-center py-8 text-gray-400 text-sm">റാങ്ക് പട്ടിക ലോഡ് ചെയ്യുന്നു...</div>`;
+
+      let users = [];
+      if (db) {
+        try {
+          const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(30));
+          const snap = await getDocs(q);
+          snap.forEach(d => users.push({ id: d.id, ...d.data() }));
+        } catch (e) {
+          console.warn("Leaderboard fetch error:", e);
+        }
+      }
+
+      // Ensure current user appears even if offline
+      if (!users.some(u => u.id === userState.uid)) {
+        users.push({
+          id: userState.uid || "local",
+          name: userState.name || "നിങ്ങൾ",
+          avatar: userState.avatar,
+          xp: userState.xp,
+          streak: userState.streak
+        });
+        users.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+      }
+
+      listEl.innerHTML = "";
+      users.forEach((u, index) => {
+        const isMe = u.id === userState.uid || (u.id === "local" && !userState.uid);
+        const rankBadges = ["🥇", "🥈", "🥉"];
+        const rankDisplay = index < 3 ? `<span class="text-2xl">${rankBadges[index]}</span>` : `<span class="font-extrabold text-gray-500 w-7 text-center">${index + 1}</span>`;
+
+        const row = document.createElement("div");
+        row.className = `flex items-center justify-between p-3.5 rounded-2xl border-2 ${isMe ? "bg-green-50 border-[#58CC02]" : "bg-white border-gray-200"}`;
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            ${rankDisplay}
+            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl">${u.avatar || "🧑"}</div>
+            <div>
+              <div class="font-extrabold text-sm text-gray-800">${u.name || "പഠിതാവ്"} ${isMe ? '<span class="text-[10px] bg-[#58CC02] text-white px-1.5 py-0.5 rounded-md ml-1">നിങ്ങൾ</span>' : ""}</div>
+              <div class="text-[11px] text-gray-500 font-semibold">🔥 ${u.streak || 1} ദിവസം</div>
+            </div>
+          </div>
+          <div class="font-extrabold text-amber-500 text-sm">${u.xp || 0} XP</div>
+        `;
+        listEl.appendChild(row);
+      });
+    }
+    document.getElementById("refresh-lb-btn").addEventListener("click", () => {
+      playTone("tap");
+      loadLeaderboard();
+    });
+
+    // ================= LESSON & TEST ENGINE =================
+    function startLesson(lesson) {
+      if (userState.hearts <= 0) {
+        document.getElementById("out-of-hearts-modal").classList.remove("hidden");
+        return;
+      }
+      activeSession = {
+        mode: "lesson",
+        lessonId: lesson.id,
+        targetUnitIndex: null,
+        questions: JSON.parse(JSON.stringify(lesson.questions)),
+        currentIndex: 0,
+        score: 0,
+        hearts: userState.hearts,
+        selectedAnswer: null,
+        wordBankSelected: [],
+        pairsMatched: 0,
+        selectedLeft: null,
+        selectedRight: null,
+        isAnswered: false,
+        isCorrect: false
+      };
+      openLessonModal(null);
+    }
+
+    function startPlacementTest() {
+      activeSession = {
+        mode: "placement",
+        lessonId: null,
+        targetUnitIndex: null,
+        questions: JSON.parse(JSON.stringify(PLACEMENT_QUESTIONS)),
+        currentIndex: 0,
+        score: 0,
+        hearts: 5,
+        selectedAnswer: null,
+        wordBankSelected: [],
+        pairsMatched: 0,
+        selectedLeft: null,
+        selectedRight: null,
+        isAnswered: false,
+        isCorrect: false
+      };
+      openLessonModal("🚀 നിലവാര നിർണ്ണയ പരീക്ഷ (Placement Test)");
+    }
+
+    function startUnitJumpTest(targetUnitIndex) {
+      // Pick 5 questions from units prior to targetUnitIndex
+      const pool = [];
+      for (let i = 0; i < targetUnitIndex; i++) {
+        UNITS[i].lessons.forEach(l => {
+          l.questions.forEach(q => {
+            if (q.type !== "pairs") pool.push(q);
+          });
+        });
+      }
+      const shuffled = pool.sort(() => 0.5 - Math.random()).slice(0, 5);
+      activeSession = {
+        mode: "jump",
+        lessonId: null,
+        targetUnitIndex,
+        questions: JSON.parse(JSON.stringify(shuffled)),
+        currentIndex: 0,
+        score: 0,
+        hearts: 3,
+        selectedAnswer: null,
+        wordBankSelected: [],
+        pairsMatched: 0,
+        selectedLeft: null,
+        selectedRight: null,
+        isAnswered: false,
+        isCorrect: false
+      };
+      openLessonModal(`🚀 യൂണിറ്റ് ${targetUnitIndex + 1}-ലേക്കുള്ള പ്രവേശന ടെസ്റ്റ്`);
+    }
+
+    function openLessonModal(bannerText) {
+      history.pushState({ view: "lesson" }, "");
+      const modal = document.getElementById("lesson-modal");
+      const banner = document.getElementById("lesson-mode-banner");
+      if (bannerText) {
+        banner.textContent = bannerText;
+        banner.classList.remove("hidden");
+      } else {
+        banner.classList.add("hidden");
+      }
+      modal.classList.remove("hidden");
+      renderCurrentQuestion();
+    }
+
+    function closeLessonModal() {
+      document.getElementById("lesson-modal").classList.add("hidden");
+      document.getElementById("feedback-drawer").classList.add("hidden");
+      renderLearningPath();
+    }
+
+    document.getElementById("close-lesson-btn").addEventListener("click", () => {
+      playTone("tap");
+      closeLessonModal();
+    });
+
+    function renderCurrentQuestion() {
+      const q = activeSession.questions[activeSession.currentIndex];
+      const total = activeSession.questions.length;
+      const pct = Math.round((activeSession.currentIndex / total) * 100);
+
+      document.getElementById("lesson-progress-bar").style.width = `${pct}%`;
+      document.getElementById("lesson-hearts-count").textContent = activeSession.hearts;
+      document.getElementById("feedback-drawer").classList.add("hidden");
+
+      const checkBtn = document.getElementById("check-answer-btn");
+      checkBtn.disabled = true;
+      checkBtn.className = "btn-3d w-full py-3.5 rounded-2xl font-extrabold text-base uppercase tracking-wide bg-gray-200 text-gray-400 border-b-4 border-gray-300 cursor-not-allowed";
+      document.getElementById("check-area").classList.remove("hidden");
+
+      activeSession.selectedAnswer = null;
+      activeSession.wordBankSelected = [];
+      activeSession.pairsMatched = 0;
+      activeSession.selectedLeft = null;
+      activeSession.selectedRight = null;
+      activeSession.isAnswered = false;
+
+      const container = document.getElementById("question-container");
+      container.innerHTML = "";
+
+      // Question Header + Optional Arabic Audio Card
+      const headerHtml = document.createElement("div");
+      headerHtml.className = "space-y-4";
+      headerHtml.innerHTML = `<h2 class="text-lg font-extrabold text-gray-800 leading-snug">${q.prompt}</h2>`;
+
+      if (q.arabic) {
+        const audioCard = document.createElement("div");
+        audioCard.className = "bg-sky-50/70 border-2 border-sky-200 rounded-2xl p-4 flex items-center justify-between gap-3";
+        audioCard.innerHTML = `
+          <div class="flex items-center gap-2">
+            <button type="button" id="q-speak-btn" class="btn-3d w-12 h-12 rounded-2xl bg-[#1CB0F6] border-b-4 border-[#1899D6] text-white text-xl flex items-center justify-center shrink-0">🔊</button>
+            <button type="button" id="q-slow-btn" class="btn-3d w-10 h-10 rounded-xl bg-white border-2 border-b-4 border-gray-200 text-base flex items-center justify-center shrink-0" title="പതുക്കെ കേൾക്കുക">🐢</button>
+          </div>
+          <div class="text-right flex-1">
+            <div class="font-arabic text-3xl font-bold text-gray-900">${q.arabic}</div>
+            ${q.translit ? `<div class="text-xs font-bold text-[#1899D6] mt-1">${q.translit}</div>` : ""}
+          </div>
+        `;
+        headerHtml.appendChild(audioCard);
+        setTimeout(() => {
+          document.getElementById("q-speak-btn")?.addEventListener("click", () => speakArabic(q.arabic, 0.9));
+          document.getElementById("q-slow-btn")?.addEventListener("click", () => speakArabic(q.arabic, 0.55));
+          speakArabic(q.arabic, 0.9);
+        }, 50);
+      }
+
+      container.appendChild(headerHtml);
+
+      // Question Type Body
+      const bodyDiv = document.createElement("div");
+      bodyDiv.className = "my-auto py-4";
+
+      if (q.type === "mcq" || q.type === "listen") {
+        const grid = document.createElement("div");
+        grid.className = q.isArabicOption ? "grid grid-cols-2 gap-3" : "space-y-3";
+
+        q.options.forEach(opt => {
+          const optBtn = document.createElement("button");
+          optBtn.className = `mcq-opt btn-3d w-full p-4 rounded-2xl border-2 border-b-4 border-gray-200 bg-white text-gray-800 font-bold hover:bg-gray-50 transition ${q.isArabicOption ? "font-arabic text-3xl py-6 text-center" : "text-left text-base"}`;
+          optBtn.textContent = opt;
+          optBtn.addEventListener("click", () => {
+            playTone("tap");
+            if (q.isArabicOption) speakArabic(opt, 0.85);
+            activeSession.selectedAnswer = opt;
+            document.querySelectorAll(".mcq-opt").forEach(b => {
+              b.classList.remove("border-[#1CB0F6]", "bg-sky-50", "text-[#1899D6]");
+              b.classList.add("border-gray-200", "bg-white", "text-gray-800");
+            });
+            optBtn.classList.remove("border-gray-200", "bg-white", "text-gray-800");
+            optBtn.classList.add("border-[#1CB0F6]", "bg-sky-50", "text-[#1899D6]");
+            enableCheckButton();
+          });
+          grid.appendChild(optBtn);
+        });
+        bodyDiv.appendChild(grid);
+      }
+      else if (q.type === "wordbank") {
+        // Answer Tray
+        const tray = document.createElement("div");
+        tray.id = "wb-tray";
+        tray.dir = q.isArabicWords ? "rtl" : "ltr";
+        tray.className = "min-h-[68px] p-3 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-wrap gap-2 items-center mb-6";
+
+        // Shuffled Bank
+        const bank = document.createElement("div");
+        bank.id = "wb-bank";
+        bank.dir = q.isArabicWords ? "rtl" : "ltr";
+        bank.className = "flex flex-wrap justify-center gap-2.5";
+
+        const shuffledWords = [...q.words].sort(() => 0.5 - Math.random());
+
+        function refreshWordBank() {
+          tray.innerHTML = "";
+          if (activeSession.wordBankSelected.length === 0) {
+            tray.innerHTML = `<span class="text-xs text-gray-400 font-semibold mx-auto">താഴെ കാണുന്ന വാക്കുകളിൽ തൊട്ട് വാക്യം നിർമ്മിക്കുക</span>`;
+          } else {
+            activeSession.wordBankSelected.forEach((wordObj, idx) => {
+              const chip = document.createElement("button");
+              chip.className = `btn-3d px-4 py-2 rounded-xl bg-white border-2 border-b-4 border-[#1CB0F6] text-gray-800 font-bold ${q.isArabicWords ? "font-arabic text-2xl" : "text-sm"}`;
+              chip.textContent = wordObj.text;
+              chip.addEventListener("click", () => {
+                playTone("tap");
+                activeSession.wordBankSelected.splice(idx, 1);
+                refreshWordBank();
+              });
+              tray.appendChild(chip);
+            });
+          }
+
+          bank.innerHTML = "";
+          shuffledWords.forEach((w, i) => {
+            const isUsed = activeSession.wordBankSelected.some(item => item.id === i);
+            const chip = document.createElement("button");
+            chip.disabled = isUsed;
+            chip.className = `btn-3d px-4 py-2.5 rounded-xl border-2 border-b-4 font-bold transition ${
+              isUsed
+                ? "bg-gray-200 border-gray-200 text-transparent cursor-default"
+                : "bg-white border-gray-300 text-gray-800 hover:bg-gray-50"
+            } ${q.isArabicWords ? "font-arabic text-2xl" : "text-sm"}`;
+            chip.textContent = w;
+            chip.addEventListener("click", () => {
+              playTone("tap");
+              if (q.isArabicWords) speakArabic(w, 0.9);
+              activeSession.wordBankSelected.push({ id: i, text: w });
+              refreshWordBank();
+            });
+            bank.appendChild(chip);
+          });
+
+          if (activeSession.wordBankSelected.length > 0) {
+            enableCheckButton();
+          } else {
+            checkBtn.disabled = true;
+            checkBtn.className = "btn-3d w-full py-3.5 rounded-2xl font-extrabold text-base uppercase tracking-wide bg-gray-200 text-gray-400 border-b-4 border-gray-300 cursor-not-allowed";
+          }
+        }
+
+        bodyDiv.appendChild(tray);
+        bodyDiv.appendChild(bank);
+        refreshWordBank();
+      }
+      else if (q.type === "pairs") {
+        // Hide bottom check button for instant pair matching
+        document.getElementById("check-area").classList.add("hidden");
+
+        const grid = document.createElement("div");
+        grid.className = "grid grid-cols-2 gap-3";
+
+        const leftCol = document.createElement("div");
+        leftCol.className = "space-y-3";
+        const rightCol = document.createElement("div");
+        rightCol.className = "space-y-3";
+
+        const leftItems = q.pairs.map((p, idx) => ({ idx, text: p.ar })).sort(() => 0.5 - Math.random());
+        const rightItems = q.pairs.map((p, idx) => ({ idx, text: p.ml })).sort(() => 0.5 - Math.random());
+
+        function handlePairCheck() {
+          if (activeSession.selectedLeft && activeSession.selectedRight) {
+            const l = activeSession.selectedLeft;
+            const r = activeSession.selectedRight;
+            if (l.idx === r.idx) {
+              playTone("correct");
+              l.el.className = "w-full p-4 rounded-2xl border-2 border-green-300 bg-green-100 text-green-700 font-arabic text-2xl font-bold opacity-60 cursor-default";
+              r.el.className = "w-full p-4 rounded-2xl border-2 border-green-300 bg-green-100 text-green-700 text-sm font-extrabold opacity-60 cursor-default";
+              l.el.disabled = true;
+              r.el.disabled = true;
+              activeSession.pairsMatched += 1;
+              activeSession.selectedLeft = null;
+              activeSession.selectedRight = null;
+
+              if (activeSession.pairsMatched === q.pairs.length) {
+                activeSession.score += 1;
+                setTimeout(() => showFeedbackDrawer(true, "എല്ലാ ജോഡികളും കൃത്യമായി യോജിപ്പിച്ചു!"), 300);
+              }
+            } else {
+              playTone("wrong");
+              l.el.classList.add("border-red-500", "bg-red-50", "animate-shake");
+              r.el.classList.add("border-red-500", "bg-red-50", "animate-shake");
+              deductHeart();
+              setTimeout(() => {
+                l.el.classList.remove("border-red-500", "bg-red-50", "border-[#1CB0F6]", "bg-sky-50", "animate-shake");
+                r.el.classList.remove("border-red-500", "bg-red-50", "border-[#1CB0F6]", "bg-sky-50", "animate-shake");
+              }, 450);
+              activeSession.selectedLeft = null;
+              activeSession.selectedRight = null;
+            }
+          }
+        }
+
+        leftItems.forEach(item => {
+          const btn = document.createElement("button");
+          btn.className = "btn-3d w-full p-4 rounded-2xl border-2 border-b-4 border-gray-200 bg-white font-arabic text-2xl font-bold text-gray-800";
+          btn.textContent = item.text;
+          btn.addEventListener("click", () => {
+            if (btn.disabled) return;
+            playTone("tap");
+            speakArabic(item.text, 0.85);
+            leftCol.querySelectorAll("button:not(:disabled)").forEach(b => b.classList.remove("border-[#1CB0F6]", "bg-sky-50"));
+            btn.classList.add("border-[#1CB0F6]", "bg-sky-50");
+            activeSession.selectedLeft = { idx: item.idx, el: btn };
+            handlePairCheck();
+          });
+          leftCol.appendChild(btn);
+        });
+
+        rightItems.forEach(item => {
+          const btn = document.createElement("button");
+          btn.className = "btn-3d w-full p-4 rounded-2xl border-2 border-b-4 border-gray-200 bg-white text-sm font-extrabold text-gray-800 min-h-[68px]";
+          btn.textContent = item.text;
+          btn.addEventListener("click", () => {
+            if (btn.disabled) return;
+            playTone("tap");
+            rightCol.querySelectorAll("button:not(:disabled)").forEach(b => b.classList.remove("border-[#1CB0F6]", "bg-sky-50"));
+            btn.classList.add("border-[#1CB0F6]", "bg-sky-50");
+            activeSession.selectedRight = { idx: item.idx, el: btn };
+            handlePairCheck();
+          });
+          rightCol.appendChild(btn);
+        });
+
+        grid.appendChild(leftCol);
+        grid.appendChild(rightCol);
+        bodyDiv.appendChild(grid);
+      }
+
+      container.appendChild(bodyDiv);
+    }
+
+    function enableCheckButton() {
+      const checkBtn = document.getElementById("check-answer-btn");
+      checkBtn.disabled = false;
+      checkBtn.className = "btn-3d w-full py-3.5 rounded-2xl font-extrabold text-base uppercase tracking-wide bg-[#58CC02] text-white border-b-4 border-[#46A302] cursor-pointer";
+    }
+
+    function deductHeart() {
+      activeSession.hearts = Math.max(0, activeSession.hearts - 1);
+      if (activeSession.mode === "lesson") {
+        userState.hearts = activeSession.hearts;
+        saveState();
+      }
+      document.getElementById("lesson-hearts-count").textContent = activeSession.hearts;
+      if (activeSession.hearts === 0) {
+        setTimeout(() => {
+          document.getElementById("out-of-hearts-modal").classList.remove("hidden");
+        }, 400);
+      }
+    }
+
+    document.getElementById("check-answer-btn").addEventListener("click", () => {
+      if (activeSession.isAnswered) return;
+      activeSession.isAnswered = true;
+
+      const q = activeSession.questions[activeSession.currentIndex];
+      let correct = false;
+      let correctDisplay = "";
+
+      if (q.type === "mcq" || q.type === "listen") {
+        correct = activeSession.selectedAnswer === q.answer;
+        correctDisplay = q.answer;
+      } else if (q.type === "wordbank") {
+        const userWords = activeSession.wordBankSelected.map(w => w.text);
+        correct = JSON.stringify(userWords) === JSON.stringify(q.answer);
+        correctDisplay = q.answer.join(" ");
+      }
+
+      if (correct) {
+        activeSession.score += 1;
+        playTone("correct");
+        showFeedbackDrawer(true, "ശരിയായ ഉത്തരം!");
+      } else {
+        playTone("wrong");
+        deductHeart();
+        showFeedbackDrawer(false, `ശരിയായ ഉത്തരം: ${correctDisplay}`);
+      }
+    });
+
+    function showFeedbackDrawer(isCorrect, detailText) {
+      const drawer = document.getElementById("feedback-drawer");
+      const icon = document.getElementById("feedback-icon");
+      const title = document.getElementById("feedback-title");
+      const detail = document.getElementById("feedback-detail");
+      const contBtn = document.getElementById("continue-lesson-btn");
+
+      drawer.classList.remove("hidden", "bg-green-100", "text-green-800", "bg-red-100", "text-red-800");
+      if (isCorrect) {
+        drawer.classList.add("bg-green-100", "text-green-900");
+        icon.className = "w-10 h-10 rounded-full bg-[#58CC02] text-white flex items-center justify-center text-xl font-bold shrink-0";
+        icon.textContent = "✓";
+        title.textContent = "മികച്ചത്! 🎉";
+        contBtn.className = "btn-3d w-full py-3.5 rounded-2xl font-extrabold text-base text-white bg-[#58CC02] border-b-4 border-[#46A302]";
+      } else {
+        drawer.classList.add("bg-red-100", "text-red-900");
+        icon.className = "w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center text-xl font-bold shrink-0";
+        icon.textContent = "✕";
+        title.textContent = "ശരിയല്ല";
+        contBtn.className = "btn-3d w-full py-3.5 rounded-2xl font-extrabold text-base text-white bg-red-500 border-b-4 border-red-700";
+      }
+      detail.textContent = detailText;
+    }
+
+    document.getElementById("continue-lesson-btn").addEventListener("click", () => {
+      playTone("tap");
+      if (activeSession.hearts === 0) return;
+
+      if (activeSession.currentIndex + 1 < activeSession.questions.length) {
+        activeSession.currentIndex += 1;
+        renderCurrentQuestion();
+      } else {
+        finishSession();
+      }
+    });
+
+    function finishSession() {
+      document.getElementById("lesson-modal").classList.add("hidden");
+      document.getElementById("feedback-drawer").classList.add("hidden");
+      document.getElementById("lesson-progress-bar").style.width = "100%";
+      playTone("complete");
+
+      let earnedXp = 15;
+      let title = "പാഠം പൂർത്തിയായി!";
+      let subtitle = "മികച്ച പ്രകടനം! അടുത്ത പാഠം അൺലോക്ക് ആയിരിക്കുന്നു.";
+      let emoji = "🎉";
+
+      if (activeSession.mode === "lesson") {
+        if (!userState.completedLessons.includes(activeSession.lessonId)) {
+          userState.completedLessons.push(activeSession.lessonId);
+        }
+        userState.xp += earnedXp;
+      } else if (activeSession.mode === "placement") {
+        const sc = activeSession.score;
+        if (sc >= 7) {
+          earnedXp = 100;
+          unlockUpToUnit(3); // Unlocks Unit 4 (index 3)
+          title = "ഗംഭീരം! യൂണിറ്റ് 4 അൺലോക്ക് ആയി!";
+          subtitle = `8-ൽ ${sc} ശരിയുത്തരം! നിങ്ങൾ നേരിട്ട് യൂണിറ്റ് 4-ലേക്ക് കടന്നിരിക്കുന്നു.`;
+          emoji = "🏆";
+        } else if (sc >= 4) {
+          earnedXp = 50;
+          unlockUpToUnit(2); // Unlocks Unit 3 (index 2)
+          title = "മികച്ചത്! യൂണിറ്റ് 3 അൺലോക്ക് ആയി!";
+          subtitle = `8-ൽ ${sc} ശരിയുത്തരം! ആദ്യ രണ്ട് യൂണിറ്റുകൾ പൂർത്തിയായതായി രേഖപ്പെടുത്തി.`;
+          emoji = "🚀";
+        } else {
+          earnedXp = 10;
+          title = "നമുക്ക് ആദ്യം മുതൽ തുടങ്ങാം!";
+          subtitle = `8-ൽ ${sc} ശരിയുത്തരം. യൂണിറ്റ് 1 മുതൽ അടിസ്ഥാന കാര്യങ്ങൾ എളുപ്പത്തിൽ പഠിക്കാം.`;
+          emoji = "🌱";
+        }
+        userState.xp += earnedXp;
+      } else if (activeSession.mode === "jump") {
+        if (activeSession.score >= 4) {
+          earnedXp = 40;
+          unlockUpToUnit(activeSession.targetUnitIndex);
+          title = `യൂണിറ്റ് ${activeSession.targetUnitIndex + 1} അൺലോക്ക് ആയി!`;
+          subtitle = "പ്രവേശന പരീക്ഷ നിങ്ങൾ വിജയിച്ചിരിക്കുന്നു!";
+          emoji = "🚀";
+          userState.xp += earnedXp;
+        } else {
+          earnedXp = 5;
+          title = "കുറച്ചുകൂടി പരിശീലിക്കാം!";
+          subtitle = "ഈ യൂണിറ്റിലേക്ക് കടക്കാൻ 5-ൽ 4 ശരിയുത്തരം ആവശ്യമാണ്.";
+          emoji = "💪";
+          userState.xp += earnedXp;
+        }
+      }
+
+      saveState();
+      renderLearningPath();
+
+      document.getElementById("complete-emoji").textContent = emoji;
+      document.getElementById("complete-title").textContent = title;
+      document.getElementById("complete-subtitle").textContent = subtitle;
+      document.getElementById("complete-xp").textContent = `+${earnedXp} ⭐`;
+      document.getElementById("complete-streak").textContent = `${userState.streak} 🔥`;
+      document.getElementById("complete-modal").classList.remove("hidden");
+      launchConfetti();
+    }
+
+    function unlockUpToUnit(targetUnitIndex) {
+      for (let i = 0; i < targetUnitIndex; i++) {
+        UNITS[i].lessons.forEach(l => {
+          if (!userState.completedLessons.includes(l.id)) {
+            userState.completedLessons.push(l.id);
+          }
+        });
+      }
+    }
+
+    document.getElementById("complete-done-btn").addEventListener("click", () => {
+      playTone("tap");
+      document.getElementById("complete-modal").classList.add("hidden");
+    });
+
+    // Out of hearts modal actions
+    document.getElementById("modal-refill-btn").addEventListener("click", () => {
+      playTone("correct");
+      userState.hearts = 5;
+      activeSession.hearts = 5;
+      saveState();
+      document.getElementById("lesson-hearts-count").textContent = 5;
+      document.getElementById("out-of-hearts-modal").classList.add("hidden");
+    });
+
+    document.getElementById("modal-quit-btn").addEventListener("click", () => {
+      document.getElementById("out-of-hearts-modal").classList.add("hidden");
+      closeLessonModal();
+    });
+
+    // ================= NAVIGATION & PROFILE ACTIONS =================
+    function switchTab(tabName) {
+      playTone("tap");
+      ["path", "alphabet", "leaderboard", "profile"].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add("hidden");
+      });
+      document.getElementById(`tab-${tabName}`).classList.remove("hidden");
+
+      document.querySelectorAll(".nav-btn").forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.className = "nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-[#58CC02] bg-green-50 border border-green-200";
+        } else {
+          btn.className = "nav-btn flex flex-col items-center py-1 px-3 rounded-xl text-gray-500 hover:bg-gray-50";
+        }
+      });
+
+      if (tabName === "leaderboard") loadLeaderboard();
+      if (tabName === "profile") updateTopAndProfileUI();
+    }
+
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
+
+    function updateTopAndProfileUI() {
+      document.getElementById("stat-streak").textContent = userState.streak;
+      document.getElementById("stat-xp").textContent = userState.xp;
+      document.getElementById("stat-hearts").textContent = userState.hearts;
+
+      document.getElementById("profile-avatar").textContent = userState.avatar;
+      document.getElementById("profile-name").textContent = userState.name || "പഠിതാവ്";
+      document.getElementById("profile-uid").textContent = userState.uid ? `Cloud ID: ${userState.uid.slice(0, 8)}...` : "Offline Mode";
+      document.getElementById("prof-streak").textContent = userState.streak;
+      document.getElementById("prof-xp").textContent = userState.xp;
+      document.getElementById("prof-lessons").textContent = `${userState.completedLessons.length}/${getAllLessonIds().length}`;
+      document.getElementById("sound-toggle").checked = userState.soundEnabled;
+    }
+
+    document.getElementById("sound-toggle").addEventListener("change", (e) => {
+      userState.soundEnabled = e.target.checked;
+      saveState();
+    });
+
+    document.getElementById("edit-name-btn").addEventListener("click", () => {
+      const newName = prompt("പുതിയ പേര് നൽകുക:", userState.name);
+      if (newName && newName.trim()) {
+        userState.name = newName.trim();
+        saveState();
+      }
+    });
+
+    document.getElementById("retake-placement-btn").addEventListener("click", () => {
+      playTone("tap");
+      startPlacementTest();
+    });
+
+    document.getElementById("refill-hearts-btn").addEventListener("click", () => {
+      playTone("correct");
+      userState.hearts = 5;
+      saveState();
+      alert("❤️ 5 ഹാർട്ടുകൾ നിറച്ചിരിക്കുന്നു!");
+    });
+
+    document.getElementById("reset-progress-btn").addEventListener("click", () => {
+      if (confirm("നിങ്ങളുടെ എല്ലാ XP-യും പൂർത്തിയാക്കിയ പാഠങ്ങളും മായ്ച്ച് ആദ്യം മുതൽ തുടങ്ങണോ?")) {
+        userState.xp = 0;
+        userState.completedLessons = [];
+        userState.hearts = 5;
+        saveState();
+        renderLearningPath();
+        switchTab("path");
+      }
+    });
+
+    // Hardware / Gesture Back Button Handler
+    window.addEventListener("popstate", () => {
+      const lessonModal = document.getElementById("lesson-modal");
+      if (!lessonModal.classList.contains("hidden")) {
+        closeLessonModal();
+      }
+    });
+
+    // ================= CONFETTI ANIMATION =================
+    function launchConfetti() {
+      const canvas = document.getElementById("confetti-canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const colors = ["#58CC02", "#1CB0F6", "#FFC800", "#FF4B4B", "#CE82FF"];
+      const pieces = Array.from({ length: 70 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        r: Math.random() * 6 + 4,
+        c: colors[Math.floor(Math.random() * colors.length)],
+        vy: Math.random() * 3 + 2,
+        vx: Math.random() * 2 - 1
+      }));
+
+      let frame = 0;
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          ctx.fillStyle = p.c;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          p.y += p.vy;
+          p.x += p.vx;
+        });
+        frame++;
+        if (frame < 130) requestAnimationFrame(draw);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      draw();
+    }
+
+    // ================= APP BOOTSTRAP =================
+    async function initApp() {
+      const hasProfile = loadLocalState();
+      renderAlphabetGrid();
+      renderLearningPath();
+      updateTopAndProfileUI();
+
+      if (!hasProfile || !userState.name) {
+        document.getElementById("onboarding-screen").classList.remove("hidden");
+      } else {
+        await ensureFirebaseAuth();
+        saveState();
+      }
+    }
+
+    initApp();
+  </script>
+</body>
+</html>

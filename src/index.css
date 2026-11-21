@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    font-family: 'Noto Sans Malayalam', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: #F8FAFC;
+    color: #1E293B;
+    overflow-x: hidden;
+  }
+
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid #0284C7;
+    outline-offset: 2px;
+  }
+}
+
+.font-arabic {
+  font-family: 'Amiri', 'Cairo', serif;
+  direction: rtl;
+  line-height: 1.85;
+}
+
+.font-arabic-ui {
+  font-family: 'Cairo', 'Amiri', sans-serif;
+  direction: rtl;
+}
+
+.font-latin {
+  font-family: 'Plus Jakarta Sans', 'Noto Sans Malayalam', sans-serif;
+}
+
+.btn-3d {
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-3d:active:not(:disabled) {
+  transform: translateY(3px);
+}
+
+@keyframes bounceSlow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounceSlow 1.8s infinite ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-6px);
+  }
+  40%, 80% {
+    transform: translateX(6px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.36s ease-in-out;
+}
+
+@keyframes popIn {
+  0% {
+    transform: translateY(10px) scale(0.97);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop {
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce-slow,
+  .animate-shake,
+  .animate-pop {
+    animation: none !important;
+  }
+  .btn-3d {
+    transition: none !important;
+  }
+}
