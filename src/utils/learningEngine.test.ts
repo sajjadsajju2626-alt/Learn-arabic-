@@ -53,9 +53,9 @@ const baseUser: UserState = {
   onboarded: true,
 };
 
-test('curriculum contains 25 units and 200 winding nodes (8 per unit) with 28 Arabic letters', () => {
-  assert.equal(UNITS.length, 25);
-  assert.equal(getAllLessonIds().length, 200);
+test('curriculum contains 30 units and 240 winding nodes (8 per unit) with 28 Arabic letters', () => {
+  assert.equal(UNITS.length, 30);
+  assert.equal(getAllLessonIds().length, 240);
   assert.equal(ARABIC_ALPHABET.length, 28);
 
   const expectedIcons = ['⭐', '📖', '🧩', '🎁', '💬', '🎧', '⚡', '🏆'];
@@ -79,9 +79,9 @@ test('curriculum contains 25 units and 200 winding nodes (8 per unit) with 28 Ar
   }
 });
 
-test('Units 5 to 25 quiz nodes have Harakat, Malayalam transliteration, and mixed question types', () => {
+test('Units 5 to 30 quiz nodes have Harakat, Malayalam transliteration, and mixed question types', () => {
   const advanced = UNITS.slice(4);
-  assert.equal(advanced.length, 21);
+  assert.equal(advanced.length, 26);
   for (const unit of advanced) {
     assert.equal(unit.lessons.length, 8);
     for (const lesson of unit.lessons) {
@@ -291,7 +291,7 @@ test('fisherYatesShuffle preserves elements, does not mutate input, and distribu
   );
 });
 
-test('no Malayalam-to-Arabic question across all 200 nodes or Placement Test leaks the Arabic answer in the prompt card', () => {
+test('no Malayalam-to-Arabic question across all 240 nodes or Placement Test leaks the Arabic answer in the prompt card', () => {
   const allQuestions: { label: string; q: LessonQuestion }[] = [
     ...UNITS.flatMap((u) =>
       u.lessons.flatMap((l) => l.questions.map((q, idx) => ({ label: `${l.id}#${idx + 1}`, q })))
@@ -587,7 +587,7 @@ test('diacritic-tolerant Word Bank matching validates RTL Arabic cleanly and rej
   assert.equal(evaluateQuestionAnswer(wbQ, null, ['الْبَيْتِ', 'أَمَامَ', 'الْمَسْجِدُ']).correct, false);
 });
 
-test('all 25 units include fill_blank questions in Lessons 2, 4, 5, and 7 (nodes n2, n5, n6, n7) with 3 vocalized options and Malayalam hints', () => {
+test('all 30 units include fill_blank questions in Lessons 2, 4, 5, and 7 (nodes n2, n5, n6, n7) with 3 vocalized options and Malayalam hints', () => {
   const targetNodeSuffixes = ['_n2', '_n5', '_n6', '_n7'];
   let totalFillBlank = 0;
 
@@ -623,7 +623,7 @@ test('all 25 units include fill_blank questions in Lessons 2, 4, 5, and 7 (nodes
     }
   }
 
-  assert.equal(totalFillBlank, 100, 'Expected 100 fill_blank questions (4 per unit across 25 units)');
+  assert.equal(totalFillBlank, 120, 'Expected 120 fill_blank questions (4 per unit across 30 units)');
 
   // Verify Unit 7 includes the canonical masjid preposition sentence
   const u7n5 = UNITS[6].lessons.find((l) => l.id === 'u7_n5');
@@ -815,6 +815,71 @@ test('Units 21 to 25 cover Advanced Fluency, Gulf Expressions & Proverbs with ex
   assert.equal(isLessonUnlocked('u25_n2', unlockedUpTo25), false);
 
   const jumpQs = buildUnitJumpQuestions(24);
+  assert.equal(jumpQs.length, 5);
+  assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
+});
+
+test('Units 26 to 30 cover Core Arabic Grammar Mastery (Kaana, Inna, Passive, Participles, Conditionals) with exact colors, I-rab guidebooks, and Unit 30 Jump Here math', () => {
+  const coreGrammarUnits = UNITS.slice(25, 30);
+  assert.equal(coreGrammarUnits.length, 5);
+
+  const expectedMeta = [
+    { id: 'u26', color: 'bg-[#059669]', border: 'border-[#047857]' },
+    { id: 'u27', color: 'bg-[#2563EB]', border: 'border-[#1D4ED8]' },
+    { id: 'u28', color: 'bg-[#7C3AED]', border: 'border-[#6D28D9]' },
+    { id: 'u29', color: 'bg-[#0D9488]', border: 'border-[#0F766E]' },
+    { id: 'u30', color: 'bg-[#B45309]', border: 'border-[#92400E]' },
+  ];
+
+  coreGrammarUnits.forEach((unit, idx) => {
+    assert.equal(unit.id, expectedMeta[idx].id);
+    assert.equal(unit.theme.bg, expectedMeta[idx].color);
+    assert.equal(unit.theme.border, expectedMeta[idx].border);
+    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons[3].nodeType, 'chest');
+    assert.equal(unit.lessons[7].nodeType, 'trophy');
+    assert.ok(unit.guidebook && unit.guidebook.length === 8, `${unit.id} must have 8 guidebook entries`);
+    assert.ok(
+      unit.guidebookTip && unit.guidebookTip.includes('വ്യാകരണ നിയമം'),
+      `${unit.id} guidebookTip must clearly explain the grammar & I'rab rule in Malayalam`
+    );
+  });
+
+  const serialized = JSON.stringify(coreGrammarUnits);
+  const requiredCoreGrammarTerms = [
+    'كَانَ الْبَيْتُ كَبِيرًا',
+    'لَيْسَ الِامْتِحَانُ صَعْبًا',
+    'أَصْبَحَ',
+    'مَا زَالَ',
+    'إِنَّ الصَّبْرَ جَمِيلٌ',
+    'لَعَلَّ الْفَرَجَ قَرِيبٌ',
+    'لٰكِنَّ',
+    'لَيْتَ',
+    'كَأَنَّ',
+    'فُتِحَ الْبَابُ',
+    'يُكْتَبُ الدَّرْسُ',
+    'خُلِقَ الْإِنْسَانُ',
+    'كَاتِبٌ',
+    'مَكْتُوبٌ',
+    'عَالِمٌ',
+    'مَعْلُومٌ',
+    'فَاتِحٌ',
+    'مَفْتُوحٌ',
+    'مَنْ يَجْتَهِدْ يَنْجَحْ',
+    'إِذَا جَاءَ نَصْرُ اللّٰهِ',
+  ];
+  for (const term of requiredCoreGrammarTerms) {
+    assert.ok(serialized.includes(term), `Missing required Units 26–30 grammar term: ${term}`);
+  }
+
+  // Unit 30 (index 29) unlock & jump test verification
+  const unlockedUpTo30 = unlockLessonsUpToUnit([], 29);
+  assert.equal(unlockedUpTo30.length, 232);
+  assert.equal(isUnitUnlocked(29, unlockedUpTo30), true);
+  assert.equal(isLessonUnlocked('u30_n1', unlockedUpTo30), true);
+  assert.equal(isLessonUnlocked('u30_n2', unlockedUpTo30), false);
+
+  const jumpQs = buildUnitJumpQuestions(29);
   assert.equal(jumpQs.length, 5);
   assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
 });

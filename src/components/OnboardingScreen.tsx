@@ -52,9 +52,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             <div className="flex items-start gap-3">
               <BookOpen className="w-5 h-5 shrink-0 mt-0.5 text-white/90" aria-hidden="true" />
               <div className="text-sm">
-                <div className="font-bold">25 യൂണിറ്റുകൾ · 200 ഘട്ടങ്ങൾ</div>
+                <div className="font-bold">30 യൂണിറ്റുകൾ · 240 ഘട്ടങ്ങൾ</div>
                 <div className="text-white/80 text-xs mt-0.5">
-                  അലിഫ്-ബാ മുതൽ സമ്പൂർണ്ണ സംഭാഷണങ്ങൾ വരെ ഘട്ടം ഘട്ടമായി
+                  അലിഫ്-ബാ മുതൽ നഹ്‌വ്-സ്വർഫ് വ്യാകരണവും സമ്പൂർണ്ണ പ്രാവീണ്യവും വരെ
                 </div>
               </div>
             </div>

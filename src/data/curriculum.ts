@@ -3,6 +3,7 @@ import { ADVANCED_UNITS } from './advancedUnits';
 import { MASTERY_UNITS } from './masteryUnits';
 import { GRAMMAR_UNITS } from './grammarUnits';
 import { FLUENCY_UNITS } from './fluencyUnits';
+import { CORE_GRAMMAR_UNITS } from './coreGrammarUnits';
 import { expandUnitsToEightNodes } from './unitExpansion';
 
 export const AVATAR_OPTIONS = [
@@ -565,6 +566,7 @@ const BASE_UNITS: Unit[] = [
   ...MASTERY_UNITS,
   ...GRAMMAR_UNITS,
   ...FLUENCY_UNITS,
+  ...CORE_GRAMMAR_UNITS,
 ];
 
 export const UNITS: Unit[] = expandUnitsToEightNodes(BASE_UNITS);
