@@ -266,6 +266,56 @@ export function computeStreakUpdate(
   };
 }
 
+export function fisherYatesShuffle<T>(
+  items: readonly T[],
+  rng: () => number = Math.random
+): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Determines whether the Arabic prompt card (word + audio + transliteration)
+ * should be displayed above the options.
+ *
+ * - Always shown for `listen` questions.
+ * - For `mcq`, shown ONLY when translating FROM Arabic TO Malayalam (or when
+ *   the prompt's Arabic text is not the target answer itself). Never shown when
+ *   the question asks the user to pick the matching Arabic word from Malayalam.
+ * - For `wordbank`, shown ONLY when translating FROM Arabic TO Malayalam
+ *   (`!isArabicWords`), never when building an Arabic sentence from Malayalam.
+ */
+export function shouldShowArabicPromptCard(question: LessonQuestion): boolean {
+  if (!('arabic' in question) || !question.arabic) {
+    return false;
+  }
+  if (question.type === 'listen') {
+    return true;
+  }
+  if (question.type === 'wordbank') {
+    return !question.isArabicWords;
+  }
+  if (question.type === 'mcq') {
+    if (question.isArabicOption) {
+      // Allow Arabic prompt card only when it is a source word (e.g. opposite color)
+      // and NOT the correct answer or one of the Arabic options.
+      const normalizedArabic = question.arabic.trim();
+      if (
+        question.answer.trim() === normalizedArabic ||
+        question.options.some((opt) => opt.trim() === normalizedArabic)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 export function buildUnitJumpQuestions(
   targetUnitIndex: number,
   units: Unit[] = UNITS,
@@ -281,13 +331,7 @@ export function buildUnitJumpQuestions(
       }
     }
   }
-  const copy = [...pool];
-  // Fisher-Yates shuffle
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy.slice(0, count);
+  return fisherYatesShuffle(pool).slice(0, count);
 }
 
 export function deterministicShuffle<T>(items: T[], seed: number): T[] {

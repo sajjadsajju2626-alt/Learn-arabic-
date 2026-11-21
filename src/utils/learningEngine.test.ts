@@ -1,20 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ARABIC_ALPHABET, UNITS } from '../data/curriculum';
+import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum';
 import {
   applySessionResult,
   buildUnitJumpQuestions,
   computeStreakUpdate,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
+  fisherYatesShuffle,
   getAllLessonIds,
   getLetterDisplay,
   isLessonUnlocked,
   isUnitUnlocked,
   mergeAndSortLeaderboard,
+  shouldShowArabicPromptCard,
   unlockLessonsUpToUnit,
 } from './learningEngine';
-import type { UserState } from '../types/learning';
+import { buildArabicTtsUrl, resolveArabicPlaybackRate } from './audio';
+import type { LessonQuestion, UserState } from '../types/learning';
 
 const baseUser: UserState = {
   id: 'user_local',
@@ -210,3 +213,87 @@ test('mergeAndSortLeaderboard ranks user dynamically by XP', () => {
   assert.equal(rankedTop[0].isCurrentUser, true);
   assert.equal(rankedTop[0].name, 'അഹമ്മദ്');
 });
+
+test('fisherYatesShuffle preserves elements, does not mutate input, and distributes positions randomly', () => {
+  const original = ['A', 'B', 'C', 'D'];
+  const firstPosCounts = new Set<number>();
+  for (let i = 0; i < 60; i++) {
+    const shuffled = fisherYatesShuffle(original);
+    assert.deepEqual([...shuffled].sort(), [...original].sort());
+    assert.deepEqual(original, ['A', 'B', 'C', 'D']);
+    firstPosCounts.add(shuffled.indexOf('A'));
+  }
+  assert.ok(
+    firstPosCounts.size >= 3,
+    `Expected answer to appear in at least 3 distinct positions across 60 trials, saw ${firstPosCounts.size}`
+  );
+});
+
+test('no Malayalam-to-Arabic question across all 30 lessons or Placement Test leaks the Arabic answer in the prompt card', () => {
+  const allQuestions: { label: string; q: LessonQuestion }[] = [
+    ...UNITS.flatMap((u) =>
+      u.lessons.flatMap((l) => l.questions.map((q, idx) => ({ label: `${l.id}#${idx + 1}`, q })))
+    ),
+    ...PLACEMENT_QUESTIONS.map((q, idx) => ({ label: `placement#${idx + 1}`, q })),
+  ];
+
+  for (const { label, q } of allQuestions) {
+    if (q.type === 'mcq' && q.isArabicOption) {
+      if (q.arabic) {
+        assert.notEqual(
+          q.arabic.trim(),
+          q.answer.trim(),
+          `${label} leaks target Arabic answer in prompt card`
+        );
+      }
+    }
+    if (q.type === 'wordbank' && q.isArabicWords) {
+      assert.equal(
+        shouldShowArabicPromptCard(q),
+        false,
+        `${label} Malayalam-to-Arabic wordbank must not show Arabic prompt card`
+      );
+    }
+    if (q.type === 'listen') {
+      assert.equal(
+        shouldShowArabicPromptCard(q),
+        true,
+        `${label} listen question must show audio prompt card`
+      );
+    }
+  }
+
+  // Verify the defensive guard blocks a synthetic Malayalam-to-Arabic leaking MCQ
+  const syntheticLeak: LessonQuestion = {
+    type: 'mcq',
+    prompt: "'ഞാൻ വായിക്കുന്നു' എന്നതിന്റെ അറബി വാക്ക്?",
+    arabic: 'أَقْرَأُ',
+    translit: 'അഖ്റഉ',
+    options: ['أَقْرَأُ', 'أَكْتُبُ', 'أَذْهَبُ', 'أَشْرَبُ'],
+    isArabicOption: true,
+    answer: 'أَقْرَأُ',
+  };
+  assert.equal(shouldShowArabicPromptCard(syntheticLeak), false);
+
+  // Verify Unit 9 Lesson 2 Q1 has Arabic options and no leaking Arabic prompt card
+  const u9l2q1 = UNITS[8].lessons[1].questions[0];
+  assert.equal(u9l2q1.type, 'mcq');
+  if (u9l2q1.type === 'mcq') {
+    assert.equal(u9l2q1.isArabicOption, true);
+    assert.equal(u9l2q1.answer, 'أَقْرَأُ');
+    assert.equal(shouldShowArabicPromptCard(u9l2q1), false);
+  }
+});
+
+test('Cloud Arabic TTS URL builder and playback rate resolver handle normal and slow speeds accurately', () => {
+  const url = buildArabicTtsUrl('أَقْرَأُ');
+  assert.equal(
+    url,
+    `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ar&q=${encodeURIComponent('أَقْرَأُ')}`
+  );
+  assert.equal(resolveArabicPlaybackRate(1.0), 1.0);
+  assert.equal(resolveArabicPlaybackRate(0.9), 1.0);
+  assert.equal(resolveArabicPlaybackRate(0.65), 0.65);
+  assert.equal(resolveArabicPlaybackRate(0.5), 0.65);
+});
+

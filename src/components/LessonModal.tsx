@@ -1,13 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Heart, Turtle, Volume2, X } from 'lucide-react';
+import { Check, Heart, Loader2, Turtle, Volume2, X } from 'lucide-react';
 import type { SessionConfig, SessionResult } from '../types/learning';
 import {
-  deterministicShuffle,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
+  fisherYatesShuffle,
   MAX_HEARTS,
+  shouldShowArabicPromptCard,
 } from '../utils/learningEngine';
-import { playTone, speakArabic } from '../utils/audio';
+import {
+  getArabicAudioState,
+  playTone,
+  speakArabic,
+  stopArabicAudio,
+  subscribeArabicAudioState,
+  type ArabicAudioState,
+} from '../utils/audio';
 
 interface LessonModalProps {
   session: SessionConfig;
@@ -43,47 +51,63 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; detail: string } | null>(null);
   const [showOutOfHearts, setShowOutOfHearts] = useState(false);
   const [hintRevealed, setHintRevealed] = useState(false);
+  const [audioState, setAudioState] = useState<ArabicAudioState>(() => getArabicAudioState());
 
   const question = session.questions[currentIndex];
   const progressPct = Math.round((currentIndex / session.questions.length) * 100);
+  const showArabicPromptCard = shouldShowArabicPromptCard(question);
   const shouldGateTranslit =
+    showArabicPromptCard &&
     'arabic' in question &&
     Boolean(question.arabic) &&
     Boolean(question.translit) &&
     question.arabic!.replace(/[\u064B-\u065F\u0670]/g, '').trim().length <= 2;
 
-  // Deterministic per-question shuffling so order doesn't jump during re-renders
+  // Subscribe to Cloud Arabic TTS playback state & stop audio on unmount
+  useEffect(() => {
+    const unsub = subscribeArabicAudioState(setAudioState);
+    return () => {
+      unsub();
+      stopArabicAudio();
+    };
+  }, []);
+
+  // Fisher-Yates shuffle for MCQ & Listen options (fresh per question, stable across re-renders)
+  const shuffledOptions = useMemo(() => {
+    if (question.type !== 'mcq' && question.type !== 'listen') return [];
+    return fisherYatesShuffle(question.options);
+  }, [question, currentIndex]);
+
   const shuffledWordBank = useMemo(() => {
     if (question.type !== 'wordbank') return [];
-    return deterministicShuffle(
-      question.words.map((text, idx) => ({ idx, text })),
-      (currentIndex + 1) * 37 + question.words.length * 13
-    );
+    return fisherYatesShuffle(question.words.map((text, idx) => ({ idx, text })));
   }, [question, currentIndex]);
 
   const shuffledPairs = useMemo(() => {
     if (question.type !== 'pairs') return { left: [], right: [] };
-    const left = deterministicShuffle(
-      question.pairs.map((p, idx) => ({ idx, text: p.ar, tr: p.tr })),
-      (currentIndex + 1) * 53
+    const left = fisherYatesShuffle(
+      question.pairs.map((p, idx) => ({ idx, text: p.ar, tr: p.tr }))
     );
-    const right = deterministicShuffle(
-      question.pairs.map((p, idx) => ({ idx, text: p.ml })),
-      (currentIndex + 1) * 97
+    const right = fisherYatesShuffle(
+      question.pairs.map((p, idx) => ({ idx, text: p.ml }))
     );
     return { left, right };
   }, [question, currentIndex]);
 
-  // Auto-pronounce Arabic prompt when question changes
+  // Auto-pronounce Arabic prompt only when the Arabic prompt card is shown
   useEffect(() => {
-    if ('arabic' in question && question.arabic) {
+    if (showArabicPromptCard && 'arabic' in question && question.arabic) {
       const timer = window.setTimeout(() => {
-        speakArabic(question.arabic!, soundEnabled, 0.9);
+        speakArabic(question.arabic!, soundEnabled, 1.0, 'lesson-normal');
       }, 120);
-      return () => window.clearTimeout(timer);
+      return () => {
+        window.clearTimeout(timer);
+        stopArabicAudio();
+      };
     }
+    stopArabicAudio();
     return undefined;
-  }, [question, soundEnabled]);
+  }, [question, showArabicPromptCard, soundEnabled]);
 
   const deductHeart = () => {
     const next = Math.max(0, hearts - 1);
@@ -116,7 +140,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     if (side === 'left') {
       setSelectedLeft(pairIdx);
       const pairObj = question.pairs[pairIdx];
-      if (pairObj) speakArabic(pairObj.ar, soundEnabled, 0.85);
+      if (pairObj) speakArabic(pairObj.ar, soundEnabled, 1.0, 'lesson-pair');
     } else {
       setSelectedRight(pairIdx);
     }
@@ -220,6 +244,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
             type="button"
             onClick={() => {
               playTone('tap', soundEnabled);
+              stopArabicAudio();
               onClose();
             }}
             aria-label="പാഠം അടയ്ക്കുക"
@@ -269,26 +294,63 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               {question.prompt}
             </h2>
 
-            {'arabic' in question && question.arabic && (
-              <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4">
+            {showArabicPromptCard && 'arabic' in question && question.arabic && (
+              <div
+                data-testid="arabic-prompt-card"
+                className="bg-sky-50/70 border border-sky-200 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4"
+              >
                 <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    aria-label="ഉച്ചാരണം കേൾക്കുക"
-                    onClick={() => speakArabic(question.arabic!, soundEnabled, 0.9)}
-                    className="btn-3d w-12 h-12 rounded-2xl bg-[#0284C7] border-b-4 border-[#0369A1] text-white flex items-center justify-center"
-                  >
-                    <Volume2 className="w-5 h-5" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="പതുക്കെ കേൾക്കുക"
-                    title="പതുക്കെ കേൾക്കുക"
-                    onClick={() => speakArabic(question.arabic!, soundEnabled, 0.55)}
-                    className="btn-3d w-11 h-11 rounded-xl bg-white border-2 border-b-4 border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-50"
-                  >
-                    <Turtle className="w-5 h-5" aria-hidden="true" />
-                  </button>
+                  {(() => {
+                    const normalBusy = audioState.sourceId === 'lesson-normal';
+                    const normalLoading = normalBusy && audioState.status === 'loading';
+                    const normalPlaying = normalBusy && audioState.status === 'playing';
+                    return (
+                      <button
+                        type="button"
+                        aria-label="ഉച്ചാരണം കേൾക്കുക"
+                        data-audio-state={normalBusy ? audioState.status : 'idle'}
+                        onClick={() =>
+                          speakArabic(question.arabic!, soundEnabled, 1.0, 'lesson-normal')
+                        }
+                        className={`btn-3d w-12 h-12 rounded-2xl bg-[#0284C7] border-b-4 border-[#0369A1] text-white flex items-center justify-center transition ${
+                          normalBusy ? 'ring-4 ring-sky-300/70' : ''
+                        } ${normalPlaying ? 'animate-pulse' : ''}`}
+                      >
+                        {normalLoading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Volume2 className="w-5 h-5" aria-hidden="true" />
+                        )}
+                      </button>
+                    );
+                  })()}
+                  {(() => {
+                    const slowBusy = audioState.sourceId === 'lesson-slow';
+                    const slowLoading = slowBusy && audioState.status === 'loading';
+                    const slowPlaying = slowBusy && audioState.status === 'playing';
+                    return (
+                      <button
+                        type="button"
+                        aria-label="പതുക്കെ കേൾക്കുക"
+                        title="പതുക്കെ കേൾക്കുക"
+                        data-audio-state={slowBusy ? audioState.status : 'idle'}
+                        onClick={() =>
+                          speakArabic(question.arabic!, soundEnabled, 0.65, 'lesson-slow')
+                        }
+                        className={`btn-3d w-11 h-11 rounded-xl border-2 border-b-4 flex items-center justify-center transition ${
+                          slowBusy
+                            ? 'bg-sky-50 border-[#0284C7] text-[#0369A1] ring-4 ring-sky-200'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        } ${slowPlaying ? 'animate-pulse' : ''}`}
+                      >
+                        {slowLoading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Turtle className="w-5 h-5" aria-hidden="true" />
+                        )}
+                      </button>
+                    );
+                  })()}
                 </div>
 
                 <div className="text-right flex-1 min-w-0">
@@ -321,11 +383,12 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           <div className="my-auto py-2">
             {(question.type === 'mcq' || question.type === 'listen') && (
               <div
+                data-testid="mcq-options"
                 className={
                   question.isArabicOption ? 'grid grid-cols-2 gap-3.5' : 'space-y-3'
                 }
               >
-                {question.options.map((opt) => {
+                {shuffledOptions.map((opt) => {
                   const isSelected = selectedOption === opt;
                   const optTr = question.optionTranslits?.[opt];
                   return (
@@ -337,7 +400,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       onClick={() => {
                         playTone('tap', soundEnabled);
                         if (question.isArabicOption) {
-                          speakArabic(opt, soundEnabled, 0.85);
+                          speakArabic(opt, soundEnabled, 1.0, 'lesson-option');
                         }
                         setSelectedOption(opt);
                       }}
@@ -434,7 +497,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         onClick={() => {
                           playTone('tap', soundEnabled);
                           if (question.isArabicWords) {
-                            speakArabic(chip.text, soundEnabled, 0.9);
+                            speakArabic(chip.text, soundEnabled, 1.0, 'lesson-word');
                           }
                           setWordBankSelected((prev) => [...prev, chip]);
                         }}

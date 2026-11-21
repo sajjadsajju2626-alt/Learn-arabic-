@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
-import { Turtle, Volume2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Loader2, Turtle, Volume2 } from 'lucide-react';
 import { ARABIC_ALPHABET } from '../data/curriculum';
 import type { ArabicLetter, VowelMode } from '../types/learning';
 import { getLetterDisplay } from '../utils/learningEngine';
-import { playTone, speakArabic } from '../utils/audio';
+import {
+  getArabicAudioState,
+  playTone,
+  speakArabic,
+  stopArabicAudio,
+  subscribeArabicAudioState,
+  type ArabicAudioState,
+} from '../utils/audio';
 
 interface AlphabetTabProps {
   soundEnabled: boolean;
@@ -20,15 +27,26 @@ const VOWEL_TABS: { id: VowelMode; label: string; sample: string; note: string }
 export const AlphabetTab: React.FC<AlphabetTabProps> = ({ soundEnabled }) => {
   const [vowel, setVowel] = useState<VowelMode>('base');
   const [activeLetter, setActiveLetter] = useState<ArabicLetter>(ARABIC_ALPHABET[0]);
+  const [audioState, setAudioState] = useState<ArabicAudioState>(() => getArabicAudioState());
+
+  useEffect(() => {
+    const unsub = subscribeArabicAudioState(setAudioState);
+    return () => {
+      unsub();
+      stopArabicAudio();
+    };
+  }, []);
 
   const activeVowelInfo = VOWEL_TABS.find((t) => t.id === vowel) ?? VOWEL_TABS[0];
   const activeDisplay = getLetterDisplay(activeLetter, vowel);
+  const normalBusy = audioState.sourceId === 'alpha-normal';
+  const slowBusy = audioState.sourceId === 'alpha-slow';
 
   const handleSelectLetter = (letter: ArabicLetter) => {
     setActiveLetter(letter);
     const { arabic } = getLetterDisplay(letter, vowel);
     playTone('tap', soundEnabled);
-    speakArabic(arabic, soundEnabled, 0.8);
+    speakArabic(arabic, soundEnabled, 1.0, 'alpha-normal');
   };
 
   return (
@@ -67,20 +85,36 @@ export const AlphabetTab: React.FC<AlphabetTabProps> = ({ soundEnabled }) => {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => speakArabic(activeDisplay.arabic, soundEnabled, 0.85)}
-            className="btn-3d inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0284C7] border-b-4 border-[#0369A1] text-white font-bold text-sm whitespace-nowrap"
+            data-audio-state={normalBusy ? audioState.status : 'idle'}
+            onClick={() => speakArabic(activeDisplay.arabic, soundEnabled, 1.0, 'alpha-normal')}
+            className={`btn-3d inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0284C7] border-b-4 border-[#0369A1] text-white font-bold text-sm whitespace-nowrap transition ${
+              normalBusy ? 'ring-4 ring-sky-300/70' : ''
+            } ${normalBusy && audioState.status === 'playing' ? 'animate-pulse' : ''}`}
           >
-            <Volume2 className="w-4 h-4" aria-hidden="true" />
+            {normalBusy && audioState.status === 'loading' ? (
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Volume2 className="w-4 h-4" aria-hidden="true" />
+            )}
             <span>കേൾക്കുക</span>
           </button>
           <button
             type="button"
-            onClick={() => speakArabic(activeDisplay.arabic, soundEnabled, 0.5)}
+            data-audio-state={slowBusy ? audioState.status : 'idle'}
+            onClick={() => speakArabic(activeDisplay.arabic, soundEnabled, 0.65, 'alpha-slow')}
             aria-label="പതുക്കെ കേൾക്കുക"
             title="പതുക്കെ കേൾക്കുക"
-            className="btn-3d inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white border-2 border-b-4 border-slate-200 text-slate-700 hover:bg-slate-50"
+            className={`btn-3d inline-flex items-center justify-center w-11 h-11 rounded-xl border-2 border-b-4 transition ${
+              slowBusy
+                ? 'bg-sky-50 border-[#0284C7] text-[#0369A1] ring-4 ring-sky-200'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            } ${slowBusy && audioState.status === 'playing' ? 'animate-pulse' : ''}`}
           >
-            <Turtle className="w-5 h-5" aria-hidden="true" />
+            {slowBusy && audioState.status === 'loading' ? (
+              <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Turtle className="w-5 h-5" aria-hidden="true" />
+            )}
           </button>
         </div>
       </div>
