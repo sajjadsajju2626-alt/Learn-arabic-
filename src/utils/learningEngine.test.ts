@@ -16,12 +16,15 @@ import {
   buildUnitJumpQuestions,
   claimTreasureChest,
   collectStoryArabicTexts,
+  computeJumpButtonDirection,
   computeStreakUpdate,
+  computeVisibleUnitIndex,
   enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
   evaluateStoryCheckAnswer,
   fisherYatesShuffle,
+  getActiveNodeTargetId,
   getAllLessonIds,
   getLetterDisplay,
   getQuestionFingerprint,
@@ -1607,6 +1610,71 @@ test('Dictation ("Type What You Hear") Harakat-insensitive normalization, quick-
   assert.equal(legQs.length, LEGENDARY_QUESTION_COUNT);
   assert.ok(legQs.some((q) => q.type === 'dictation'), 'Legendary mode should include dictation questions');
 });
+
+test('Auto-scroll progress helpers accurately resolve active lesson node, sticky unit banner index, and floating jump direction', () => {
+  const allIds = getAllLessonIds();
+  assert.equal(allIds.length, 280);
+
+  // 1. Fresh learner starts on u1_n1
+  assert.equal(getActiveNodeTargetId([], UNITS), 'u1_n1');
+
+  // 2. Completing Units 1-11 lands directly on Unit 12 Node 1 (u12_n1)
+  const completed11Units = unlockLessonsUpToUnit([], 11);
+  assert.equal(completed11Units.length, 88);
+  assert.equal(getActiveNodeTargetId(completed11Units, UNITS), 'u12_n1');
+
+  // 3. Completing partial nodes in Unit 12 advances to the exact next incomplete node
+  assert.equal(
+    getActiveNodeTargetId([...completed11Units, 'u12_n1', 'u12_n2'], UNITS),
+    'u12_n3'
+  );
+
+  // 4. Completing all 280 nodes falls back safely to the final capstone trophy node u35_n8
+  assert.equal(getActiveNodeTargetId(allIds, UNITS), 'u35_n8');
+
+  // 5. Sticky Unit Banner index tracks whichever unit intersects the top anchor line (anchorY = 140)
+  const sampleRects = [
+    { unitIndex: 0, top: -900, bottom: -120 },
+    { unitIndex: 1, top: -100, bottom: 720 },
+    { unitIndex: 2, top: 760, bottom: 1580 },
+  ];
+  assert.equal(computeVisibleUnitIndex(sampleRects, 140), 1);
+  // Scrolled near top -> Unit 0
+  assert.equal(
+    computeVisibleUnitIndex(
+      [
+        { unitIndex: 0, top: 180, bottom: 980 },
+        { unitIndex: 1, top: 1020, bottom: 1820 },
+      ],
+      140
+    ),
+    0
+  );
+  // Scrolled deep down into Unit 24 -> Unit 24
+  assert.equal(
+    computeVisibleUnitIndex(
+      [
+        { unitIndex: 23, top: -820, bottom: 40 },
+        { unitIndex: 24, top: 80, bottom: 920 },
+        { unitIndex: 25, top: 960, bottom: 1800 },
+      ],
+      140
+    ),
+    24
+  );
+
+  // 6. Floating "Jump to Current Lesson" button direction ('up' | 'down' | null)
+  // Active node centered in viewport (900px tall) -> hidden (null)
+  assert.equal(computeJumpButtonDirection({ top: 380, bottom: 520 }, 900, 120, 92), null);
+  // User scrolled far down (active node is above top offset) -> 'up'
+  assert.equal(computeJumpButtonDirection({ top: -400, bottom: -260 }, 900, 120, 92), 'up');
+  // User scrolled far up (active node is below bottom offset) -> 'down'
+  assert.equal(computeJumpButtonDirection({ top: 1200, bottom: 1340 }, 900, 120, 92), 'down');
+  // Partially intersecting safe zone remains hidden so it never flickers while centered
+  assert.equal(computeJumpButtonDirection({ top: 100, bottom: 240 }, 900, 120, 92), null);
+  assert.equal(computeJumpButtonDirection({ top: 740, bottom: 860 }, 900, 120, 92), null);
+});
+
 
 
 

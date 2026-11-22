@@ -186,8 +186,35 @@
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-10 grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         <main class="xl:col-span-8 min-w-0">
           <!-- TAB 1: LEARNING PATH -->
-          <section id="tab-path" class="space-y-8">
+          <section id="tab-path" class="space-y-6 relative">
+            <!-- Synchronized Sticky Unit Banner -->
+            <div id="sticky-unit-banner" data-testid="sticky-unit-banner" data-unit-index="0" class="sticky top-14 lg:top-3 z-20 bg-[#58CC02] border-[#46A302] text-white rounded-2xl p-3.5 sm:p-5 shadow-md border-b-4 transition-colors duration-200">
+              <div class="flex items-center justify-between gap-2.5 sm:gap-3">
+                <div class="min-w-0 flex-1">
+                  <div id="sticky-unit-kicker" class="text-[11px] sm:text-xs font-bold text-white/90 font-latin">യൂണിറ്റ് 1 · 0/8 പൂർത്തിയായി</div>
+                  <h3 id="sticky-unit-title" class="font-extrabold text-base sm:text-xl leading-snug mt-0.5 truncate">അക്ഷരങ്ങളും അടിസ്ഥാന വാക്കുകളും</h3>
+                  <p id="sticky-unit-subtitle" class="hidden sm:block text-xs sm:text-sm text-white/90 mt-0.5 truncate">അറബി അക്ഷരങ്ങളും നിത്യോപയോഗ വാക്കുകളും</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button id="sticky-jump-unit-btn" type="button" class="hidden btn-3d inline-flex items-center gap-1 bg-white text-slate-900 font-extrabold text-xs sm:text-sm px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl shadow border-b-4 border-slate-200 whitespace-nowrap">🚀 Jump Here?</button>
+                  <button id="sticky-guidebook-btn" type="button" aria-label="യൂണിറ്റ് 1 ഗൈഡ്‌ബുക്ക്" title="യൂണിറ്റ് ഗൈഡ്‌ബുക്ക്" class="btn-3d inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs sm:text-sm px-3 py-2 sm:py-2.5 rounded-xl border-2 border-b-4 border-white/30 whitespace-nowrap">
+                    <span class="text-base leading-none" aria-hidden="true">📘</span><span class="hidden sm:inline">ഗൈഡ്</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div id="units-container" class="space-y-10"></div>
+
+            <!-- Floating "Jump to Current Lesson" Pill Button -->
+            <div id="jump-to-current-wrap" aria-hidden="true" class="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 lg:left-[calc(50%+144px)] xl:left-[calc(50%-48px)] z-30 transition-[opacity,transform] duration-200 opacity-0 translate-y-3 pointer-events-none">
+              <button id="jump-to-current-btn" type="button" data-testid="jump-to-current-btn" data-direction="" tabindex="-1" aria-label="ഇപ്പോഴത്തെ പാഠത്തിലേക്ക് പോകുക" class="btn-3d h-11 px-4 rounded-full bg-slate-900/95 hover:bg-slate-800 text-white border border-slate-700 border-b-4 border-b-slate-950 shadow-xl flex items-center gap-2 font-extrabold text-xs sm:text-sm whitespace-nowrap">
+                <span id="jump-to-current-arrow" class="w-6 h-6 rounded-full bg-[#58CC02] text-white flex items-center justify-center text-xs font-extrabold shrink-0" aria-hidden="true">⬇️</span>
+                <span>🎯 ഇപ്പോഴത്തെ പാഠം</span>
+                <span class="text-slate-400" aria-hidden="true">·</span>
+                <span class="text-[#86EFAC]">തുടരുക</span>
+              </button>
+            </div>
           </section>
 
           <!-- TAB 2: ALPHABET & HARAKAT -->
@@ -4181,6 +4208,49 @@
       }
     }
 
+    async function syncCloudProgressFromFirestore(uid) {
+      if (!db || !fbApi || !uid) return false;
+      try {
+        const snap = await fbApi.getDoc(fbApi.doc(db, "users", uid));
+        if (!snap.exists()) return false;
+        const cloud = snap.data() || {};
+        const prevActiveId = getActiveNodeTargetId();
+        const cloudCompleted = migrateLegacyCompletedIds(cloud.completedLessons);
+        const mergedCompleted = Array.from(new Set([...(userState.completedLessons || []), ...cloudCompleted]));
+        const cloudLegendary = Array.isArray(cloud.legendaryLessons) ? cloud.legendaryLessons : [];
+        const mergedLegendary = Array.from(new Set([...(userState.legendaryLessons || []), ...cloudLegendary]));
+        const prevCount = (userState.completedLessons || []).length;
+        const prevLegCount = (userState.legendaryLessons || []).length;
+        const nextXp = Math.max(Number(userState.xp) || 0, Number(cloud.xp) || 0);
+        const nextStreak = Math.max(Number(userState.streak) || 1, Number(cloud.streak) || 1);
+        const changed =
+          mergedCompleted.length > prevCount ||
+          mergedLegendary.length > prevLegCount ||
+          nextXp !== userState.xp ||
+          nextStreak !== userState.streak;
+
+        if (changed) {
+          userState.completedLessons = mergedCompleted;
+          userState.legendaryLessons = mergedLegendary;
+          userState.xp = nextXp;
+          userState.streak = nextStreak;
+          if (!userState.name && cloud.name) userState.name = cloud.name;
+          if (cloud.avatar && !userState.avatar) userState.avatar = cloud.avatar;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(userState));
+          renderLearningPath();
+          updateStatsUI();
+          const nextActiveId = getActiveNodeTargetId();
+          if (nextActiveId !== prevActiveId && !document.getElementById("tab-path").classList.contains("hidden")) {
+            scheduleScrollToActiveLesson("smooth");
+          }
+          return true;
+        }
+      } catch (err) {
+        console.warn("Firestore read skipped:", err);
+      }
+      return false;
+    }
+
     async function ensureFirebaseAuth() {
       const ready = await initFirebase();
       if (!ready || !auth || !fbApi) return null;
@@ -4191,11 +4261,18 @@
         const unsub = fbApi.onAuthStateChanged(auth, async user => {
           unsub();
           clearTimeout(timer);
-          if (user) { userState.uid = user.uid; saveState(); finish(user); }
-          else {
+          if (user) {
+            userState.uid = user.uid;
+            await syncCloudProgressFromFirestore(user.uid);
+            saveState();
+            finish(user);
+          } else {
             try {
               const cred = await fbApi.signInAnonymously(auth);
-              userState.uid = cred.user.uid; saveState(); finish(cred.user);
+              userState.uid = cred.user.uid;
+              await syncCloudProgressFromFirestore(cred.user.uid);
+              saveState();
+              finish(cred.user);
             } catch (e) { finish(null); }
           }
         });
@@ -4223,6 +4300,7 @@
       saveState();
       renderLearningPath();
       if (takePlacement) startPlacementTest();
+      else scheduleScrollToActiveLesson("smooth");
       ensureFirebaseAuth();
     }
     document.getElementById("start-basics-btn").addEventListener("click", () => completeOnboarding(false));
@@ -4302,10 +4380,180 @@
       u6: "#FF4B4B", u7: "#5C6BC0", u8: "#10B981", u9: "#F59E0B", u10: "#8B5CF6"
     };
 
+    // ================= AUTO-SCROLL, STICKY UNIT BANNER & FLOATING JUMP BUTTON =================
+    let visibleStickyUnitIndex = 0;
+
+    function getActiveNodeTargetId() {
+      const allIds = getAllLessonIds();
+      if (allIds.length === 0) return null;
+      const doneSet = new Set(userState.completedLessons || []);
+      const firstIncomplete = allIds.find(id => !doneSet.has(id));
+      return firstIncomplete || allIds[allIds.length - 1];
+    }
+
+    function computeVisibleUnitIndex(unitRects, anchorY = 140) {
+      if (!unitRects || unitRects.length === 0) return 0;
+      let activeIdx = unitRects[0].unitIndex;
+      for (const rect of unitRects) {
+        if (rect.top <= anchorY) {
+          activeIdx = rect.unitIndex;
+        } else {
+          break;
+        }
+      }
+      return activeIdx;
+    }
+
+    function computeJumpButtonDirection(activeRect, viewportHeight, topOffset = 120, bottomOffset = 92) {
+      if (!activeRect || viewportHeight <= 0) return null;
+      if (activeRect.bottom < topOffset) return "up";
+      if (activeRect.top > viewportHeight - bottomOffset) return "down";
+      return null;
+    }
+
+    function updateStickyUnitBanner(uIdx) {
+      const unit = UNITS[uIdx] || UNITS[0];
+      if (!unit) return;
+      visibleStickyUnitIndex = uIdx;
+      const banner = document.getElementById("sticky-unit-banner");
+      if (!banner) return;
+
+      const allIds = getAllLessonIds();
+      const firstId = unit.lessons[0].id;
+      const firstIdx = allIds.indexOf(firstId);
+      const isUnitUnlocked = firstIdx === 0 || userState.completedLessons.includes(allIds[firstIdx - 1]) || userState.completedLessons.includes(firstId);
+      const doneInUnit = unit.lessons.filter(l => userState.completedLessons.includes(l.id)).length;
+
+      banner.dataset.unitIndex = String(uIdx);
+      banner.className = `sticky top-14 lg:top-3 z-20 ${unit.color} ${unit.borderColor} text-white rounded-2xl p-3.5 sm:p-5 shadow-md border-b-4 transition-colors duration-200`;
+      document.getElementById("sticky-unit-kicker").textContent = `യൂണിറ്റ് ${unit.number} · ${doneInUnit}/${unit.lessons.length} പൂർത്തിയായി`;
+      document.getElementById("sticky-unit-title").textContent = unit.title;
+      document.getElementById("sticky-unit-subtitle").textContent = unit.subtitle;
+
+      const jumpBtn = document.getElementById("sticky-jump-unit-btn");
+      if (jumpBtn) {
+        jumpBtn.dataset.jumpUnit = String(uIdx);
+        jumpBtn.classList.toggle("hidden", isUnitUnlocked);
+      }
+      const guideBtn = document.getElementById("sticky-guidebook-btn");
+      if (guideBtn) {
+        guideBtn.dataset.guidebookUnit = String(uIdx);
+        guideBtn.setAttribute("aria-label", `യൂണിറ്റ് ${unit.number} ഗൈഡ്‌ബുക്ക്`);
+      }
+    }
+
+    function updateFloatingJumpButton(direction) {
+      const wrap = document.getElementById("jump-to-current-wrap");
+      const btn = document.getElementById("jump-to-current-btn");
+      const arrow = document.getElementById("jump-to-current-arrow");
+      if (!wrap || !btn || !arrow) return;
+
+      const pathHidden = document.getElementById("tab-path").classList.contains("hidden");
+      const effectiveDir = pathHidden ? null : direction;
+
+      if (effectiveDir) {
+        wrap.setAttribute("aria-hidden", "false");
+        wrap.classList.remove("opacity-0", "translate-y-3", "pointer-events-none");
+        wrap.classList.add("opacity-100", "translate-y-0", "pointer-events-auto");
+        btn.tabIndex = 0;
+        btn.dataset.direction = effectiveDir;
+        arrow.textContent = effectiveDir === "up" ? "⬆️" : "⬇️";
+      } else {
+        wrap.setAttribute("aria-hidden", "true");
+        wrap.classList.add("opacity-0", "translate-y-3", "pointer-events-none");
+        wrap.classList.remove("opacity-100", "translate-y-0", "pointer-events-auto");
+        btn.tabIndex = -1;
+        btn.dataset.direction = "";
+      }
+    }
+
+    function syncPathScrollUI() {
+      const pathTab = document.getElementById("tab-path");
+      if (!pathTab || pathTab.classList.contains("hidden")) {
+        updateFloatingJumpButton(null);
+        return;
+      }
+
+      const isDesktop = window.innerWidth >= 1024;
+      const anchorY = isDesktop ? 136 : 168;
+      const sections = Array.from(document.querySelectorAll("#units-container > section[data-unit-index]"));
+      if (sections.length > 0) {
+        const rects = sections.map(sec => {
+          const r = sec.getBoundingClientRect();
+          return { unitIndex: parseInt(sec.dataset.unitIndex, 10) || 0, top: r.top, bottom: r.bottom };
+        });
+        const nextIdx = computeVisibleUnitIndex(rects, anchorY);
+        updateStickyUnitBanner(nextIdx);
+      }
+
+      const activeNodeEl = document.querySelector('#units-container [data-active-node="true"]');
+      if (activeNodeEl) {
+        const ar = activeNodeEl.getBoundingClientRect();
+        const topOffset = isDesktop ? 104 : 132;
+        const bottomOffset = isDesktop ? 44 : 96;
+        const dir = computeJumpButtonDirection({ top: ar.top, bottom: ar.bottom }, window.innerHeight, topOffset, bottomOffset);
+        updateFloatingJumpButton(dir);
+      } else {
+        updateFloatingJumpButton(null);
+      }
+    }
+
+    function scrollToActiveLessonNode(behavior = "smooth") {
+      const pathTab = document.getElementById("tab-path");
+      if (!pathTab || pathTab.classList.contains("hidden")) return;
+      const target = document.querySelector('#units-container [data-active-node="true"]');
+      if (!target) return;
+      const prefersReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      target.scrollIntoView({
+        behavior: prefersReduced ? "auto" : behavior,
+        block: "center",
+        inline: "nearest"
+      });
+    }
+
+    let _pendingAutoScrollRaf1 = 0;
+    let _pendingAutoScrollRaf2 = 0;
+    function scheduleScrollToActiveLesson(behavior = "smooth") {
+      cancelAnimationFrame(_pendingAutoScrollRaf1);
+      cancelAnimationFrame(_pendingAutoScrollRaf2);
+      _pendingAutoScrollRaf1 = requestAnimationFrame(() => {
+        _pendingAutoScrollRaf2 = requestAnimationFrame(() => {
+          scrollToActiveLessonNode(behavior);
+          syncPathScrollUI();
+        });
+      });
+    }
+
+    document.getElementById("sticky-jump-unit-btn").addEventListener("click", () => {
+      playTone("tap");
+      startUnitJumpTest(visibleStickyUnitIndex);
+    });
+    document.getElementById("sticky-guidebook-btn").addEventListener("click", () => {
+      playTone("tap");
+      openGuidebookModal(visibleStickyUnitIndex);
+    });
+    document.getElementById("jump-to-current-btn").addEventListener("click", () => {
+      playTone("tap");
+      scrollToActiveLessonNode("smooth");
+    });
+
+    let _pathScrollTicking = false;
+    function handlePathScrollOrResize() {
+      if (_pathScrollTicking) return;
+      _pathScrollTicking = true;
+      requestAnimationFrame(() => {
+        syncPathScrollUI();
+        _pathScrollTicking = false;
+      });
+    }
+    window.addEventListener("scroll", handlePathScrollOrResize, { passive: true });
+    window.addEventListener("resize", handlePathScrollOrResize, { passive: true });
+
     function renderLearningPath() {
       const container = document.getElementById("units-container");
       container.innerHTML = "";
       const allIds = getAllLessonIds();
+      const activeNodeId = getActiveNodeTargetId();
 
       UNITS.forEach((unit, uIdx) => {
         const firstId = unit.lessons[0].id;
@@ -4315,28 +4563,29 @@
         const accentHex = UNIT_HEX_MAP[unit.id] || "#58CC02";
 
         const sec = document.createElement("section");
-        sec.className = "space-y-4";
+        sec.className = "space-y-4 scroll-mt-32";
+        sec.dataset.unitIndex = String(uIdx);
         sec.setAttribute("aria-label", unit.title);
 
-        // Unit Header Banner with Guidebook Button (📘) on the right
-        const header = document.createElement("div");
-        header.className = `${unit.color} text-white rounded-2xl p-4 sm:p-5 shadow-sm border-b-4 ${unit.borderColor}`;
-        header.innerHTML = `
-          <div class="flex items-start sm:items-center justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="text-xs font-bold text-white/90 font-latin">യൂണിറ്റ് ${unit.number} · ${doneInUnit}/${unit.lessons.length} പൂർത്തിയായി</div>
-              <h3 class="font-extrabold text-lg sm:text-xl leading-snug mt-0.5">${unit.title}</h3>
-              <p class="text-xs sm:text-sm text-white/90 mt-0.5">${unit.subtitle}</p>
+        // Clean Unit Chapter Divider for Units 2..35 (Unit 1 sits directly under the Sticky Unit Banner)
+        if (uIdx > 0) {
+          const divider = document.createElement("div");
+          divider.className = "pt-2 pb-1";
+          divider.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="h-px flex-1 bg-slate-200"></div>
+              <div class="text-center px-2">
+                <div class="text-[11px] font-extrabold text-slate-500 font-latin">യൂണിറ്റ് ${unit.number} · ${doneInUnit}/${unit.lessons.length}</div>
+                <h3 class="text-sm sm:text-base font-extrabold text-slate-800 leading-snug">${unit.title}</h3>
+              </div>
+              <div class="h-px flex-1 bg-slate-200"></div>
             </div>
-            <div class="flex items-center gap-2 shrink-0">
-              ${!isUnitUnlocked ? `<button data-jump-unit="${uIdx}" type="button" class="jump-unit-btn hidden sm:inline-flex items-center gap-1 btn-3d bg-white text-slate-900 font-extrabold text-xs sm:text-sm px-3.5 py-2.5 rounded-xl shadow border-b-4 border-slate-200 whitespace-nowrap">🚀 Jump Here?</button>` : ""}
-              <button data-guidebook-unit="${uIdx}" type="button" aria-label="യൂണിറ്റ് ${unit.number} ഗൈഡ്‌ബുക്ക്" title="യൂണിറ്റ് ഗൈഡ്‌ബുക്ക്" class="guidebook-btn btn-3d inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs sm:text-sm px-3 py-2.5 rounded-xl border-2 border-b-4 border-white/30 whitespace-nowrap">
-                <span class="text-base leading-none" aria-hidden="true">📘</span><span class="hidden sm:inline">ഗൈഡ്</span>
-              </button>
-            </div>
-          </div>
-          ${!isUnitUnlocked ? `<div class="mt-3 sm:hidden"><button data-jump-unit="${uIdx}" type="button" class="jump-unit-btn btn-3d inline-flex items-center gap-1.5 bg-white text-slate-900 font-extrabold text-xs px-3.5 py-2 rounded-xl shadow border-b-4 border-slate-200 whitespace-nowrap">🚀 Jump Here?</button></div>` : ""}`;
-        sec.appendChild(header);
+            <div class="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+              ${!isUnitUnlocked ? `<button data-jump-unit="${uIdx}" type="button" class="jump-unit-btn btn-3d inline-flex items-center gap-1 bg-white text-slate-800 font-extrabold text-xs px-3 py-1.5 rounded-xl border border-slate-200 border-b-4 shadow-xs whitespace-nowrap">🚀 Jump Here?</button>` : ""}
+              <button data-guidebook-unit="${uIdx}" type="button" aria-label="യൂണിറ്റ് ${unit.number} ഗൈഡ്‌ബുക്ക്" class="guidebook-btn inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-1.5 rounded-xl whitespace-nowrap">📘 ഗൈഡ്</button>
+            </div>`;
+          sec.appendChild(divider);
+        }
 
         // 8-Node Winding S-Curve Path Stage with Decorative Mascots
         const pathStage = document.createElement("div");
@@ -4396,6 +4645,7 @@
           wrap.className = `relative flex flex-col items-center path-node-${nIdx} ${isPopoverOpen ? "z-30" : ""}`;
           wrap.dataset.nodeId = lesson.id;
           wrap.dataset.nodeType = lesson.nodeType || "lesson";
+          if (lesson.id === activeNodeId) wrap.dataset.activeNode = "true";
           if (isLegendary) wrap.dataset.legendary = "true";
 
           if (isCurrent) {
@@ -4549,6 +4799,8 @@
       document.querySelectorAll(".guidebook-btn").forEach(btn => {
         btn.addEventListener("click", () => { playTone("tap"); openGuidebookModal(parseInt(btn.dataset.guidebookUnit, 10)); });
       });
+
+      syncPathScrollUI();
     }
 
     // ================= UNIT GUIDEBOOK & TREASURE CHEST HANDLERS =================
@@ -4621,6 +4873,7 @@
 
     function closeChestModal() {
       document.getElementById("chest-modal").classList.add("hidden");
+      scheduleScrollToActiveLesson("smooth");
     }
     document.getElementById("chest-done-btn").addEventListener("click", () => { playTone("tap"); closeChestModal(); });
     document.getElementById("chest-modal").addEventListener("click", (e) => {
@@ -6469,7 +6722,13 @@
       launchConfetti();
     }
 
-    document.getElementById("complete-done-btn").addEventListener("click", () => { playTone("tap"); document.getElementById("complete-modal").classList.add("hidden"); });
+    document.getElementById("complete-done-btn").addEventListener("click", () => {
+      playTone("tap");
+      document.getElementById("complete-modal").classList.add("hidden");
+      if (!document.getElementById("tab-path").classList.contains("hidden")) {
+        scheduleScrollToActiveLesson("smooth");
+      }
+    });
     document.getElementById("modal-refill-btn").addEventListener("click", () => {
       document.getElementById("out-of-hearts-modal").classList.add("hidden");
       if (activeSession.variant === "legendary" && activeSession.lessonRef) {
@@ -6499,6 +6758,8 @@
           ? "side-nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-extrabold text-sm bg-green-50 text-[#357A00] border border-green-200"
           : "side-nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-extrabold text-sm text-slate-600 hover:bg-slate-100 border border-transparent";
       });
+      if (tabName === "path") scheduleScrollToActiveLesson("smooth");
+      else syncPathScrollUI();
       if (tabName === "alphabet") preloadAlphabetAudio();
       if (tabName === "leaderboard") loadLeaderboard();
       if (tabName === "profile") updateStatsUI();
@@ -6613,7 +6874,11 @@
       renderLearningPath();
       updateStatsUI();
       if (!hasProfile) document.getElementById("onboarding-screen").classList.remove("hidden");
-      else { await ensureFirebaseAuth(); saveState(); }
+      else {
+        scheduleScrollToActiveLesson("smooth");
+        await ensureFirebaseAuth();
+        saveState();
+      }
     }
     initApp();
   </script>

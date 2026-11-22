@@ -1291,3 +1291,65 @@ export function mergeAndSortLeaderboard(
 
   return merged;
 }
+
+/**
+ * Returns the lesson ID that auto-scroll and the floating "Jump to Current Lesson"
+ * button should target: the first incomplete lesson node, or the final capstone node
+ * once all 280 nodes have been completed.
+ */
+export function getActiveNodeTargetId(
+  completedLessons: string[],
+  units: Unit[] = UNITS
+): string | null {
+  const next = getNextActiveLesson(completedLessons, units);
+  if (next) return next.lesson.id;
+  const lastUnit = units[units.length - 1];
+  const lastLesson = lastUnit?.lessons[lastUnit.lessons.length - 1];
+  return lastLesson ? lastLesson.id : null;
+}
+
+export interface UnitScrollRect {
+  unitIndex: number;
+  top: number;
+  bottom: number;
+}
+
+/**
+ * Determines which unit index should be displayed in the sticky Unit Banner
+ * given each unit section's viewport-relative vertical bounds and a sticky anchor line.
+ */
+export function computeVisibleUnitIndex(
+  unitRects: UnitScrollRect[],
+  anchorY = 140
+): number {
+  if (!unitRects || unitRects.length === 0) return 0;
+
+  let activeIdx = unitRects[0].unitIndex;
+  for (const rect of unitRects) {
+    if (rect.top <= anchorY) {
+      activeIdx = rect.unitIndex;
+    } else {
+      break;
+    }
+  }
+  return activeIdx;
+}
+
+export type JumpButtonDirection = 'up' | 'down' | null;
+
+/**
+ * Computes whether the floating "Jump to Current Lesson" button should be shown
+ * and which direction ('up' or 'down') the active node lies relative to the viewport.
+ */
+export function computeJumpButtonDirection(
+  activeRect: { top: number; bottom: number } | null,
+  viewportHeight: number,
+  topOffset = 120,
+  bottomOffset = 92
+): JumpButtonDirection {
+  if (!activeRect || viewportHeight <= 0) return null;
+  if (activeRect.bottom < topOffset) return 'up';
+  if (activeRect.top > viewportHeight - bottomOffset) return 'down';
+  return null;
+}
+

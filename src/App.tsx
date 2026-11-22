@@ -80,10 +80,18 @@ function createInitialUserState(): UserState {
 export default function App() {
   const [user, setUser] = useState<UserState>(createInitialUserState);
   const [activeTab, setActiveTab] = useState<AppTab>('path');
+  const [pathFocusTrigger, setPathFocusTrigger] = useState(0);
   const [activeSession, setActiveSession] = useState<SessionConfig | null>(null);
   const [activeStoryLesson, setActiveStoryLesson] = useState<Lesson | null>(null);
   const [completeResult, setCompleteResult] = useState<SessionResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const handleSelectTab = (tab: AppTab) => {
+    setActiveTab(tab);
+    if (tab === 'path') {
+      setPathFocusTrigger((n) => n + 1);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -213,6 +221,7 @@ export default function App() {
     setActiveSession(null);
     setActiveStoryLesson(null);
     setCompleteResult(result);
+    setPathFocusTrigger((n) => n + 1);
   };
 
   const handleRefillHearts = () => {
@@ -229,6 +238,7 @@ export default function App() {
       hearts: MAX_HEARTS,
     }));
     setActiveTab('path');
+    setPathFocusTrigger((n) => n + 1);
     showToast('പഠന പുരോഗതി റീസെറ്റ് ചെയ്തിരിക്കുന്നു.');
   };
 
@@ -247,7 +257,7 @@ export default function App() {
         activeTab={activeTab}
         user={user}
         leaderboard={leaderboard}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
         onStartLesson={startLesson}
         onStartPlacement={startPlacementTest}
         onRefillHearts={handleRefillHearts}
@@ -257,6 +267,7 @@ export default function App() {
             completedLessons={user.completedLessons}
             legendaryLessons={user.legendaryLessons ?? []}
             soundEnabled={user.soundEnabled}
+            focusTrigger={pathFocusTrigger}
             onStartLesson={startLesson}
             onStartReview={startReview}
             onStartLegendary={startLegendary}
