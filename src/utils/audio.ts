@@ -3,7 +3,7 @@ import type { LessonQuestion } from '../types/learning';
 export type ToneType = 'correct' | 'wrong' | 'complete' | 'tap';
 
 export interface ArabicAudioState {
-  status: 'idle' | 'loading' | 'playing';
+  status: 'idle' | 'loading' | 'playing' | 'paused';
   sourceId: string | null;
 }
 
@@ -71,6 +71,7 @@ let activeCloudAudio: HTMLAudioElement | null = null;
 let activePlayToken = 0;
 let fallbackSafetyTimer: number | null = null;
 let bufferTimeoutTimer: number | null = null;
+let lastSpokenPayload: { text: string; rate: number; sourceId: string | null } | null = null;
 let currentAudioState: ArabicAudioState = { status: 'idle', sourceId: null };
 const audioListeners = new Set<AudioStateListener>();
 
@@ -391,6 +392,9 @@ export function collectQuestionArabicTexts(question: LessonQuestion): string[] {
     question.options.forEach(add);
     add(question.sentence.replace(/_+/, question.answer.trim()).replace(/\s+/g, ' ').trim());
   }
+  if (question.type === 'radio_select3') {
+    question.words.forEach(add);
+  }
 
   return Array.from(texts);
 }
@@ -604,6 +608,96 @@ export function stopArabicAudio(): void {
   setAudioState({ status: 'idle', sourceId: null });
 }
 
+export function pauseArabicAudio(): boolean {
+  if (currentAudioState.status !== 'playing' && currentAudioState.status !== 'loading') {
+    return false;
+  }
+  if (fallbackSafetyTimer !== null && typeof window !== 'undefined') {
+    window.clearTimeout(fallbackSafetyTimer);
+    fallbackSafetyTimer = null;
+  }
+  if (activeCloudAudio && !activeCloudAudio.paused) {
+    try {
+      activeCloudAudio.pause();
+      setAudioState({ status: 'paused', sourceId: currentAudioState.sourceId });
+      return true;
+    } catch {
+      // Fall through to speechSynthesis
+    }
+  }
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause();
+        setAudioState({ status: 'paused', sourceId: currentAudioState.sourceId });
+        return true;
+      }
+    } catch {
+      // Ignore speechSynthesis pause errors
+    }
+  }
+  setAudioState({ status: 'paused', sourceId: currentAudioState.sourceId });
+  return true;
+}
+
+export function resumeArabicAudio(enabled = true): boolean {
+  if (!enabled) return false;
+  if (currentAudioState.status !== 'paused') {
+    if (lastSpokenPayload) {
+      speakArabic(
+        lastSpokenPayload.text,
+        enabled,
+        lastSpokenPayload.rate,
+        lastSpokenPayload.sourceId ?? undefined
+      );
+      return true;
+    }
+    return false;
+  }
+  if (activeCloudAudio && activeCloudAudio.paused) {
+    try {
+      const p = activeCloudAudio.play();
+      setAudioState({ status: 'playing', sourceId: currentAudioState.sourceId });
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => {
+          if (lastSpokenPayload) {
+            speakArabic(
+              lastSpokenPayload.text,
+              enabled,
+              lastSpokenPayload.rate,
+              lastSpokenPayload.sourceId ?? undefined
+            );
+          }
+        });
+      }
+      return true;
+    } catch {
+      // Fall through to replay
+    }
+  }
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        setAudioState({ status: 'playing', sourceId: currentAudioState.sourceId });
+        return true;
+      }
+    } catch {
+      // Fall through to replay
+    }
+  }
+  if (lastSpokenPayload) {
+    speakArabic(
+      lastSpokenPayload.text,
+      enabled,
+      lastSpokenPayload.rate,
+      lastSpokenPayload.sourceId ?? undefined
+    );
+    return true;
+  }
+  return false;
+}
+
 function speakOfflineFallback(
   text: string,
   rate: number,
@@ -688,6 +782,7 @@ export function speakArabic(
   const token = ++activePlayToken;
   const targetRate = resolveArabicPlaybackRate(rate);
   const resolvedSource = sourceId ?? null;
+  lastSpokenPayload = { text: cleaned, rate: targetRate, sourceId: resolvedSource };
   const ttsText = formatForArabicTTS(cleaned);
   const hasDirectHumanMp3 = Boolean(getArabicLetterAudioUrl(cleaned) || getDuaAudioUrl(cleaned));
 

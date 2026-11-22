@@ -5,6 +5,7 @@ import { UNIT_STORIES } from '../data/unitStories';
 import {
   ALL_QUESTION_TYPES,
   applySessionResult,
+  areRadioSelect3AnswersEqual,
   areWordBankAnswersEqual,
   buildFilledSentence,
   buildLegendarySessionQuestions,
@@ -23,6 +24,7 @@ import {
   getLetterDisplay,
   getQuestionFingerprint,
   isLessonUnlocked,
+  isPodcastQuestion,
   isUnitUnlocked,
   LEGENDARY_HEARTS,
   LEGENDARY_QUESTION_COUNT,
@@ -1371,6 +1373,144 @@ test('hisnmuslim.com Du-a MP3 routing and Hamed/Maged Neural Arabic voice priori
   assert.equal(selectBestArabicVoice([espeakVoice, googleVoice, magedVoice, hamedVoice]), hamedVoice);
   assert.equal(isPremiumNeuralArabicVoice(hamedVoice), true);
 });
+
+test('all 35 units include all 3 Arabic Radio / Podcast formats (radio_tf, radio_select3, radio_mcq) on Node 6 with valid clips, distractors, and Audio-Only First gating', () => {
+  let trueCount = 0;
+  let falseCount = 0;
+
+  for (const unit of UNITS) {
+    const node6 = unit.lessons[5];
+    assert.equal(node6.id, `${unit.id}_n6`);
+    assert.equal(node6.nodeType, 'listening');
+
+    const tfQ = node6.questions.find((q) => q.type === 'radio_tf');
+    const select3Q = node6.questions.find((q) => q.type === 'radio_select3');
+    const mcqQ = node6.questions.find((q) => q.type === 'radio_mcq');
+
+    assert.ok(tfQ && tfQ.type === 'radio_tf', `${node6.id} must include radio_tf`);
+    assert.ok(select3Q && select3Q.type === 'radio_select3', `${node6.id} must include radio_select3`);
+    assert.ok(mcqQ && mcqQ.type === 'radio_mcq', `${node6.id} must include radio_mcq`);
+
+    if (tfQ.answer) trueCount += 1;
+    else falseCount += 1;
+
+    // Audio-Only First + pure vocalized Arabic + non-empty transcript/translation for all 3 formats
+    for (const pq of [tfQ, select3Q, mcqQ]) {
+      assert.equal(isPodcastQuestion(pq), true);
+      assert.equal(
+        shouldShowArabicPromptCard(pq),
+        false,
+        `${node6.id} ${pq.type} must be Audio-Only First (no standard Arabic prompt card)`
+      );
+      assert.ok(/[\u0621-\u064A]/.test(pq.arabic), `${node6.id} ${pq.type} needs Arabic audio text`);
+      assert.equal(
+        /[\u0D00-\u0D7F]/.test(pq.arabic),
+        false,
+        `${node6.id} ${pq.type} spoken Arabic clip must not contain Malayalam characters`
+      );
+      assert.ok(pq.translit.trim().length > 0, `${node6.id} ${pq.type} needs Malayalam translit`);
+      assert.ok(pq.transcriptAr.trim().length > 0, `${node6.id} ${pq.type} needs transcriptAr`);
+      assert.ok(pq.transcriptMl.trim().length > 0, `${node6.id} ${pq.type} needs transcriptMl`);
+      assert.ok(
+        pq.callerAvatar === '🧕' || pq.callerAvatar === '🧔',
+        `${node6.id} ${pq.type} callerAvatar must be 🧕 or 🧔`
+      );
+      const audioClips = collectQuestionArabicTexts(pq);
+      assert.ok(audioClips.includes(pq.arabic.trim()), `${node6.id} ${pq.type} must preload spoken audio`);
+    }
+
+    // radio_tf checks
+    assert.ok(tfQ.statementMl.trim().length > 0);
+    assert.equal(typeof tfQ.answer, 'boolean');
+
+    // radio_select3 checks: 5 unique chips (3 spoken in audio + 2 non-overlapping distractors)
+    assert.equal(select3Q.words.length, 5, `${node6.id} radio_select3 must have 5 word chips`);
+    assert.equal(select3Q.answers.length, 3, `${node6.id} radio_select3 must have 3 spoken answers`);
+    const normalizedWords = select3Q.words.map((w) => normalizeWordBankText(w));
+    assert.equal(new Set(normalizedWords).size, 5, `${node6.id} radio_select3 word chips must be unique`);
+    const clipNorm = normalizeWordBankText(select3Q.arabic);
+    for (const ans of select3Q.answers) {
+      assert.ok(select3Q.words.includes(ans), `${node6.id} radio_select3 answer "${ans}" must be in words`);
+      assert.ok(
+        clipNorm.includes(normalizeWordBankText(ans)),
+        `${node6.id} radio_select3 answer "${ans}" must appear in spoken clip "${select3Q.arabic}"`
+      );
+    }
+    const answerSet = new Set(select3Q.answers.map((a) => normalizeWordBankText(a)));
+    const distractors = select3Q.words.filter((w) => !answerSet.has(normalizeWordBankText(w)));
+    assert.equal(distractors.length, 2, `${node6.id} radio_select3 must have exactly 2 distractors`);
+
+    // radio_mcq checks: 3 unique Malayalam choices containing exact answer
+    assert.equal(mcqQ.options.length, 3, `${node6.id} radio_mcq must have 3 vertically stacked options`);
+    assert.equal(new Set(mcqQ.options).size, 3, `${node6.id} radio_mcq options must be unique`);
+    assert.ok(mcqQ.options.includes(mcqQ.answer), `${node6.id} radio_mcq options must include exact answer`);
+  }
+
+  assert.ok(trueCount >= 15 && falseCount >= 15, `Expected balanced True/False mix across 35 units, got ${trueCount}T/${falseCount}F`);
+});
+
+test('Podcast evaluation, Fisher-Yates shuffling, Mistake Review Queue, and 10-12 session weaving work accurately', () => {
+  const u2n6 = UNITS[1].lessons[5];
+  const tfQ = u2n6.questions.find((q) => q.type === 'radio_tf')!;
+  const select3Q = u2n6.questions.find((q) => q.type === 'radio_select3')!;
+  const mcqQ = u2n6.questions.find((q) => q.type === 'radio_mcq')!;
+  assert.equal(tfQ.type, 'radio_tf');
+  assert.equal(select3Q.type, 'radio_select3');
+  assert.equal(mcqQ.type, 'radio_mcq');
+
+  // 1. Evaluation: radio_tf
+  assert.equal(evaluateQuestionAnswer(tfQ, String(tfQ.answer), []).correct, true);
+  assert.equal(evaluateQuestionAnswer(tfQ, String(!tfQ.answer), []).correct, false);
+
+  // 2. Evaluation: radio_select3 (order-independent, diacritic-tolerant, requires exactly 3)
+  assert.equal(areRadioSelect3AnswersEqual([...select3Q.answers].reverse(), select3Q.answers), true);
+  assert.equal(evaluateQuestionAnswer(select3Q, null, [...select3Q.answers].reverse()).correct, true);
+  assert.equal(evaluateQuestionAnswer(select3Q, null, select3Q.answers.slice(0, 2)).correct, false);
+  const wrongChip = select3Q.words.find((w) => !select3Q.answers.includes(w))!;
+  assert.equal(
+    evaluateQuestionAnswer(select3Q, null, [select3Q.answers[0], select3Q.answers[1], wrongChip]).correct,
+    false
+  );
+
+  // 3. Evaluation: radio_mcq
+  assert.equal(evaluateQuestionAnswer(mcqQ, mcqQ.answer, []).correct, true);
+  const wrongMcqOpt = mcqQ.options.find((o) => o !== mcqQ.answer)!;
+  assert.equal(evaluateQuestionAnswer(mcqQ, wrongMcqOpt, []).correct, false);
+
+  // 4. Shuffling via prepareSessionQuestions preserves all chips/options and exact answers
+  const [prepTf, prepS3, prepMcq] = prepareSessionQuestions([tfQ, select3Q, mcqQ]);
+  assert.equal(prepTf.type, 'radio_tf');
+  assert.equal(prepS3.type, 'radio_select3');
+  assert.equal(prepMcq.type, 'radio_mcq');
+  if (prepS3.type === 'radio_select3') {
+    assert.equal(prepS3.words.length, 5);
+    assert.deepEqual([...prepS3.words].sort(), [...select3Q.words].sort());
+  }
+  if (prepMcq.type === 'radio_mcq') {
+    assert.equal(prepMcq.options.length, 3);
+    assert.ok(prepMcq.options.includes(prepMcq.answer));
+  }
+
+  // 5. Mistake Review Queue re-queues missed podcast questions in lesson mode only
+  const queued = enqueueMistakeForReview([select3Q, mcqQ], select3Q, 'lesson');
+  assert.equal(queued.length, 3);
+  assert.equal(queued[2].isReview, true);
+  assert.equal(queued[2].type, 'radio_select3');
+  assert.equal(enqueueMistakeForReview([select3Q], select3Q, 'placement').length, 1);
+
+  // 6. Node 6 session includes all 3 podcast formats AND regular lessons weave in podcast questions
+  const node6Session = buildLessonSessionQuestions(u2n6, unlockLessonsUpToUnit([], 1), UNITS);
+  assert.equal(node6Session.length, 12);
+  assert.ok(node6Session.some((q) => q.type === 'radio_tf'));
+  assert.ok(node6Session.some((q) => q.type === 'radio_select3'));
+  assert.ok(node6Session.some((q) => q.type === 'radio_mcq'));
+
+  const regularLesson = UNITS[1].lessons[1]; // u2_n2
+  const regularSession = buildLessonSessionQuestions(regularLesson, unlockLessonsUpToUnit([], 1), UNITS);
+  assert.ok(regularSession.length >= 10 && regularSession.length <= 12);
+  assert.ok(regularSession.some(isPodcastQuestion), 'Regular 10-12 question lessons should weave in at least 1 Podcast question');
+});
+
 
 
 

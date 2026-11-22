@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Heart, Loader2, Turtle, Volume2, X } from 'lucide-react';
+import { Check, Heart, Loader2, Lock, Pause, Play, RotateCcw, Turtle, Volume2, X } from 'lucide-react';
 import type { LessonQuestion, SessionConfig, SessionResult } from '../types/learning';
 import {
   buildFilledSentence,
@@ -7,15 +7,19 @@ import {
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
   fisherYatesShuffle,
+  isPodcastQuestion,
   MAX_HEARTS,
   MISTAKE_REVIEW_BANNER_TEXT,
+  normalizeWordBankText,
   shouldShowArabicPromptCard,
 } from '../utils/learningEngine';
 import {
   collectQuestionArabicTexts,
   getArabicAudioState,
+  pauseArabicAudio,
   playTone,
   preloadArabicAudioBatch,
+  resumeArabicAudio,
   speakArabic,
   stopArabicAudio,
   subscribeArabicAudioState,
@@ -57,12 +61,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; detail: string } | null>(null);
   const [showOutOfHearts, setShowOutOfHearts] = useState(false);
   const [hintRevealed, setHintRevealed] = useState(false);
+  const [podcastSelectedWords, setPodcastSelectedWords] = useState<string[]>([]);
+  const [podcastTranscriptOpen, setPodcastTranscriptOpen] = useState(false);
   const [audioState, setAudioState] = useState<ArabicAudioState>(() => getArabicAudioState());
 
   const question = questionQueue[currentIndex];
   const progressPct = Math.round((currentIndex / questionQueue.length) * 100);
   const hideTranslit = Boolean(session.hideTranslit);
   const isLegendary = session.variant === 'legendary';
+  const isPodcast = isPodcastQuestion(question);
   const showArabicPromptCard = shouldShowArabicPromptCard(question);
   const shouldGateTranslit =
     showArabicPromptCard &&
@@ -80,12 +87,13 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     };
   }, []);
 
-  // Fisher-Yates shuffle for MCQ, Listen & Fill-in-the-Blank options (fresh per question, stable across re-renders)
+  // Fisher-Yates shuffle for MCQ, Listen, Fill-in-the-Blank & Radio MCQ options
   const shuffledOptions = useMemo(() => {
     if (
       question.type !== 'mcq' &&
       question.type !== 'listen' &&
-      question.type !== 'fill_blank'
+      question.type !== 'fill_blank' &&
+      question.type !== 'radio_mcq'
     ) {
       return [];
     }
@@ -95,6 +103,11 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const shuffledWordBank = useMemo(() => {
     if (question.type !== 'wordbank') return [];
     return fisherYatesShuffle(question.words.map((text, idx) => ({ idx, text })));
+  }, [question, currentIndex]);
+
+  const shuffledPodcastWords = useMemo(() => {
+    if (question.type !== 'radio_select3') return [];
+    return fisherYatesShuffle(question.words);
   }, [question, currentIndex]);
 
   const shuffledPairs = useMemo(() => {
@@ -108,17 +121,18 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     return { left, right };
   }, [question, currentIndex]);
 
-  // Preload all Arabic audio clips in this question (prompt, options, word bank, pairs)
+  // Preload all Arabic audio clips in this question (prompt, options, word bank, pairs, podcast)
   useEffect(() => {
     preloadArabicAudioBatch(collectQuestionArabicTexts(question));
   }, [question]);
 
-  // Auto-pronounce Arabic prompt only when the Arabic prompt card is shown
+  // Auto-pronounce Arabic prompt for standard Arabic prompt cards AND Podcast exercises
   useEffect(() => {
-    if (showArabicPromptCard && 'arabic' in question && question.arabic) {
+    if ((showArabicPromptCard || isPodcast) && 'arabic' in question && question.arabic) {
+      const sourceKey = isPodcast ? 'podcast-main' : 'lesson-normal';
       const timer = window.setTimeout(() => {
-        speakArabic(question.arabic!, soundEnabled, 1.0, 'lesson-normal');
-      }, 120);
+        speakArabic(question.arabic!, soundEnabled, 1.0, sourceKey);
+      }, 140);
       return () => {
         window.clearTimeout(timer);
         stopArabicAudio();
@@ -126,7 +140,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     }
     stopArabicAudio();
     return undefined;
-  }, [question, showArabicPromptCard, soundEnabled]);
+  }, [question, showArabicPromptCard, isPodcast, soundEnabled]);
 
   const deductHeart = () => {
     const next = Math.max(0, hearts - 1);
@@ -142,6 +156,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const resetQuestionState = () => {
     setSelectedOption(null);
     setWordBankSelected([]);
+    setPodcastSelectedWords([]);
+    setPodcastTranscriptOpen(false);
     setMatchedPairIndices([]);
     setSelectedLeft(null);
     setSelectedRight(null);
@@ -197,19 +213,30 @@ export const LessonModal: React.FC<LessonModalProps> = ({
 
   const canCheck =
     !feedback &&
-    (question.type === 'mcq' || question.type === 'listen' || question.type === 'fill_blank'
+    (question.type === 'mcq' ||
+    question.type === 'listen' ||
+    question.type === 'fill_blank' ||
+    question.type === 'radio_tf' ||
+    question.type === 'radio_mcq'
       ? selectedOption !== null
       : question.type === 'wordbank'
         ? wordBankSelected.length > 0
-        : false);
+        : question.type === 'radio_select3'
+          ? podcastSelectedWords.length === 3
+          : false);
 
   const handleCheck = () => {
     if (!canCheck) return;
     const evaluation = evaluateQuestionAnswer(
       question,
       selectedOption,
-      wordBankSelected.map((w) => w.text)
+      question.type === 'radio_select3'
+        ? podcastSelectedWords
+        : wordBankSelected.map((w) => w.text)
     );
+    if (isPodcast) {
+      setPodcastTranscriptOpen(true);
+    }
     if (evaluation.correct) {
       setScore((s) => s + 1);
       playTone('correct', soundEnabled);
@@ -803,6 +830,401 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                 </div>
               </div>
             )}
+
+            {(question.type === 'radio_tf' ||
+              question.type === 'radio_select3' ||
+              question.type === 'radio_mcq') && (() => {
+              const isPlayingPodcast =
+                audioState.sourceId === 'podcast-main' &&
+                (audioState.status === 'playing' || audioState.status === 'loading');
+              const isPausedPodcast =
+                audioState.sourceId === 'podcast-main' && audioState.status === 'paused';
+              const callerAvatar = question.callerAvatar ?? '🧕';
+              const callerNameMl = question.callerNameMl ?? 'അതിഥി';
+              const waveBars = [12, 20, 30, 18, 34, 24, 32, 16, 28, 34, 20, 26, 14, 22];
+
+              const handlePlayPauseToggle = () => {
+                playTone('tap', soundEnabled);
+                if (isPlayingPodcast) {
+                  pauseArabicAudio();
+                } else if (isPausedPodcast) {
+                  resumeArabicAudio(soundEnabled);
+                } else {
+                  speakArabic(question.arabic, soundEnabled, 1.0, 'podcast-main');
+                }
+              };
+
+              const handleReplay = () => {
+                playTone('tap', soundEnabled);
+                speakArabic(question.arabic, soundEnabled, 1.0, 'podcast-main');
+              };
+
+              return (
+                <div className="space-y-5" data-testid="podcast-studio">
+                  {/* Shared Podcast Studio Header & Playback Bar */}
+                  <div className="rounded-3xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200/80">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            isPlayingPodcast ? 'bg-rose-500 animate-pulse' : 'bg-slate-300'
+                          }`}
+                          aria-hidden="true"
+                        />
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
+                          ARABIC RADIO STUDIO · ഇദാഅത്തുൽ അറബിയ്യ
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold text-[#0369A1]">
+                        {isPlayingPodcast ? 'ഓൺ എയർ' : isPausedPodcast ? 'താൽക്കാലികമായി നിർത്തി' : 'കേൾക്കൂ'}
+                      </span>
+                    </div>
+
+                    {/* Studio Desk + Radio Host + Caller Speech Bubble */}
+                    <div className="flex items-end justify-between gap-3 sm:gap-5 mb-4">
+                      {/* Illustrated Arabic Radio Host at Studio Desk */}
+                      <div className="flex flex-col items-center shrink-0">
+                        <div className="relative flex items-end justify-center px-3 pt-1">
+                          <span className="text-4xl sm:text-5xl leading-none" aria-hidden="true">
+                            👳‍♂️
+                          </span>
+                          <span
+                            className="text-2xl sm:text-3xl -ml-1.5 mb-0.5"
+                            aria-hidden="true"
+                          >
+                            🎙️
+                          </span>
+                        </div>
+                        <div className="w-28 sm:w-32 h-5 rounded-xl bg-slate-800 border-b-4 border-slate-950 flex items-center justify-center shadow-xs">
+                          <span className="text-[9px] font-extrabold tracking-widest text-sky-300 uppercase">
+                            ON AIR
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Caller / Guest Speech Bubble with Animated Sound Dots */}
+                      <div className="flex-1 rounded-2xl rounded-bl-sm bg-sky-50 border-2 border-sky-200 px-3.5 py-3 flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-white border-2 border-sky-200 flex items-center justify-center text-2xl shrink-0">
+                          <span aria-hidden="true">{callerAvatar}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-extrabold text-slate-800 truncate">
+                            {callerNameMl} · കോളർ
+                          </div>
+                          <div
+                            className="mt-1.5 flex items-center gap-1.5"
+                            aria-label={isPlayingPodcast ? 'ഓഡിയോ പ്ലേ ചെയ്യുന്നു' : 'ഓഡിയോ തയ്യാറാണ്'}
+                          >
+                            {[0, 1, 2, 3].map((dotIdx) => (
+                              <span
+                                key={dotIdx}
+                                style={{ animationDelay: `${dotIdx * 130}ms` }}
+                                className={`w-2 h-2 rounded-full transition-colors ${
+                                  isPlayingPodcast
+                                    ? 'bg-[#1899D6] animate-bounce'
+                                    : isPausedPodcast
+                                      ? 'bg-amber-400'
+                                      : 'bg-sky-300'
+                                }`}
+                              />
+                            ))}
+                            <span className="ml-1.5 text-[11px] font-bold text-slate-500">
+                              {feedback ? 'ട്രാൻസ്ക്രിപ്റ്റ് ലഭ്യമാണ്' : 'ശ്രദ്ധിച്ച് കേൾക്കൂ'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Interactive Audio Waveform Playback Bar */}
+                    <div className="rounded-2xl border-2 border-slate-200 bg-white p-2.5 flex items-center gap-2 sm:gap-3">
+                      <button
+                        type="button"
+                        onClick={handlePlayPauseToggle}
+                        aria-label={isPlayingPodcast ? 'താൽക്കാലികമായി നിർത്തുക' : 'പ്ലേ ചെയ്യുക'}
+                        className="btn-3d w-11 h-11 rounded-xl bg-[#1CB0F6] hover:bg-[#1899D6] border-b-4 border-[#1177A8] text-white flex items-center justify-center shrink-0"
+                      >
+                        {audioState.sourceId === 'podcast-main' && audioState.status === 'loading' ? (
+                          <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                        ) : isPlayingPodcast ? (
+                          <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
+                        ) : (
+                          <Play className="w-5 h-5 fill-current ml-0.5" aria-hidden="true" />
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleReplay}
+                        aria-label="വീണ്ടും കേൾക്കുക"
+                        title="വീണ്ടും കേൾക്കുക"
+                        className="btn-3d w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border-b-2 border-slate-300 text-slate-700 flex items-center justify-center shrink-0"
+                      >
+                        <RotateCcw className="w-4 h-4" aria-hidden="true" />
+                      </button>
+
+                      {/* Interactive Equalizer Waveform */}
+                      <button
+                        type="button"
+                        onClick={handlePlayPauseToggle}
+                        aria-label="ഓഡിയോ വേവ്ഫോം"
+                        className="flex-1 h-10 px-2 rounded-xl bg-slate-50 hover:bg-sky-50/70 flex items-center justify-center gap-1 transition overflow-hidden"
+                      >
+                        <Volume2 className="w-4 h-4 text-[#1899D6] shrink-0 mr-1" aria-hidden="true" />
+                        {waveBars.map((barHeight, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              height: `${barHeight}px`,
+                              animationDelay: `${idx * 75}ms`,
+                            }}
+                            className={`w-1 sm:w-1.5 rounded-full transition-all duration-200 ${
+                              isPlayingPodcast
+                                ? 'bg-[#1CB0F6] animate-pulse'
+                                : isPausedPodcast
+                                  ? 'bg-amber-400'
+                                  : 'bg-slate-300'
+                            }`}
+                          />
+                        ))}
+                      </button>
+
+                      {/* CC / Transcript Reveal Button (Locked until Check) */}
+                      <button
+                        type="button"
+                        disabled={!feedback}
+                        onClick={() => {
+                          if (!feedback) return;
+                          playTone('tap', soundEnabled);
+                          setPodcastTranscriptOpen((prev) => !prev);
+                        }}
+                        aria-pressed={Boolean(feedback && podcastTranscriptOpen)}
+                        title={feedback ? 'ട്രാൻസ്ക്രിപ്റ്റ് കാണുക/മറയ്ക്കുക' : 'പരിശോധിച്ച ശേഷം മാത്രം തുറക്കും'}
+                        className={`btn-3d px-3 h-10 rounded-xl border-2 border-b-4 text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition ${
+                          !feedback
+                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                            : podcastTranscriptOpen
+                              ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
+                              : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {!feedback && <Lock className="w-3.5 h-3.5" aria-hidden="true" />}
+                        <span>CC</span>
+                      </button>
+                    </div>
+
+                    {/* Post-Check Vocalized Arabic Transcript + Malayalam Translation */}
+                    {feedback && podcastTranscriptOpen && (
+                      <div
+                        data-testid="podcast-transcript"
+                        className="mt-3.5 rounded-2xl border-2 border-amber-200 bg-amber-50/90 p-4 text-center space-y-1.5 animate-pop"
+                      >
+                        <div className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">
+                          ട്രാൻസ്ക്രിപ്റ്റ് · TRANSCRIPT
+                        </div>
+                        <p
+                          dir="rtl"
+                          className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 leading-loose"
+                        >
+                          {question.transcriptAr}
+                        </p>
+                        {!hideTranslit && question.translit && (
+                          <p className="text-xs font-bold text-amber-800">
+                            {question.translit}
+                          </p>
+                        )}
+                        <p className="text-sm font-extrabold text-slate-700 pt-1">
+                          {question.transcriptMl}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Format 1: Podcast True / False (radio_tf) */}
+                  {question.type === 'radio_tf' && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 sm:p-5 text-center">
+                        <p className="text-base sm:text-lg font-extrabold text-slate-900 leading-relaxed">
+                          {question.statementMl}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4" data-testid="radio-tf-options">
+                        {[
+                          { val: 'true', icon: '✔️', label: 'ശരി', sub: 'True' },
+                          { val: 'false', icon: '✖️', label: 'തെറ്റ്', sub: 'False' },
+                        ].map((item) => {
+                          const isSelected = selectedOption === item.val;
+                          const isCorrectOption = String(question.answer) === item.val;
+                          let styleClass =
+                            'border-slate-200 bg-white text-slate-900 hover:bg-slate-50';
+                          if (feedback) {
+                            if (isCorrectOption) {
+                              styleClass = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+                            } else if (isSelected) {
+                              styleClass = 'border-rose-500 bg-rose-50 text-rose-900';
+                            }
+                          } else if (isSelected) {
+                            styleClass = 'border-[#1899D6] bg-sky-50 text-[#0369A1]';
+                          }
+                          return (
+                            <button
+                              key={item.val}
+                              type="button"
+                              disabled={Boolean(feedback)}
+                              aria-pressed={isSelected}
+                              onClick={() => {
+                                playTone('tap', soundEnabled);
+                                setSelectedOption(item.val);
+                              }}
+                              className={`btn-3d aspect-[5/4] sm:aspect-[4/3] max-h-36 w-full rounded-3xl border-2 border-b-4 flex flex-col items-center justify-center gap-1.5 font-extrabold transition ${styleClass}`}
+                            >
+                              <span className="text-3xl sm:text-4xl leading-none" aria-hidden="true">
+                                {item.icon}
+                              </span>
+                              <span className="text-lg sm:text-xl">{item.label}</span>
+                              <span className="text-xs font-bold opacity-70">{item.sub}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Format 2: Podcast Select 3 Words You Hear (radio_select3) */}
+                  {question.type === 'radio_select3' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-xs sm:text-sm font-bold text-slate-500">
+                          5 വാക്കുകളിൽ നിന്ന് 3 എണ്ണം തൊടുക
+                        </span>
+                        <span
+                          data-testid="radio-select3-counter"
+                          className={`text-xs sm:text-sm font-extrabold tabular-nums ${
+                            podcastSelectedWords.length === 3
+                              ? 'text-[#1899D6]'
+                              : 'text-slate-600'
+                          }`}
+                        >
+                          തിരഞ്ഞെടുത്തവ: {podcastSelectedWords.length} / 3
+                        </span>
+                      </div>
+
+                      <div
+                        dir="rtl"
+                        data-testid="radio-select3-chips"
+                        className="flex flex-wrap justify-center gap-3"
+                      >
+                        {shuffledPodcastWords.map((word) => {
+                          const isPicked = podcastSelectedWords.includes(word);
+                          const isSpokenAnswer = question.answers.some(
+                            (ans) => normalizeWordBankText(ans) === normalizeWordBankText(word)
+                          );
+                          let chipStyle =
+                            'bg-white border-slate-200 text-slate-900 hover:bg-slate-50';
+                          if (feedback) {
+                            if (isSpokenAnswer) {
+                              chipStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900';
+                            } else if (isPicked) {
+                              chipStyle = 'bg-rose-50 border-rose-500 text-rose-900';
+                            } else {
+                              chipStyle = 'bg-slate-50 border-slate-200 text-slate-400';
+                            }
+                          } else if (isPicked) {
+                            chipStyle = 'bg-[#1899D6] border-[#1177A8] text-white';
+                          }
+
+                          return (
+                            <button
+                              key={word}
+                              type="button"
+                              disabled={Boolean(feedback)}
+                              aria-pressed={isPicked}
+                              onClick={() => {
+                                playTone('tap', soundEnabled);
+                                setPodcastSelectedWords((prev) => {
+                                  if (prev.includes(word)) {
+                                    return prev.filter((w) => w !== word);
+                                  }
+                                  if (prev.length >= 3) {
+                                    return prev;
+                                  }
+                                  return [...prev, word];
+                                });
+                              }}
+                              className={`btn-3d px-5 py-3 rounded-2xl border-2 border-b-4 font-arabic text-2xl sm:text-3xl font-bold flex items-center gap-2 transition ${chipStyle}`}
+                            >
+                              <span>{word}</span>
+                              {feedback && isSpokenAnswer && (
+                                <span className="text-sm font-sans font-extrabold" aria-hidden="true">
+                                  ✓
+                                </span>
+                              )}
+                              {feedback && isPicked && !isSpokenAnswer && (
+                                <span className="text-sm font-sans font-extrabold" aria-hidden="true">
+                                  ✕
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Format 3: Podcast Multiple Choice (radio_mcq) — 3 vertically stacked Malayalam choices */}
+                  {question.type === 'radio_mcq' && (
+                    <div className="space-y-3" data-testid="radio-mcq-options">
+                      {shuffledOptions.map((opt, idx) => {
+                        const isSelected = selectedOption === opt;
+                        const isCorrectOpt = opt === question.answer;
+                        let optStyle =
+                          'border-slate-200 bg-white text-slate-800 hover:bg-slate-50';
+                        if (feedback) {
+                          if (isCorrectOpt) {
+                            optStyle = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+                          } else if (isSelected) {
+                            optStyle = 'border-rose-500 bg-rose-50 text-rose-900';
+                          }
+                        } else if (isSelected) {
+                          optStyle = 'border-[#1899D6] bg-sky-50 text-[#0369A1]';
+                        }
+
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            disabled={Boolean(feedback)}
+                            aria-pressed={isSelected}
+                            onClick={() => {
+                              playTone('tap', soundEnabled);
+                              setSelectedOption(opt);
+                            }}
+                            className={`btn-3d w-full p-4 rounded-2xl border-2 border-b-4 text-left font-bold text-sm sm:text-base flex items-center gap-3 transition ${optStyle}`}
+                          >
+                            <span
+                              className={`w-7 h-7 rounded-lg border-2 text-xs font-extrabold flex items-center justify-center shrink-0 tabular-nums ${
+                                feedback
+                                  ? isCorrectOpt
+                                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                                    : isSelected
+                                      ? 'border-rose-600 bg-rose-600 text-white'
+                                      : 'border-slate-200 bg-slate-100 text-slate-400'
+                                  : isSelected
+                                    ? 'border-[#1899D6] bg-[#1899D6] text-white'
+                                    : 'border-slate-200 bg-slate-50 text-slate-500'
+                              }`}
+                            >
+                              {feedback ? (isCorrectOpt ? '✓' : isSelected ? '✕' : idx + 1) : idx + 1}
+                            </span>
+                            <span className="leading-snug">{opt}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="h-4" />

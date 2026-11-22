@@ -190,6 +190,29 @@ export function buildFilledSentence(sentence: string, word: string): string {
   return sentence.replace(/_+/, cleanedWord).replace(/\s+/g, ' ').trim();
 }
 
+export function isPodcastQuestion(question: LessonQuestion): boolean {
+  return (
+    question.type === 'radio_tf' ||
+    question.type === 'radio_select3' ||
+    question.type === 'radio_mcq'
+  );
+}
+
+export function areRadioSelect3AnswersEqual(
+  selectedWords: readonly string[],
+  expectedWords: readonly string[]
+): boolean {
+  if (selectedWords.length !== 3 || expectedWords.length !== 3) return false;
+  const expectedSet = new Set(expectedWords.map((w) => normalizeWordBankText(w)));
+  if (expectedSet.size !== 3) return false;
+  const pickedSet = new Set(selectedWords.map((w) => normalizeWordBankText(w)));
+  if (pickedSet.size !== 3) return false;
+  for (const w of pickedSet) {
+    if (!expectedSet.has(w)) return false;
+  }
+  return true;
+}
+
 export function enqueueMistakeForReview(
   questions: readonly LessonQuestion[],
   missedQuestion: LessonQuestion,
@@ -202,10 +225,16 @@ export function enqueueMistakeForReview(
   const cloned = JSON.parse(JSON.stringify(missedQuestion)) as LessonQuestion;
   cloned.isReview = true;
   if (
-    (cloned.type === 'mcq' || cloned.type === 'listen' || cloned.type === 'fill_blank') &&
+    (cloned.type === 'mcq' ||
+      cloned.type === 'listen' ||
+      cloned.type === 'fill_blank' ||
+      cloned.type === 'radio_mcq') &&
     Array.isArray(cloned.options)
   ) {
     cloned.options = shuffleArray(cloned.options, rng);
+  }
+  if (cloned.type === 'radio_select3' && Array.isArray(cloned.words)) {
+    cloned.words = shuffleArray(cloned.words, rng);
   }
   return [...questions, cloned];
 }
@@ -215,10 +244,26 @@ export function evaluateQuestionAnswer(
   selectedOption: string | null,
   wordBankWords: string[]
 ): { correct: boolean; expectedDisplay: string } {
-  if (question.type === 'mcq' || question.type === 'listen') {
+  if (question.type === 'mcq' || question.type === 'listen' || question.type === 'radio_mcq') {
     return {
       correct: selectedOption === question.answer,
       expectedDisplay: question.answer,
+    };
+  }
+
+  if (question.type === 'radio_tf') {
+    const pickedBool =
+      selectedOption === 'true' ? true : selectedOption === 'false' ? false : null;
+    return {
+      correct: pickedBool === question.answer,
+      expectedDisplay: question.answer ? '✔️ ശരി (True)' : '✖️ തെറ്റ് (False)',
+    };
+  }
+
+  if (question.type === 'radio_select3') {
+    return {
+      correct: areRadioSelect3AnswersEqual(wordBankWords, question.answers),
+      expectedDisplay: question.answers.join(' · '),
     };
   }
 
@@ -505,12 +550,21 @@ export function prepareSessionQuestions(
 ): LessonQuestion[] {
   return rawQuestions.map((q) => {
     if (
-      (q.type === 'mcq' || q.type === 'listen' || q.type === 'fill_blank') &&
+      (q.type === 'mcq' ||
+        q.type === 'listen' ||
+        q.type === 'fill_blank' ||
+        q.type === 'radio_mcq') &&
       Array.isArray(q.options)
     ) {
       return {
         ...q,
         options: shuffleArray(q.options, rng),
+      };
+    }
+    if (q.type === 'radio_select3' && Array.isArray(q.words)) {
+      return {
+        ...q,
+        words: shuffleArray(q.words, rng),
       };
     }
     return { ...q };
@@ -526,12 +580,13 @@ export const ALL_QUESTION_TYPES: readonly LessonQuestion['type'][] = [
 ] as const;
 
 export function resolveLessonTargetCount(lesson: Pick<Lesson, 'nodeType'>): number {
-  if (lesson.nodeType === 'trophy') return 12;
+  if (lesson.nodeType === 'trophy' || lesson.nodeType === 'listening') return 12;
   if (
     lesson.nodeType === 'hard' ||
-    lesson.nodeType === 'listening' ||
     lesson.nodeType === 'dialogue' ||
-    lesson.nodeType === 'story'
+    lesson.nodeType === 'story' ||
+    lesson.nodeType === 'practice' ||
+    lesson.nodeType === 'wordbank'
   ) {
     return 11;
   }
@@ -551,6 +606,16 @@ export function getQuestionFingerprint(q: LessonQuestion): string {
   }
   if (q.type === 'fill_blank') {
     return `fill_blank|${norm(q.sentence)}|${norm(q.answer)}`;
+  }
+  if (q.type === 'radio_tf') {
+    return `radio_tf|${norm(q.arabic)}|${norm(q.statementMl)}|${String(q.answer)}`;
+  }
+  if (q.type === 'radio_select3') {
+    const ansSig = [...q.answers].map((a) => norm(a)).sort().join(',');
+    return `radio_select3|${norm(q.arabic)}|${ansSig}`;
+  }
+  if (q.type === 'radio_mcq') {
+    return `radio_mcq|${norm(q.arabic)}|${norm(q.answer)}`;
   }
   const pairSig = q.pairs
     .map((p) => norm(p.ar))
@@ -827,6 +892,18 @@ export function buildLessonSessionQuestions(
     }
   }
 
+  // 4b. Mix at least 1 Arabic Radio / Podcast exercise into regular 10-12 question lessons
+  const hasPodcast = () =>
+    handcrafted.some(isPodcastQuestion) ||
+    spacedRepetition.some(isPodcastQuestion) ||
+    reinforcements.some(isPodcastQuestion);
+  if (currentTotal() < targetCount && !hasPodcast()) {
+    for (const cand of allCandidates) {
+      if (!isPodcastQuestion(cand)) continue;
+      if (tryAccept(reinforcements, cand, false)) break;
+    }
+  }
+
   // 5. Fill remaining slots up to targetCount (10-12) balancing across question types
   const typeCounts: Record<LessonQuestion['type'], number> = {
     mcq: 0,
@@ -834,6 +911,9 @@ export function buildLessonSessionQuestions(
     pairs: 0,
     wordbank: 0,
     fill_blank: 0,
+    radio_tf: 0,
+    radio_select3: 0,
+    radio_mcq: 0,
   };
   for (const q of [...handcrafted, ...spacedRepetition, ...reinforcements]) {
     typeCounts[q.type] += 1;

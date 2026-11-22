@@ -1,5 +1,6 @@
-import type { FillBlankQuestion, GuidebookEntry, Lesson, LessonQuestion, Unit, UnitMascot } from '../types/learning';
+import type { FillBlankQuestion, GuidebookEntry, Lesson, LessonQuestion, ListenQuestion, Unit, UnitMascot } from '../types/learning';
 import { UNIT_STORIES } from './unitStories';
+import { buildUnitPodcastQuestions } from './unitPodcasts';
 
 export const TREASURE_CHEST_XP = 25;
 export const TREASURE_CHEST_HEARTS = 1;
@@ -5327,12 +5328,19 @@ export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
       ? [fillBlanks[1], ...(pack?.dialogueQuestions ?? base3.questions)]
       : (pack?.dialogueQuestions ?? base3.questions);
 
-    // Node 6 (Lesson 5): Audio & Listening Challenge + Fill-in-the-Blank
-    const listeningQuestions: LessonQuestion[] = [];
+    // Node 6 (Lesson 5): Arabic Radio / Podcast Suite + Audio & Listening Challenge + Fill-in-the-Blank
+    const unitPodcasts = buildUnitPodcastQuestions({
+      unitNumber: unit.number,
+      unitTitleAr: UNIT_STORIES[unit.id]?.titleAr ?? unit.title,
+      story: UNIT_STORIES[unit.id],
+      guidebook: pack?.guidebook,
+      extraListening: (pack?.extraListeningQuestions ?? []).filter(
+        (q): q is ListenQuestion => q.type === 'listen'
+      ),
+    });
+    const listeningQuestions: LessonQuestion[] = [...unitPodcasts];
     if (pack?.extraListeningQuestions[0]) listeningQuestions.push(pack.extraListeningQuestions[0]);
     if (fillBlanks?.[2]) listeningQuestions.push(fillBlanks[2]);
-    if (listenFromBase[0]) listeningQuestions.push(listenFromBase[0]);
-    if (pack?.extraListeningQuestions[1]) listeningQuestions.push(pack.extraListeningQuestions[1]);
     if (pack?.guidebook && pack.guidebook.length >= 4) {
       listeningQuestions.push({
         type: 'pairs',
@@ -5410,8 +5418,8 @@ export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
       },
       {
         id: `${unit.id}_n6`,
-        title: pack?.listeningTitle ?? 'ശ്രവണ വെല്ലുവിളി',
-        subtitle: 'കേട്ട് മനസ്സിലാക്കാം',
+        title: pack?.listeningTitle ?? 'അറബിക് റേഡിയോ & ശ്രവണം',
+        subtitle: 'പോഡ്കാസ്റ്റ് & ശ്രവണം',
         icon: '🎧',
         nodeType: 'listening',
         xpReward: 20,

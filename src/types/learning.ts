@@ -79,12 +79,64 @@ export interface FillBlankQuestion {
   isSpacedRepetition?: boolean;
 }
 
+export interface RadioPodcastMeta {
+  /** Spoken Arabic clip played by the audio engine (vocalized with Harakat) */
+  arabic: string;
+  /** Malayalam phonetic transliteration (shown only inside Post-Check Transcript Reveal) */
+  translit: string;
+  /** Vocalized Arabic written transcript (revealed only after Check) */
+  transcriptAr: string;
+  /** Malayalam translation of the clip (revealed only after Check) */
+  transcriptMl: string;
+  /** Caller / guest avatar in the studio speech bubble */
+  callerAvatar?: '🧕' | '🧔';
+  /** Caller / guest Malayalam name */
+  callerNameMl?: string;
+  /** Arabic show header label */
+  episodeTitleAr?: string;
+}
+
+export interface RadioTfQuestion extends RadioPodcastMeta {
+  type: 'radio_tf';
+  prompt: string;
+  /** Malayalam statement evaluated as True (✔️ ശരി) or False (✖️ തെറ്റ്) */
+  statementMl: string;
+  answer: boolean;
+  isReview?: boolean;
+  isSpacedRepetition?: boolean;
+}
+
+export interface RadioSelect3Question extends RadioPodcastMeta {
+  type: 'radio_select3';
+  prompt: string;
+  /** 5 shuffled vocalized Arabic word chips (3 spoken in audio + 2 distractors) */
+  words: string[];
+  /** Exact 3 vocalized Arabic words spoken in the audio clip */
+  answers: string[];
+  wordTranslits?: Record<string, string>;
+  isReview?: boolean;
+  isSpacedRepetition?: boolean;
+}
+
+export interface RadioMcqQuestion extends RadioPodcastMeta {
+  type: 'radio_mcq';
+  prompt: string;
+  /** 3 vertically stacked Malayalam choice buttons (Fisher-Yates shuffled) */
+  options: string[];
+  answer: string;
+  isReview?: boolean;
+  isSpacedRepetition?: boolean;
+}
+
 export type LessonQuestion =
   | McqQuestion
   | ListenQuestion
   | WordBankQuestion
   | PairsQuestion
-  | FillBlankQuestion;
+  | FillBlankQuestion
+  | RadioTfQuestion
+  | RadioSelect3Question
+  | RadioMcqQuestion;
 
 export type NodeKind =
   | 'lesson'
