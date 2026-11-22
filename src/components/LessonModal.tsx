@@ -1,7 +1,23 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Heart, Loader2, Lock, Pause, Play, RotateCcw, Turtle, Volume2, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Delete,
+  Heart,
+  Keyboard,
+  Loader2,
+  Lock,
+  Pause,
+  Play,
+  RotateCcw,
+  Turtle,
+  Volume2,
+  X,
+} from 'lucide-react';
 import type { LessonQuestion, SessionConfig, SessionResult } from '../types/learning';
 import {
+  ARABIC_QUICK_KEYS,
   buildFilledSentence,
   enqueueMistakeForReview,
   evaluateQuestionAnswer,
@@ -63,6 +79,9 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const [hintRevealed, setHintRevealed] = useState(false);
   const [podcastSelectedWords, setPodcastSelectedWords] = useState<string[]>([]);
   const [podcastTranscriptOpen, setPodcastTranscriptOpen] = useState(false);
+  const [dictationInput, setDictationInput] = useState('');
+  const [quickKeysOpen, setQuickKeysOpen] = useState(true);
+  const dictationInputRef = useRef<HTMLInputElement | null>(null);
   const [audioState, setAudioState] = useState<ArabicAudioState>(() => getArabicAudioState());
 
   const question = questionQueue[currentIndex];
@@ -70,6 +89,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const hideTranslit = Boolean(session.hideTranslit);
   const isLegendary = session.variant === 'legendary';
   const isPodcast = isPodcastQuestion(question);
+  const isDictation = question.type === 'dictation';
   const showArabicPromptCard = shouldShowArabicPromptCard(question);
   const shouldGateTranslit =
     showArabicPromptCard &&
@@ -126,10 +146,14 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     preloadArabicAudioBatch(collectQuestionArabicTexts(question));
   }, [question]);
 
-  // Auto-pronounce Arabic prompt for standard Arabic prompt cards AND Podcast exercises
+  // Auto-pronounce Arabic prompt for standard Arabic prompt cards, Podcast, AND Dictation exercises
   useEffect(() => {
-    if ((showArabicPromptCard || isPodcast) && 'arabic' in question && question.arabic) {
-      const sourceKey = isPodcast ? 'podcast-main' : 'lesson-normal';
+    if ((showArabicPromptCard || isPodcast || isDictation) && 'arabic' in question && question.arabic) {
+      const sourceKey = isPodcast
+        ? 'podcast-main'
+        : isDictation
+          ? 'dictation-normal'
+          : 'lesson-normal';
       const timer = window.setTimeout(() => {
         speakArabic(question.arabic!, soundEnabled, 1.0, sourceKey);
       }, 140);
@@ -140,7 +164,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     }
     stopArabicAudio();
     return undefined;
-  }, [question, showArabicPromptCard, isPodcast, soundEnabled]);
+  }, [question, showArabicPromptCard, isPodcast, isDictation, soundEnabled]);
 
   const deductHeart = () => {
     const next = Math.max(0, hearts - 1);
@@ -158,12 +182,65 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     setWordBankSelected([]);
     setPodcastSelectedWords([]);
     setPodcastTranscriptOpen(false);
+    setDictationInput('');
     setMatchedPairIndices([]);
     setSelectedLeft(null);
     setSelectedRight(null);
     setWrongPairFlash(null);
     setFeedback(null);
     setHintRevealed(false);
+  };
+
+  const insertDictationText = (charToInsert: string) => {
+    if (feedback) return;
+    playTone('tap', soundEnabled);
+    const el = dictationInputRef.current;
+    if (el && typeof el.selectionStart === 'number' && typeof el.selectionEnd === 'number') {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      setDictationInput((prev) => {
+        const next = prev.slice(0, start) + charToInsert + prev.slice(end);
+        window.requestAnimationFrame(() => {
+          el.focus();
+          const pos = start + charToInsert.length;
+          el.setSelectionRange(pos, pos);
+        });
+        return next;
+      });
+    } else {
+      setDictationInput((prev) => prev + charToInsert);
+      el?.focus();
+    }
+  };
+
+  const handleDictationBackspace = () => {
+    if (feedback) return;
+    playTone('tap', soundEnabled);
+    const el = dictationInputRef.current;
+    if (el && typeof el.selectionStart === 'number' && typeof el.selectionEnd === 'number') {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      setDictationInput((prev) => {
+        if (start !== end) {
+          const next = prev.slice(0, start) + prev.slice(end);
+          window.requestAnimationFrame(() => {
+            el.focus();
+            el.setSelectionRange(start, start);
+          });
+          return next;
+        }
+        if (start === 0) return prev;
+        const next = prev.slice(0, start - 1) + prev.slice(end);
+        window.requestAnimationFrame(() => {
+          el.focus();
+          el.setSelectionRange(start - 1, start - 1);
+        });
+        return next;
+      });
+    } else {
+      setDictationInput((prev) => prev.slice(0, -1));
+      el?.focus();
+    }
   };
 
   const handlePairSelection = (side: 'left' | 'right', pairIdx: number) => {
@@ -223,13 +300,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
         ? wordBankSelected.length > 0
         : question.type === 'radio_select3'
           ? podcastSelectedWords.length === 3
-          : false);
+          : question.type === 'dictation'
+            ? dictationInput.trim().length > 0
+            : false);
 
   const handleCheck = () => {
     if (!canCheck) return;
     const evaluation = evaluateQuestionAnswer(
       question,
-      selectedOption,
+      question.type === 'dictation' ? dictationInput : selectedOption,
       question.type === 'radio_select3'
         ? podcastSelectedWords
         : wordBankSelected.map((w) => w.text)
@@ -1220,6 +1299,266 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           </button>
                         );
                       })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {question.type === 'dictation' && (() => {
+              const normalBusy = audioState.sourceId === 'dictation-normal';
+              const normalLoading = normalBusy && audioState.status === 'loading';
+              const normalPlaying = normalBusy && audioState.status === 'playing';
+              const slowBusy = audioState.sourceId === 'dictation-slow';
+              const slowLoading = slowBusy && audioState.status === 'loading';
+              const slowPlaying = slowBusy && audioState.status === 'playing';
+
+              const inputTone = feedback
+                ? feedback.isCorrect
+                  ? 'border-[#4AA802] bg-emerald-50/70 text-emerald-950'
+                  : 'border-rose-500 bg-rose-50/70 text-rose-950'
+                : 'border-slate-300 bg-white text-slate-900 focus:border-[#0284C7] focus:ring-4 focus:ring-sky-100';
+
+              return (
+                <div className="space-y-5" data-testid="dictation-exercise">
+                  {/* Audio-Only Character Avatar + Dual-Button Audio Capsule */}
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div
+                      aria-hidden="true"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-emerald-50 border-2 border-b-4 border-sky-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
+                    >
+                      {question.avatar ?? '🧕'}
+                    </div>
+
+                    <div className="relative flex-1 rounded-2xl border-2 border-b-4 border-sky-200 bg-sky-50/60 p-3.5 sm:p-4">
+                      <div
+                        aria-hidden="true"
+                        className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 bg-sky-50 border-l-2 border-b-2 border-sky-200 rotate-45"
+                      />
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <button
+                          type="button"
+                          aria-label="സാധാരണ വേഗത്തിൽ കേൾക്കുക"
+                          data-testid="dictation-play-normal"
+                          data-audio-state={normalBusy ? audioState.status : 'idle'}
+                          onClick={() =>
+                            speakArabic(question.arabic, soundEnabled, 1.0, 'dictation-normal')
+                          }
+                          className={`btn-3d h-11 sm:h-12 px-3.5 sm:px-5 rounded-2xl bg-[#0284C7] hover:bg-[#0369A1] border-b-4 border-[#075985] text-white font-extrabold text-sm flex items-center gap-1.5 sm:gap-2 whitespace-nowrap transition ${
+                            normalBusy ? 'ring-4 ring-sky-300/70' : ''
+                          } ${normalPlaying ? 'animate-pulse' : ''}`}
+                        >
+                          {normalLoading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <Volume2 className="w-5 h-5" aria-hidden="true" />
+                          )}
+                          <span>കേൾക്കുക</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          aria-label="പതുക്കെ കേൾക്കുക (0.65x)"
+                          title="പതുക്കെ കേൾക്കുക (0.65x)"
+                          data-testid="dictation-play-slow"
+                          data-audio-state={slowBusy ? audioState.status : 'idle'}
+                          onClick={() =>
+                            speakArabic(question.arabic, soundEnabled, 0.65, 'dictation-slow')
+                          }
+                          className={`btn-3d h-11 sm:h-12 px-3 sm:px-4 rounded-2xl border-2 border-b-4 font-extrabold text-sm flex items-center gap-1.5 whitespace-nowrap transition ${
+                            slowBusy
+                              ? 'bg-sky-100 border-[#0284C7] text-[#0369A1] ring-4 ring-sky-200'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                          } ${slowPlaying ? 'animate-pulse' : ''}`}
+                        >
+                          {slowLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <Turtle className="w-5 h-5" aria-hidden="true" />
+                          )}
+                          <span className="font-latin tabular-nums">0.65x</span>
+                        </button>
+                      </div>
+                      <p className="text-xs font-bold text-slate-600 mt-2">
+                        ശ്രദ്ധിച്ച് കേട്ട് അറബിയിൽ ടൈപ്പ് ചെയ്യുക · ഹറകത്ത് നിർബന്ധമില്ല
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Large RTL Arabic Text Input Box */}
+                  <div className="relative">
+                    <label htmlFor="dictation-input" className="sr-only">
+                      കേട്ട അറബി വാക്ക് ടൈപ്പ് ചെയ്യുക
+                    </label>
+                    <input
+                      ref={dictationInputRef}
+                      id="dictation-input"
+                      data-testid="dictation-input"
+                      type="text"
+                      dir="rtl"
+                      lang="ar"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      disabled={Boolean(feedback)}
+                      value={dictationInput}
+                      onChange={(e) => setDictationInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && canCheck) {
+                          e.preventDefault();
+                          handleCheck();
+                        }
+                      }}
+                      placeholder={'കേട്ട അറബി വാക്ക് ഇവിടെ ടൈപ്പ് ചെയ്യുക...\u200E'}
+                      className={`w-full rounded-2xl border-2 border-b-4 px-5 py-4 pl-12 font-arabic text-2xl sm:text-3xl font-bold placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:font-semibold placeholder:text-slate-400 focus:outline-none transition ${inputTone}`}
+                    />
+                    {dictationInput.length > 0 && !feedback && (
+                      <button
+                        type="button"
+                        aria-label="ടൈപ്പ് ചെയ്തത് മായ്ക്കുക"
+                        onClick={() => {
+                          playTone('tap', soundEnabled);
+                          setDictationInput('');
+                          dictationInputRef.current?.focus();
+                        }}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition"
+                      >
+                        <X className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Post-Check Vocalized Arabic + Malayalam Meaning Reveal */}
+                  {feedback && (
+                    <div
+                      data-testid="dictation-reveal"
+                      className={`rounded-2xl border-2 p-4 sm:p-5 animate-pop space-y-2.5 ${
+                        feedback.isCorrect
+                          ? 'bg-emerald-50/90 border-emerald-300'
+                          : 'bg-amber-50/95 border-amber-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-black/5">
+                        <div
+                          className={`text-xs font-extrabold ${
+                            feedback.isCorrect ? 'text-emerald-800' : 'text-amber-900'
+                          }`}
+                        >
+                          {feedback.isCorrect
+                            ? '✓ പൂർണ്ണ ഹറകത്തോടുകൂടിയ അറബി രൂപം'
+                            : '✕ ശരിയായ അറബി രൂപവും അർത്ഥവും'}
+                        </div>
+
+                        <button
+                          type="button"
+                          aria-label="ശരിയായ ഉച്ചാരണം വീണ്ടും കേൾക്കുക"
+                          onClick={() =>
+                            speakArabic(question.arabic, soundEnabled, 1.0, 'dictation-normal')
+                          }
+                          className="btn-3d w-9 h-9 rounded-xl bg-white border-2 border-b-4 border-slate-200 text-[#0284C7] hover:bg-sky-50 flex items-center justify-center shrink-0"
+                        >
+                          <Volume2 className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </div>
+
+                      <div className="text-center space-y-1 pt-0.5">
+                        <div
+                          dir="rtl"
+                          className="font-arabic text-3xl sm:text-4xl font-bold text-slate-900 leading-relaxed"
+                        >
+                          {question.arabic}
+                        </div>
+                        {!hideTranslit && question.translit && (
+                          <p className="text-xs sm:text-sm font-bold text-[#0369A1]">
+                            {question.translit}
+                          </p>
+                        )}
+                        <p className="text-sm sm:text-base font-extrabold text-slate-800 pt-0.5">
+                          {question.meaningMl}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Built-in Mini Arabic Quick-Key Helper */}
+                  {!feedback && (
+                    <div
+                      data-testid="arabic-quick-keys"
+                      className="rounded-2xl border-2 border-slate-200 bg-slate-50/90 overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        data-testid="toggle-quick-keys-btn"
+                        aria-expanded={quickKeysOpen}
+                        onClick={() => {
+                          playTone('tap', soundEnabled);
+                          setQuickKeysOpen((open) => !open);
+                        }}
+                        className="w-full px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 text-left text-xs font-extrabold text-slate-700 hover:bg-slate-100/80 transition"
+                      >
+                        <span className="inline-flex items-center gap-2 min-w-0">
+                          <Keyboard className="w-4 h-4 text-[#0284C7] shrink-0" aria-hidden="true" />
+                          <span className="truncate">
+                            അറബി ക്വിക്ക് കീബോർഡ്{' '}
+                            <span className="hidden sm:inline font-semibold text-slate-500">
+                              (Arabic Quick Keys)
+                            </span>
+                          </span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-slate-500 shrink-0 whitespace-nowrap">
+                          <span>{quickKeysOpen ? 'മറയ്ക്കുക' : 'തുറക്കുക'}</span>
+                          {quickKeysOpen ? (
+                            <ChevronUp className="w-4 h-4" aria-hidden="true" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" aria-hidden="true" />
+                          )}
+                        </span>
+                      </button>
+
+                      {quickKeysOpen && (
+                        <div className="px-3 pb-3 pt-1.5 border-t border-slate-200/80 space-y-2">
+                          <div
+                            dir="rtl"
+                            className="flex flex-wrap justify-center gap-1.5"
+                          >
+                            {ARABIC_QUICK_KEYS.map((ch) => (
+                              <button
+                                key={ch}
+                                type="button"
+                                data-ar-key={ch}
+                                aria-label={`അറബി അക്ഷരം ${ch}`}
+                                onClick={() => insertDictationText(ch)}
+                                className="btn-3d min-w-[38px] sm:min-w-[42px] h-10 sm:h-11 px-2 rounded-xl bg-white hover:bg-sky-50 border border-b-[3px] border-slate-300 hover:border-[#0284C7] font-arabic text-xl sm:text-2xl font-bold text-slate-900 flex items-center justify-center transition"
+                              >
+                                {ch}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <button
+                              type="button"
+                              data-testid="arabic-key-space"
+                              aria-label="സ്പേസ് (Space)"
+                              onClick={() => insertDictationText(' ')}
+                              className="btn-3d flex-1 h-10 rounded-xl bg-white hover:bg-sky-50 border border-b-[3px] border-slate-300 hover:border-[#0284C7] text-xs font-extrabold text-slate-700 flex items-center justify-center gap-1.5 transition"
+                            >
+                              <span>␣</span>
+                              <span>സ്പേസ് (Space)</span>
+                            </button>
+                            <button
+                              type="button"
+                              data-testid="arabic-key-backspace"
+                              aria-label="മായ്ക്കുക (Backspace)"
+                              onClick={handleDictationBackspace}
+                              className="btn-3d px-4 h-10 rounded-xl bg-rose-50 hover:bg-rose-100 border border-b-[3px] border-rose-200 text-xs font-extrabold text-rose-700 flex items-center justify-center gap-1.5 transition"
+                            >
+                              <Delete className="w-4 h-4" aria-hidden="true" />
+                              <span>മായ്ക്കുക</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -5,6 +5,8 @@ import { UNIT_STORIES } from '../data/unitStories';
 import {
   ALL_QUESTION_TYPES,
   applySessionResult,
+  ARABIC_QUICK_KEYS,
+  areDictationAnswersEqual,
   areRadioSelect3AnswersEqual,
   areWordBankAnswersEqual,
   buildFilledSentence,
@@ -32,6 +34,7 @@ import {
   mergeAndSortLeaderboard,
   migrateLegacyCompletedIds,
   MISTAKE_REVIEW_BANNER_TEXT,
+  normalizeArabicDictation,
   normalizeWordBankText,
   prepareSessionQuestions,
   prepareStorySteps,
@@ -1509,6 +1512,100 @@ test('Podcast evaluation, Fisher-Yates shuffling, Mistake Review Queue, and 10-1
   const regularSession = buildLessonSessionQuestions(regularLesson, unlockLessonsUpToUnit([], 1), UNITS);
   assert.ok(regularSession.length >= 10 && regularSession.length <= 12);
   assert.ok(regularSession.some(isPodcastQuestion), 'Regular 10-12 question lessons should weave in at least 1 Podcast question');
+});
+
+test('Dictation ("Type What You Hear") Harakat-insensitive normalization, quick-key set, Audio-Only gating, Mistake Review Queue, and 35-unit weaving work accurately', () => {
+  // 1. Mini Arabic Quick-Key Helper contains all 35 required Arabic letters
+  const expectedKeys = 'ا ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي ة ى أ إ آ ئ ؤ'.split(' ');
+  assert.deepEqual([...ARABIC_QUICK_KEYS], expectedKeys);
+  assert.equal(ARABIC_QUICK_KEYS.length, 35);
+
+  // 2. Smart Harakat-insensitive normalization & Alef/Yaa/Tatweel/Punctuation handling
+  assert.equal(normalizeArabicDictation('السَّلَامُ عَلَيْكُمْ'), 'السلام عليكم');
+  assert.equal(normalizeArabicDictation('أَيْنَ الْمَسْجِدُ؟'), 'اين المسجد');
+  assert.equal(normalizeArabicDictation('إِلَى الْمَسْجِدِ'), 'الي المسجد');
+  assert.equal(normalizeArabicDictation('اللّٰهُ أَكْبَرُ!'), 'الله اكبر');
+  assert.equal(normalizeArabicDictation('مَرْحَـبًا!'), 'مرحبا');
+  assert.equal(normalizeArabicDictation('هٰذَا كِتَابٌ.'), 'هذا كتاب');
+
+  assert.equal(areDictationAnswersEqual('السلام عليكم', 'السَّلَامُ عَلَيْكُمْ'), true);
+  assert.equal(areDictationAnswersEqual('اين المسجد', 'أَيْنَ الْمَسْجِدُ؟'), true);
+  assert.equal(areDictationAnswersEqual('الى المسجد', 'إِلَى الْمَسْجِدِ'), true);
+  assert.equal(areDictationAnswersEqual('الي المسجد', 'إِلَى الْمَسْجِدِ'), true);
+  assert.equal(areDictationAnswersEqual('شكرا', 'شُكْرًا'), true);
+  assert.equal(areDictationAnswersEqual('آمين', 'أَمِين'), true);
+  assert.equal(areDictationAnswersEqual('مرحبـا', 'مَرْحَبًا!'), true);
+  assert.equal(areDictationAnswersEqual('هذا كتاب', 'هٰذَا كِتَابٌ.'), true);
+
+  // Rejects empty or wrong answers
+  assert.equal(areDictationAnswersEqual('', 'السَّلَامُ عَلَيْكُمْ'), false);
+  assert.equal(areDictationAnswersEqual('   ', 'السَّلَامُ عَلَيْكُمْ'), false);
+  assert.equal(areDictationAnswersEqual('مكتب', 'كِتَابٌ'), false);
+  assert.equal(areDictationAnswersEqual('مساء الخير', 'صَبَاحُ الْخَيْرِ'), false);
+
+  // 3. Evaluation, Audio-Only First gating, audio preloading, and Mistake Review Queue
+  const sampleDict: LessonQuestion = {
+    type: 'dictation',
+    prompt: 'ശബ്ദം കേട്ട് അറബിയിൽ ടൈപ്പ് ചെയ്യുക',
+    arabic: 'السَّلَامُ عَلَيْكُمْ',
+    translit: 'അസ്സലാമു അലൈക്കും',
+    meaningMl: 'നിങ്ങൾക്ക് സമാധാനം ഉണ്ടാകട്ടെ',
+    avatar: '🧕',
+  };
+  assert.equal(shouldShowArabicPromptCard(sampleDict), false);
+  assert.ok(collectQuestionArabicTexts(sampleDict).includes('السَّلَامُ عَلَيْكُمْ'));
+  assert.equal(evaluateQuestionAnswer(sampleDict, 'السلام عليكم', []).correct, true);
+  assert.equal(evaluateQuestionAnswer(sampleDict, 'السَّلَامُ عَلَيْكُمْ', []).correct, true);
+  assert.equal(evaluateQuestionAnswer(sampleDict, 'مرحبا', []).correct, false);
+  assert.equal(evaluateQuestionAnswer(sampleDict, 'مرحبا', []).expectedDisplay, 'السَّلَامُ عَلَيْكُمْ');
+
+  const queued = enqueueMistakeForReview([sampleDict], sampleDict, 'lesson');
+  assert.equal(queued.length, 2);
+  assert.equal(queued[1].type, 'dictation');
+  assert.equal(queued[1].isReview, true);
+  assert.equal(enqueueMistakeForReview([sampleDict], sampleDict, 'placement').length, 1);
+
+  // 4. All 35 units weave 1-2 dictation questions into regular lessons and 2 into Hard Practice nodes
+  let seed = 101;
+  const rng = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
+  for (let uIdx = 0; uIdx < UNITS.length; uIdx++) {
+    const unit = UNITS[uIdx];
+    const priorCompleted = unlockLessonsUpToUnit([], uIdx);
+    for (const lesson of unit.lessons) {
+      if (lesson.nodeType === 'chest') continue;
+      const session = buildLessonSessionQuestions(lesson, priorCompleted, UNITS, rng);
+      const dictations = session.filter((q) => q.type === 'dictation');
+      assert.ok(
+        dictations.length >= 1 && dictations.length <= 2,
+        `${lesson.id} (${lesson.nodeType}) should include 1-2 dictation questions, got ${dictations.length}`
+      );
+      if (lesson.nodeType === 'hard') {
+        assert.equal(
+          dictations.length,
+          2,
+          `${lesson.id} Hard Practice node must include 2 dictation questions, got ${dictations.length}`
+        );
+      }
+      for (const dq of dictations) {
+        if (dq.type !== 'dictation') continue;
+        assert.equal(shouldShowArabicPromptCard(dq), false);
+        assert.ok(/[\u0621-\u064A]/.test(dq.arabic), `${lesson.id} dictation needs Arabic text`);
+        assert.equal(/[\u0D00-\u0D7F]/.test(dq.arabic), false, `${lesson.id} dictation arabic must not contain Malayalam`);
+        assert.ok(dq.meaningMl.trim().length > 0, `${lesson.id} dictation needs Malayalam meaning`);
+        assert.ok(dq.avatar === '🧕' || dq.avatar === '👳‍♂️');
+      }
+    }
+  }
+
+  // 5. Legendary mode includes dictation challenges
+  const u2n2 = UNITS[1].lessons[1];
+  const legQs = buildLegendarySessionQuestions(u2n2, UNITS, rng);
+  assert.equal(legQs.length, LEGENDARY_QUESTION_COUNT);
+  assert.ok(legQs.some((q) => q.type === 'dictation'), 'Legendary mode should include dictation questions');
 });
 
 

@@ -128,6 +128,21 @@ export interface RadioMcqQuestion extends RadioPodcastMeta {
   isSpacedRepetition?: boolean;
 }
 
+export interface DictationQuestion {
+  type: 'dictation';
+  prompt: string;
+  /** Vocalized Arabic word or short phrase spoken by the audio engine (hidden until Check) */
+  arabic: string;
+  /** Malayalam phonetic transliteration (revealed only after Check, hidden in Legendary) */
+  translit?: string;
+  /** Malayalam meaning revealed below the vocalized Arabic after Check */
+  meaningMl: string;
+  /** Friendly Arabic character avatar alongside the audio capsule */
+  avatar?: '🧕' | '👳‍♂️';
+  isReview?: boolean;
+  isSpacedRepetition?: boolean;
+}
+
 export type LessonQuestion =
   | McqQuestion
   | ListenQuestion
@@ -136,7 +151,8 @@ export type LessonQuestion =
   | FillBlankQuestion
   | RadioTfQuestion
   | RadioSelect3Question
-  | RadioMcqQuestion;
+  | RadioMcqQuestion
+  | DictationQuestion;
 
 export type NodeKind =
   | 'lesson'

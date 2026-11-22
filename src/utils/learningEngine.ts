@@ -190,6 +190,40 @@ export function buildFilledSentence(sentence: string, word: string): string {
   return sentence.replace(/_+/, cleanedWord).replace(/\s+/g, ' ').trim();
 }
 
+export const ARABIC_QUICK_KEYS: readonly string[] = [
+  'ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش',
+  'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه',
+  'و', 'ي', 'ة', 'ى', 'أ', 'إ', 'آ', 'ئ', 'ؤ',
+] as const;
+
+/**
+ * Smart Harakat-insensitive Arabic normalization for Dictation ("Type What You Hear"):
+ * - Unicode NFC normalization
+ * - Strips all Arabic Harakat/Tashkeel ([\u064B-\u065F\u0670\u06D6-\u06ED]) and zero-width marks
+ * - Strips Tatweel (ـ) and punctuation
+ * - Normalizes Alef variants (أ إ آ ٱ -> ا) and Alef Maqsura (ى -> ي)
+ * - Collapses extra whitespace and trims ends
+ */
+export function normalizeArabicDictation(text: string): string {
+  return String(text ?? '')
+    .normalize('NFC')
+    .replace(/[\u200B-\u200F\uFEFF\u0640\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/[.,!؟?،؛:"'()\[\]«»\-–—…\/\\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function areDictationAnswersEqual(
+  userInput: string,
+  expectedArabic: string
+): boolean {
+  const normUser = normalizeArabicDictation(userInput);
+  const normExpected = normalizeArabicDictation(expectedArabic);
+  return Boolean(normExpected) && normUser === normExpected;
+}
+
 export function isPodcastQuestion(question: LessonQuestion): boolean {
   return (
     question.type === 'radio_tf' ||
@@ -277,6 +311,12 @@ export function evaluateQuestionAnswer(
     return {
       correct: areWordBankAnswersEqual(wordBankWords, question.answer),
       expectedDisplay: question.answer.join(' '),
+    };
+  }
+  if (question.type === 'dictation') {
+    return {
+      correct: areDictationAnswersEqual(selectedOption ?? '', question.arabic),
+      expectedDisplay: question.arabic,
     };
   }
   return { correct: true, expectedDisplay: '' };
@@ -512,6 +552,9 @@ export function shouldShowArabicPromptCard(question: LessonQuestion): boolean {
   if (!('arabic' in question) || !question.arabic) {
     return false;
   }
+  if (question.type === 'dictation' || isPodcastQuestion(question)) {
+    return false;
+  }
   if (question.type === 'listen') {
     return true;
   }
@@ -580,9 +623,10 @@ export const ALL_QUESTION_TYPES: readonly LessonQuestion['type'][] = [
 ] as const;
 
 export function resolveLessonTargetCount(lesson: Pick<Lesson, 'nodeType'>): number {
-  if (lesson.nodeType === 'trophy' || lesson.nodeType === 'listening') return 12;
+  if (lesson.nodeType === 'trophy' || lesson.nodeType === 'listening' || lesson.nodeType === 'hard') {
+    return 12;
+  }
   if (
-    lesson.nodeType === 'hard' ||
     lesson.nodeType === 'dialogue' ||
     lesson.nodeType === 'story' ||
     lesson.nodeType === 'practice' ||
@@ -606,6 +650,9 @@ export function getQuestionFingerprint(q: LessonQuestion): string {
   }
   if (q.type === 'fill_blank') {
     return `fill_blank|${norm(q.sentence)}|${norm(q.answer)}`;
+  }
+  if (q.type === 'dictation') {
+    return `dictation|${normalizeArabicDictation(q.arabic)}`;
   }
   if (q.type === 'radio_tf') {
     return `radio_tf|${norm(q.arabic)}|${norm(q.statementMl)}|${String(q.answer)}`;
@@ -763,7 +810,70 @@ function generateDynamicUnitQuestions(
     }
   }
 
+  // 3. Dynamic Audio-Only Dictation ("Type What You Hear") questions
+  const dictationCandidates = collectUnitDictationPool(unit);
+  const shuffledDictation = shuffleArray(dictationCandidates, rng);
+  shuffledDictation.forEach((entry, idx) => {
+    generated.push({
+      type: 'dictation',
+      prompt: 'ശബ്ദം കേട്ട് അറബിയിൽ ടൈപ്പ് ചെയ്യുക',
+      arabic: entry.ar,
+      translit: entry.tr || undefined,
+      meaningMl: entry.ml,
+      avatar: idx % 2 === 0 ? '🧕' : '👳‍♂️',
+    });
+  });
+
   return generated;
+}
+
+function collectUnitDictationPool(unit: Unit): VocabEntry[] {
+  const seen = new Set<string>();
+  const multiLetter: VocabEntry[] = [];
+  const singleLetter: VocabEntry[] = [];
+
+  const pushCandidate = (ar: string, tr: string, ml: string) => {
+    const cleanAr = String(ar ?? '').trim();
+    const cleanMl = String(ml ?? '').trim();
+    if (!cleanAr || !cleanMl) return;
+    if (/[_→\/]/.test(cleanAr)) return;
+    if (/[\u0D00-\u0D7F]/.test(cleanAr)) return;
+    if (!/[\u0621-\u064A]/.test(cleanAr)) return;
+
+    const normKey = normalizeArabicDictation(cleanAr);
+    if (!normKey || seen.has(normKey)) return;
+    const wordCount = normKey.split(/\s+/).filter(Boolean).length;
+    if (wordCount < 1 || wordCount > 4) return;
+    seen.add(normKey);
+
+    const entry: VocabEntry = { ar: cleanAr, tr: String(tr ?? '').trim(), ml: cleanMl };
+    const bareLetters = normKey.replace(/\s+/g, '');
+    if (bareLetters.length >= 2) {
+      multiLetter.push(entry);
+    } else {
+      singleLetter.push(entry);
+    }
+  };
+
+  for (const g of unit.guidebook ?? []) {
+    pushCandidate(g.ar, g.tr, g.ml);
+  }
+  for (const l of unit.lessons) {
+    if (l.nodeType === 'chest') continue;
+    for (const q of l.questions) {
+      if (q.type === 'pairs') {
+        for (const p of q.pairs) {
+          pushCandidate(p.ar, p.tr ?? '', p.ml);
+        }
+      } else if ((q.type === 'mcq' || q.type === 'listen') && q.arabic && !q.isArabicOption) {
+        pushCandidate(q.arabic, q.translit ?? '', q.answer);
+      } else if (q.type === 'fill_blank' && q.sentence && q.answer && q.hintMl) {
+        pushCandidate(buildFilledSentence(q.sentence, q.answer), '', q.hintMl);
+      }
+    }
+  }
+
+  return multiLetter.length >= 3 ? multiLetter : [...multiLetter, ...singleLetter];
 }
 
 /**
@@ -883,8 +993,12 @@ export function buildLessonSessionQuestions(
     spacedRepetition.some((q) => q.type === t) ||
     reinforcements.some((q) => q.type === t);
 
+  const baseTargetCount = targetCount;
+  const maxSessionCount = lesson.nodeType === 'trophy' ? 12 : 12;
+  let effectiveTargetCount = baseTargetCount;
+
   for (const requiredType of ALL_QUESTION_TYPES) {
-    if (currentTotal() >= targetCount) break;
+    if (currentTotal() >= maxSessionCount) break;
     if (hasType(requiredType)) continue;
     for (const cand of allCandidates) {
       if (cand.type !== requiredType) continue;
@@ -897,14 +1011,35 @@ export function buildLessonSessionQuestions(
     handcrafted.some(isPodcastQuestion) ||
     spacedRepetition.some(isPodcastQuestion) ||
     reinforcements.some(isPodcastQuestion);
-  if (currentTotal() < targetCount && !hasPodcast()) {
+  if (currentTotal() < maxSessionCount && !hasPodcast()) {
     for (const cand of allCandidates) {
       if (!isPodcastQuestion(cand)) continue;
       if (tryAccept(reinforcements, cand, false)) break;
     }
   }
 
-  // 5. Fill remaining slots up to targetCount (10-12) balancing across question types
+  // 4c. Mix 1-2 Dictation ("Type What You Hear") exercises into regular lessons and 2 into Hard Practice nodes
+  const countDictation = () =>
+    [...handcrafted, ...spacedRepetition, ...reinforcements].filter((q) => q.type === 'dictation')
+      .length;
+  const desiredDictationCount = lesson.nodeType === 'hard' ? 2 : 1;
+  while (countDictation() < desiredDictationCount && currentTotal() < maxSessionCount) {
+    let addedDictation = false;
+    for (const cand of allCandidates) {
+      if (cand.type !== 'dictation') continue;
+      if (tryAccept(reinforcements, cand, false)) {
+        addedDictation = true;
+        break;
+      }
+    }
+    if (!addedDictation) break;
+  }
+
+  if (currentTotal() > effectiveTargetCount) {
+    effectiveTargetCount = Math.min(maxSessionCount, currentTotal());
+  }
+
+  // 5. Fill remaining slots up to effectiveTargetCount (10-12) balancing across question types
   const typeCounts: Record<LessonQuestion['type'], number> = {
     mcq: 0,
     listen: 0,
@@ -914,16 +1049,18 @@ export function buildLessonSessionQuestions(
     radio_tf: 0,
     radio_select3: 0,
     radio_mcq: 0,
+    dictation: 0,
   };
   for (const q of [...handcrafted, ...spacedRepetition, ...reinforcements]) {
     typeCounts[q.type] += 1;
   }
 
-  while (currentTotal() < targetCount) {
-    // Pick the least-represented question type (capping pairs at 2 so sessions stay snappy)
-    const prioritizedTypes = [...ALL_QUESTION_TYPES].sort((a, b) => {
-      const penA = a === 'pairs' && typeCounts.pairs >= 2 ? 10 : 0;
-      const penB = b === 'pairs' && typeCounts.pairs >= 2 ? 10 : 0;
+  const fillTypes: readonly LessonQuestion['type'][] = [...ALL_QUESTION_TYPES, 'dictation'];
+  while (currentTotal() < effectiveTargetCount) {
+    // Pick the least-represented question type (capping pairs & dictation at 2 so sessions stay snappy)
+    const prioritizedTypes = [...fillTypes].sort((a, b) => {
+      const penA = (a === 'pairs' && typeCounts.pairs >= 2) || (a === 'dictation' && typeCounts.dictation >= 2) ? 10 : 0;
+      const penB = (b === 'pairs' && typeCounts.pairs >= 2) || (b === 'dictation' && typeCounts.dictation >= 2) ? 10 : 0;
       return typeCounts[a] + penA - (typeCounts[b] + penB);
     });
 
@@ -967,7 +1104,7 @@ export function buildLessonSessionQuestions(
     ordered.splice(latePos, 0, spacedRepetition[1]);
   }
 
-  return prepareSessionQuestions(ordered.slice(0, targetCount), rng);
+  return prepareSessionQuestions(ordered.slice(0, effectiveTargetCount), rng);
 }
 
 /**
@@ -1016,13 +1153,14 @@ export function buildLegendarySessionQuestions(
   const combined = [...basePool, ...shuffleArray(extraDynamic, rng)];
 
   const difficultyRank = (q: LessonQuestion): number => {
-    if (q.type === 'wordbank' && q.isArabicWords) return 0;
-    if (q.type === 'fill_blank') return 1;
-    if (q.type === 'listen') return 2;
-    if (q.type === 'mcq' && q.isArabicOption) return 3;
-    if (q.type === 'wordbank') return 4;
-    if (q.type === 'mcq') return 5;
-    return 6;
+    if (q.type === 'dictation') return 0;
+    if (q.type === 'wordbank' && q.isArabicWords) return 1;
+    if (q.type === 'fill_blank') return 2;
+    if (q.type === 'listen') return 3;
+    if (q.type === 'mcq' && q.isArabicOption) return 4;
+    if (q.type === 'wordbank') return 5;
+    if (q.type === 'mcq') return 6;
+    return 7;
   };
 
   const ranked = [...combined].sort((a, b) => difficultyRank(a) - difficultyRank(b));

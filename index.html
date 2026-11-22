@@ -4719,6 +4719,29 @@
       return copy;
     }
 
+    const ARABIC_QUICK_KEYS = [
+      "ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر", "ز", "س", "ش",
+      "ص", "ض", "ط", "ظ", "ع", "غ", "ف", "ق", "ك", "ل", "م", "ن", "ه",
+      "و", "ي", "ة", "ى", "أ", "إ", "آ", "ئ", "ؤ"
+    ];
+
+    function normalizeArabicDictation(text) {
+      return String(text ?? "")
+        .normalize("NFC")
+        .replace(/[\u200B-\u200F\uFEFF\u0640\u064B-\u065F\u0670\u06D6-\u06ED]/g, "")
+        .replace(/[أإآٱ]/g, "ا")
+        .replace(/ى/g, "ي")
+        .replace(/[.,!؟?،؛:"'()\[\]«»\-–—…\/\\]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function areDictationAnswersEqual(userInput, expectedArabic) {
+      const normUser = normalizeArabicDictation(userInput);
+      const normExpected = normalizeArabicDictation(expectedArabic);
+      return Boolean(normExpected) && normUser === normExpected;
+    }
+
     function isPodcastQuestion(q) {
       return Boolean(q && (q.type === "radio_tf" || q.type === "radio_select3" || q.type === "radio_mcq"));
     }
@@ -4752,8 +4775,8 @@
     const ALL_QUESTION_TYPES = ["mcq", "listen", "pairs", "wordbank", "fill_blank"];
 
     function resolveLessonTargetCount(lesson) {
-      if (lesson.nodeType === "trophy" || lesson.nodeType === "listening") return 12;
-      if (lesson.nodeType === "hard" || lesson.nodeType === "dialogue" || lesson.nodeType === "story" || lesson.nodeType === "practice" || lesson.nodeType === "wordbank") {
+      if (lesson.nodeType === "trophy" || lesson.nodeType === "listening" || lesson.nodeType === "hard") return 12;
+      if (lesson.nodeType === "dialogue" || lesson.nodeType === "story" || lesson.nodeType === "practice" || lesson.nodeType === "wordbank") {
         return 11;
       }
       return 10;
@@ -4765,6 +4788,7 @@
       if (q.type === "listen") return `listen|${norm(q.arabic)}|${norm(q.answer)}`;
       if (q.type === "wordbank") return `wordbank|${norm(q.arabic || q.prompt)}|${norm((q.answer || []).join(" "))}`;
       if (q.type === "fill_blank") return `fill_blank|${norm(q.sentence)}|${norm(q.answer)}`;
+      if (q.type === "dictation") return `dictation|${normalizeArabicDictation(q.arabic)}`;
       if (q.type === "radio_tf") return `radio_tf|${norm(q.arabic)}|${norm(q.statementMl)}|${String(q.answer)}`;
       if (q.type === "radio_select3") return `radio_select3|${norm(q.arabic)}|${(q.answers || []).map(norm).sort().join(",")}`;
       if (q.type === "radio_mcq") return `radio_mcq|${norm(q.arabic)}|${norm(q.answer)}`;
@@ -4872,7 +4896,57 @@
           });
         }
       }
+
+      const dictationCandidates = shuffleArray(collectUnitDictationPool(unit));
+      dictationCandidates.forEach((entry, idx) => {
+        generated.push({
+          type: "dictation",
+          prompt: "ശബ്ദം കേട്ട് അറബിയിൽ ടൈപ്പ് ചെയ്യുക",
+          arabic: entry.ar,
+          translit: entry.tr || undefined,
+          meaningMl: entry.ml,
+          avatar: idx % 2 === 0 ? "🧕" : "👳‍♂️"
+        });
+      });
+
       return generated;
+    }
+
+    function collectUnitDictationPool(unit) {
+      const seen = new Set();
+      const multiLetter = [];
+      const singleLetter = [];
+      const pushCandidate = (ar, tr, ml) => {
+        const cleanAr = String(ar || "").trim();
+        const cleanMl = String(ml || "").trim();
+        if (!cleanAr || !cleanMl) return;
+        if (/[_→\/]/.test(cleanAr)) return;
+        if (/[\u0D00-\u0D7F]/.test(cleanAr)) return;
+        if (!/[\u0621-\u064A]/.test(cleanAr)) return;
+        const normKey = normalizeArabicDictation(cleanAr);
+        if (!normKey || seen.has(normKey)) return;
+        const wordCount = normKey.split(/\s+/).filter(Boolean).length;
+        if (wordCount < 1 || wordCount > 4) return;
+        seen.add(normKey);
+        const entry = { ar: cleanAr, tr: String(tr || "").trim(), ml: cleanMl };
+        const bareLetters = normKey.replace(/\s+/g, "");
+        if (bareLetters.length >= 2) multiLetter.push(entry);
+        else singleLetter.push(entry);
+      };
+      (unit.guidebook || []).forEach(g => pushCandidate(g.ar, g.tr, g.ml));
+      (unit.lessons || []).forEach(l => {
+        if (l.nodeType === "chest") return;
+        (l.questions || []).forEach(q => {
+          if (q.type === "pairs") {
+            (q.pairs || []).forEach(p => pushCandidate(p.ar, p.tr, p.ml));
+          } else if ((q.type === "mcq" || q.type === "listen") && q.arabic && !q.isArabicOption) {
+            pushCandidate(q.arabic, q.translit, q.answer);
+          } else if (q.type === "fill_blank" && q.sentence && q.answer && q.hintMl) {
+            pushCandidate(buildFilledSentence(q.sentence, q.answer), "", q.hintMl);
+          }
+        });
+      });
+      return multiLetter.length >= 3 ? multiLetter : [...multiLetter, ...singleLetter];
     }
 
     function buildLessonSessionQuestions(lesson, completedLessons, units) {
@@ -4952,8 +5026,11 @@
         spacedRepetition.some(q => q.type === t) ||
         reinforcements.some(q => q.type === t);
 
+      const maxSessionCount = 12;
+      let effectiveTargetCount = targetCount;
+
       for (const requiredType of ALL_QUESTION_TYPES) {
-        if (currentTotal() >= targetCount) break;
+        if (currentTotal() >= maxSessionCount) break;
         if (hasType(requiredType)) continue;
         for (const cand of allCandidates) {
           if (cand.type !== requiredType) continue;
@@ -4965,20 +5042,37 @@
         handcrafted.some(isPodcastQuestion) ||
         spacedRepetition.some(isPodcastQuestion) ||
         reinforcements.some(isPodcastQuestion);
-      if (currentTotal() < targetCount && !hasPodcast()) {
+      if (currentTotal() < maxSessionCount && !hasPodcast()) {
         for (const cand of allCandidates) {
           if (!isPodcastQuestion(cand)) continue;
           if (tryAccept(reinforcements, cand, false)) break;
         }
       }
 
-      const typeCounts = { mcq: 0, listen: 0, pairs: 0, wordbank: 0, fill_blank: 0, radio_tf: 0, radio_select3: 0, radio_mcq: 0 };
+      const countDictation = () =>
+        [...handcrafted, ...spacedRepetition, ...reinforcements].filter(q => q.type === "dictation").length;
+      const desiredDictationCount = lesson.nodeType === "hard" ? 2 : 1;
+      while (countDictation() < desiredDictationCount && currentTotal() < maxSessionCount) {
+        let addedDict = false;
+        for (const cand of allCandidates) {
+          if (cand.type !== "dictation") continue;
+          if (tryAccept(reinforcements, cand, false)) { addedDict = true; break; }
+        }
+        if (!addedDict) break;
+      }
+
+      if (currentTotal() > effectiveTargetCount) {
+        effectiveTargetCount = Math.min(maxSessionCount, currentTotal());
+      }
+
+      const typeCounts = { mcq: 0, listen: 0, pairs: 0, wordbank: 0, fill_blank: 0, radio_tf: 0, radio_select3: 0, radio_mcq: 0, dictation: 0 };
       [...handcrafted, ...spacedRepetition, ...reinforcements].forEach(q => { typeCounts[q.type] = (typeCounts[q.type] || 0) + 1; });
 
-      while (currentTotal() < targetCount) {
-        const prioritizedTypes = [...ALL_QUESTION_TYPES].sort((a, b) => {
-          const penA = a === "pairs" && typeCounts.pairs >= 2 ? 10 : 0;
-          const penB = b === "pairs" && typeCounts.pairs >= 2 ? 10 : 0;
+      const fillTypes = [...ALL_QUESTION_TYPES, "dictation"];
+      while (currentTotal() < effectiveTargetCount) {
+        const prioritizedTypes = [...fillTypes].sort((a, b) => {
+          const penA = (a === "pairs" && typeCounts.pairs >= 2) || (a === "dictation" && typeCounts.dictation >= 2) ? 10 : 0;
+          const penB = (b === "pairs" && typeCounts.pairs >= 2) || (b === "dictation" && typeCounts.dictation >= 2) ? 10 : 0;
           return (typeCounts[a] + penA) - (typeCounts[b] + penB);
         });
         let added = false;
@@ -5009,7 +5103,7 @@
       if (spacedRepetition.length >= 1) ordered.splice(Math.min(4, ordered.length), 0, spacedRepetition[0]);
       if (spacedRepetition.length >= 2) ordered.splice(Math.min(8, ordered.length), 0, spacedRepetition[1]);
 
-      return prepareSessionQuestions(ordered.slice(0, targetCount));
+      return prepareSessionQuestions(ordered.slice(0, effectiveTargetCount));
     }
 
     function normalizeWordBankText(text) {
@@ -5066,13 +5160,14 @@
       const extraDynamic = unit ? generateDynamicUnitQuestions(unit) : [];
       const combined = [...basePool, ...shuffleArray(extraDynamic)];
       const rank = q => {
-        if (q.type === "wordbank" && q.isArabicWords) return 0;
-        if (q.type === "fill_blank") return 1;
-        if (q.type === "listen") return 2;
-        if (q.type === "mcq" && q.isArabicOption) return 3;
-        if (q.type === "wordbank") return 4;
-        if (q.type === "mcq") return 5;
-        return 6;
+        if (q.type === "dictation") return 0;
+        if (q.type === "wordbank" && q.isArabicWords) return 1;
+        if (q.type === "fill_blank") return 2;
+        if (q.type === "listen") return 3;
+        if (q.type === "mcq" && q.isArabicOption) return 4;
+        if (q.type === "wordbank") return 5;
+        if (q.type === "mcq") return 6;
+        return 7;
       };
       const ranked = [...combined].sort((a, b) => rank(a) - rank(b));
       const seen = new Set();
@@ -5415,7 +5510,7 @@
 
     function shouldShowArabicPromptCard(q) {
       if (!q || !q.arabic) return false;
-      if (isPodcastQuestion(q)) return false;
+      if (q.type === "dictation" || isPodcastQuestion(q)) return false;
       if (q.type === "listen") return true;
       if (q.type === "wordbank") return !q.isArabicWords;
       if (q.type === "mcq" && q.isArabicOption) {
@@ -5463,6 +5558,8 @@
 
       activeSession.selectedAnswer = null; activeSession.wordBankSelected = [];
       activeSession.podcastSelectedWords = []; activeSession.podcastTranscriptOpen = false;
+      activeSession.dictationInput = "";
+      if (typeof activeSession.quickKeysOpen !== "boolean") activeSession.quickKeysOpen = true;
       activeSession.pairsMatched = 0; activeSession.selectedLeft = null;
       activeSession.selectedRight = null; activeSession.isAnswered = false;
 
@@ -5933,6 +6030,178 @@
 
           speakArabic(q.arabic, 1.0, playPauseBtn);
         }, 80);
+      } else if (q.type === "dictation") {
+        const avatarEmoji = q.avatar || "🧕";
+        const wrap = document.createElement("div");
+        wrap.className = "space-y-5";
+        wrap.dataset.testid = "dictation-exercise";
+
+        // 1. Audio-Only Character Avatar + Dual-Button Audio Capsule (NO written Arabic text initially)
+        const capsuleRow = document.createElement("div");
+        capsuleRow.className = "flex items-center gap-3 sm:gap-4";
+        capsuleRow.innerHTML = `
+          <div aria-hidden="true" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-emerald-50 border-2 border-b-4 border-sky-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none">${avatarEmoji}</div>
+          <div class="relative flex-1 rounded-2xl border-2 border-b-4 border-sky-200 bg-sky-50/70 p-3.5 sm:p-4">
+            <div aria-hidden="true" class="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 bg-sky-50 border-l-2 border-b-2 border-sky-200 rotate-45"></div>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+              <button type="button" id="dictation-normal-btn" data-testid="dictation-play-normal" aria-label="സാധാരണ വേഗത്തിൽ കേൾക്കുക" class="btn-3d h-11 sm:h-12 px-3.5 sm:px-5 rounded-2xl bg-[#1CB0F6] hover:bg-[#1899D6] border-b-4 border-[#1177A8] text-white font-extrabold text-sm flex items-center gap-1.5 sm:gap-2 whitespace-nowrap transition">
+                <span class="text-lg" aria-hidden="true">🔊</span>
+                <span>കേൾക്കുക</span>
+              </button>
+              <button type="button" id="dictation-slow-btn" data-testid="dictation-play-slow" aria-label="പതുക്കെ കേൾക്കുക (0.65x)" title="പതുക്കെ കേൾക്കുക (0.65x)" class="btn-3d h-11 sm:h-12 px-3 sm:px-4 rounded-2xl bg-white hover:bg-slate-50 border-2 border-b-4 border-slate-200 text-slate-700 font-extrabold text-sm flex items-center gap-1.5 whitespace-nowrap transition">
+                <span class="text-lg" aria-hidden="true">🐢</span>
+                <span class="font-latin tabular-nums">0.65x</span>
+              </button>
+            </div>
+            <p class="text-xs font-bold text-slate-600 mt-2">ശ്രദ്ധിച്ച് കേട്ട് അറബിയിൽ ടൈപ്പ് ചെയ്യുക · ഹറകത്ത് നിർബന്ധമില്ല</p>
+          </div>`;
+        wrap.appendChild(capsuleRow);
+
+        // 2. Large RTL Arabic Input Box
+        const inputWrap = document.createElement("div");
+        inputWrap.className = "relative";
+        inputWrap.innerHTML = `
+          <label for="dictation-input" class="sr-only">കേട്ട അറബി വാക്ക് ടൈപ്പ് ചെയ്യുക</label>
+          <input id="dictation-input" data-testid="dictation-input" type="text" dir="rtl" lang="ar" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="കേട്ട അറബി വാക്ക് ഇവിടെ ടൈപ്പ് ചെയ്യുക...&#x200E;" class="w-full rounded-2xl border-2 border-b-4 border-slate-300 bg-white text-slate-900 px-5 py-4 pl-12 font-arabic text-2xl sm:text-3xl font-bold placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:font-semibold placeholder:text-slate-400 focus:border-[#1CB0F6] focus:ring-4 focus:ring-sky-100 focus:outline-none transition" />
+          <button type="button" id="dictation-clear-btn" aria-label="ടൈപ്പ് ചെയ്തത് മായ്ക്കുക" class="hidden absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 items-center justify-center font-bold text-sm transition">✕</button>`;
+        wrap.appendChild(inputWrap);
+
+        // 3. Post-Check Vocalized Arabic + Malayalam Meaning Reveal Card (hidden until Check)
+        const revealCard = document.createElement("div");
+        revealCard.id = "dictation-reveal-card";
+        revealCard.dataset.testid = "dictation-reveal";
+        revealCard.className = "hidden rounded-2xl border-2 p-4 sm:p-5 animate-pop space-y-2.5";
+        revealCard.innerHTML = `
+          <div class="flex items-center justify-between gap-2 pb-2 border-b border-black/5">
+            <div id="dictation-reveal-label" class="text-xs font-extrabold text-emerald-800"></div>
+            <button type="button" id="dictation-reveal-speak-btn" aria-label="ശരിയായ ഉച്ചാരണം വീണ്ടും കേൾക്കുക" class="btn-3d w-9 h-9 rounded-xl bg-white border-2 border-b-4 border-slate-200 text-[#0284C7] hover:bg-sky-50 text-base flex items-center justify-center shrink-0">🔊</button>
+          </div>
+          <div class="text-center space-y-1 pt-0.5">
+            <div dir="rtl" class="font-arabic text-3xl sm:text-4xl font-bold text-slate-900 leading-relaxed">${q.arabic}</div>
+            ${!hideTranslit && q.translit ? `<p data-translit="true" class="text-xs sm:text-sm font-bold text-[#0369A1]">${q.translit}</p>` : ""}
+            <p class="text-sm sm:text-base font-extrabold text-slate-800 pt-0.5">${q.meaningMl || ""}</p>
+          </div>`;
+        wrap.appendChild(revealCard);
+
+        // 4. Built-in Mini Arabic Quick-Key Helper (collapsible)
+        const helperBox = document.createElement("div");
+        helperBox.id = "arabic-quick-keys-box";
+        helperBox.dataset.testid = "arabic-quick-keys";
+        helperBox.className = "rounded-2xl border-2 border-slate-200 bg-slate-50/90 overflow-hidden";
+        helperBox.innerHTML = `
+          <button type="button" id="toggle-quick-keys-btn" data-testid="toggle-quick-keys-btn" aria-expanded="${activeSession.quickKeysOpen ? "true" : "false"}" class="w-full px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 text-left text-xs font-extrabold text-slate-700 hover:bg-slate-100/80 transition">
+            <span class="inline-flex items-center gap-2 min-w-0">
+              <span aria-hidden="true" class="shrink-0">⌨️</span>
+              <span class="truncate">അറബി ക്വിക്ക് കീബോർഡ് <span class="hidden sm:inline font-semibold text-slate-500">(Arabic Quick Keys)</span></span>
+            </span>
+            <span id="toggle-quick-keys-label" class="text-slate-500 shrink-0 whitespace-nowrap">${activeSession.quickKeysOpen ? "മറയ്ക്കുക ▲" : "തുറക്കുക ▼"}</span>
+          </button>
+          <div id="arabic-quick-keys-panel" class="${activeSession.quickKeysOpen ? "" : "hidden "}px-3 pb-3 pt-1.5 border-t border-slate-200/80 space-y-2">
+            <div dir="rtl" class="flex flex-wrap justify-center gap-1.5">
+              ${ARABIC_QUICK_KEYS.map(ch => `<button type="button" data-ar-key="${ch}" aria-label="അറബി അക്ഷരം ${ch}" class="arabic-quick-key btn-3d min-w-[38px] sm:min-w-[42px] h-10 sm:h-11 px-2 rounded-xl bg-white hover:bg-sky-50 border border-b-[3px] border-slate-300 hover:border-[#1CB0F6] font-arabic text-xl sm:text-2xl font-bold text-slate-900 flex items-center justify-center transition">${ch}</button>`).join("")}
+            </div>
+            <div class="flex items-center gap-2 pt-0.5">
+              <button type="button" id="arabic-key-space" data-testid="arabic-key-space" aria-label="സ്പേസ് (Space)" class="btn-3d flex-1 h-10 rounded-xl bg-white hover:bg-sky-50 border border-b-[3px] border-slate-300 hover:border-[#1CB0F6] text-xs font-extrabold text-slate-700 flex items-center justify-center gap-1.5 transition">
+                <span>␣</span><span>സ്പേസ് (Space)</span>
+              </button>
+              <button type="button" id="arabic-key-backspace" data-testid="arabic-key-backspace" aria-label="മായ്ക്കുക (Backspace)" class="btn-3d px-4 h-10 rounded-xl bg-rose-50 hover:bg-rose-100 border border-b-[3px] border-rose-200 text-xs font-extrabold text-rose-700 flex items-center justify-center gap-1.5 transition">
+                <span>⌫</span><span>മായ്ക്കുക</span>
+              </button>
+            </div>
+          </div>`;
+        wrap.appendChild(helperBox);
+        body.appendChild(wrap);
+
+        // Wire dictation controls & auto-play audio once
+        setTimeout(() => {
+          const inputEl = document.getElementById("dictation-input");
+          const clearBtn = document.getElementById("dictation-clear-btn");
+          const normalBtn = document.getElementById("dictation-normal-btn");
+          const slowBtn = document.getElementById("dictation-slow-btn");
+          const revealSpeakBtn = document.getElementById("dictation-reveal-speak-btn");
+          const toggleBtn = document.getElementById("toggle-quick-keys-btn");
+          const toggleLabel = document.getElementById("toggle-quick-keys-label");
+          const keysPanel = document.getElementById("arabic-quick-keys-panel");
+          const spaceBtn = document.getElementById("arabic-key-space");
+          const backspaceBtn = document.getElementById("arabic-key-backspace");
+
+          const syncDictationState = () => {
+            if (!inputEl) return;
+            activeSession.dictationInput = inputEl.value;
+            const hasVal = inputEl.value.trim().length > 0;
+            if (clearBtn) {
+              clearBtn.classList.toggle("hidden", inputEl.value.length === 0 || activeSession.isAnswered);
+              clearBtn.classList.toggle("flex", inputEl.value.length > 0 && !activeSession.isAnswered);
+            }
+            if (!activeSession.isAnswered) {
+              if (hasVal) enableCheckBtn(); else disableCheckBtn();
+            }
+          };
+
+          const insertAtCursor = (txt) => {
+            if (!inputEl || activeSession.isAnswered) return;
+            playTone("tap");
+            const start = typeof inputEl.selectionStart === "number" ? inputEl.selectionStart : inputEl.value.length;
+            const end = typeof inputEl.selectionEnd === "number" ? inputEl.selectionEnd : inputEl.value.length;
+            inputEl.value = inputEl.value.slice(0, start) + txt + inputEl.value.slice(end);
+            const nextPos = start + txt.length;
+            inputEl.focus();
+            try { inputEl.setSelectionRange(nextPos, nextPos); } catch (_) {}
+            syncDictationState();
+          };
+
+          const deleteAtCursor = () => {
+            if (!inputEl || activeSession.isAnswered) return;
+            playTone("tap");
+            const start = typeof inputEl.selectionStart === "number" ? inputEl.selectionStart : inputEl.value.length;
+            const end = typeof inputEl.selectionEnd === "number" ? inputEl.selectionEnd : inputEl.value.length;
+            if (start !== end) {
+              inputEl.value = inputEl.value.slice(0, start) + inputEl.value.slice(end);
+              inputEl.focus();
+              try { inputEl.setSelectionRange(start, start); } catch (_) {}
+            } else if (start > 0) {
+              inputEl.value = inputEl.value.slice(0, start - 1) + inputEl.value.slice(end);
+              inputEl.focus();
+              try { inputEl.setSelectionRange(start - 1, start - 1); } catch (_) {}
+            }
+            syncDictationState();
+          };
+
+          inputEl?.addEventListener("input", syncDictationState);
+          inputEl?.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !activeSession.isAnswered && inputEl.value.trim().length > 0) {
+              e.preventDefault();
+              document.getElementById("check-answer-btn")?.click();
+            }
+          });
+          clearBtn?.addEventListener("click", () => {
+            if (!inputEl || activeSession.isAnswered) return;
+            playTone("tap");
+            inputEl.value = "";
+            inputEl.focus();
+            syncDictationState();
+          });
+
+          helperBox.querySelectorAll(".arabic-quick-key").forEach(keyBtn => {
+            keyBtn.addEventListener("click", () => insertAtCursor(keyBtn.dataset.arKey || ""));
+          });
+          spaceBtn?.addEventListener("click", () => insertAtCursor(" "));
+          backspaceBtn?.addEventListener("click", deleteAtCursor);
+
+          toggleBtn?.addEventListener("click", () => {
+            playTone("tap");
+            activeSession.quickKeysOpen = !activeSession.quickKeysOpen;
+            toggleBtn.setAttribute("aria-expanded", activeSession.quickKeysOpen ? "true" : "false");
+            if (keysPanel) keysPanel.classList.toggle("hidden", !activeSession.quickKeysOpen);
+            if (toggleLabel) toggleLabel.textContent = activeSession.quickKeysOpen ? "മറയ്ക്കുക ▲" : "തുറക്കുക ▼";
+          });
+
+          normalBtn?.addEventListener("click", () => speakArabic(q.arabic, 1.0, normalBtn));
+          slowBtn?.addEventListener("click", () => speakArabic(q.arabic, 0.65, slowBtn));
+          revealSpeakBtn?.addEventListener("click", () => speakArabic(q.arabic, 1.0, revealSpeakBtn));
+
+          speakArabic(q.arabic, 1.0, normalBtn);
+        }, 80);
       }
 
       container.appendChild(body);
@@ -6036,6 +6305,38 @@
             if (badge) badge.className = "radio-mcq-idx w-7 h-7 rounded-lg border-2 border-slate-200 bg-slate-100 text-slate-400 text-xs font-extrabold flex items-center justify-center shrink-0 tabular-nums";
           }
         });
+      }
+      else if (q.type === "dictation") {
+        const inputEl = document.getElementById("dictation-input");
+        const typedVal = inputEl ? inputEl.value : (activeSession.dictationInput || "");
+        ok = areDictationAnswersEqual(typedVal, q.arabic);
+        ansText = q.arabic;
+        if (inputEl) {
+          inputEl.disabled = true;
+          inputEl.className = `w-full rounded-2xl border-2 border-b-4 px-5 py-4 font-arabic text-2xl sm:text-3xl font-bold transition ${
+            ok
+              ? "border-[#4AA802] bg-emerald-50/70 text-emerald-950"
+              : "border-rose-500 bg-rose-50/70 text-rose-950"
+          }`;
+        }
+        const clearBtn = document.getElementById("dictation-clear-btn");
+        if (clearBtn) { clearBtn.classList.add("hidden"); clearBtn.classList.remove("flex"); }
+        const helperBox = document.getElementById("arabic-quick-keys-box");
+        if (helperBox) helperBox.classList.add("hidden");
+        const revealCard = document.getElementById("dictation-reveal-card");
+        const revealLabel = document.getElementById("dictation-reveal-label");
+        if (revealCard) {
+          revealCard.className = `rounded-2xl border-2 p-4 sm:p-5 animate-pop ${
+            ok ? "bg-emerald-50/90 border-emerald-300" : "bg-amber-50/95 border-amber-300"
+          }`;
+          revealCard.classList.remove("hidden");
+        }
+        if (revealLabel) {
+          revealLabel.className = `text-xs font-extrabold ${ok ? "text-emerald-800" : "text-amber-900"}`;
+          revealLabel.textContent = ok
+            ? "✓ പൂർണ്ണ ഹറകത്തോടുകൂടിയ അറബി രൂപം"
+            : "✕ ശരിയായ അറബി രൂപവും അർത്ഥവും";
+        }
       }
 
       if (isPodcastQuestion(q)) {
