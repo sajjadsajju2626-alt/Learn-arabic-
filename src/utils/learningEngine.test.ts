@@ -51,8 +51,12 @@ import {
   collectQuestionArabicTexts,
   formatForArabicTTS,
   getArabicLetterAudioUrl,
+  getDuaAudioUrl,
+  isPremiumNeuralArabicVoice,
+  normalizeDuaLookupKey,
   preloadArabicAudio,
   resolveArabicPlaybackRate,
+  selectBestArabicVoice,
 } from './audio';
 import type { LessonQuestion, UserState } from '../types/learning';
 
@@ -1308,7 +1312,66 @@ test('formatForArabicTTS applies Sun-letter assimilation, natural pausal endings
   assert.equal(swordFb.optionTranslits?.['كَالسَّيْفِ'], 'കസ്സയ്ഫ്');
   assert.equal(swordFb.optionTranslits?.['كَالْمَاءِ'], 'കൽമാഅ്');
   assert.equal(swordFb.optionTranslits?.['كَالْبَيْتِ'], 'കൽബയ്ത്');
+
+  // Connected Hamzatul Wasl prepositions before ال
+  assert.equal(formatForArabicTTS('فِي الْمَسْجِدِ'), 'فِلْمَسْجِدْ');
+  assert.equal(formatForArabicTTS('فِي السُّوقِ'), 'فِسُّوقْ');
+  assert.equal(formatForArabicTTS('أَنَا أَذْهَبُ إِلَى الْمَسْجِدِ'), 'أَنَا أَذْهَبُ إِلَلْمَسْجِدْ');
+  assert.equal(formatForArabicTTS('الْكِتَابُ عَلَى الطَّاوِلَةِ'), 'الْكِتَابُ عَلَطَّاوِلَةْ');
+  assert.equal(formatForArabicTTS('أَنَا مِنَ الْهِنْدِ'), 'أَنَا مِنَلْهِنْدْ');
+  assert.equal(formatForArabicTTS('فِي اللّٰهِ'), 'فِي اللّٰهْ');
 });
+
+test('hisnmuslim.com Du-a MP3 routing and Hamed/Maged Neural Arabic voice prioritization work accurately', () => {
+  // 1. Direct MP3 endpoints from hisnmuslim.com for Du'as & Dhikr (crossOrigin: true + Cloud TTS backups)
+  const duaExpectations: Array<[string, string]> = [
+    ['بِسْمِ اللّٰهِ تَوَكَّلْتُ عَلَى اللّٰهِ', 'https://www.hisnmuslim.com/audio/ar/16.mp3'],
+    ['جَزَاكَ اللّٰهُ خَيْرًا', 'https://www.hisnmuslim.com/audio/ar/198.mp3'],
+    ['غُفْرَانَكَ', 'https://www.hisnmuslim.com/audio/ar/11.mp3'],
+    ['اَلْحَمْدُ لِلّٰهِ الَّذِي أَحْيَانَا', 'https://www.hisnmuslim.com/audio/ar/1.mp3'],
+    ['سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ', 'https://www.hisnmuslim.com/audio/ar/91.mp3'],
+    ['اللّٰهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبْثِ وَالْخَبَائِثِ', 'https://www.hisnmuslim.com/audio/ar/10.mp3'],
+  ];
+
+  for (const [duaText, expectedUrl] of duaExpectations) {
+    assert.ok(normalizeDuaLookupKey(duaText).length > 0);
+    assert.equal(getDuaAudioUrl(duaText), expectedUrl);
+    assert.equal(buildArabicTtsUrl(duaText), expectedUrl);
+
+    const sources = buildArabicAudioSources(duaText);
+    assert.equal(sources[0].provider, 'hisnmuslim');
+    assert.equal(sources[0].url, expectedUrl);
+    assert.equal(sources[0].crossOrigin, true);
+    assert.ok(sources.length >= 3, 'Must preserve Cloud TTS backups after HisnMuslim MP3');
+    assert.equal(sources[1].provider, 'streamelements');
+    assert.equal(sources[2].provider, 'youdao');
+  }
+
+  // Non-Du'a lesson sentence must NOT accidentally match HisnMuslim MP3
+  assert.equal(getDuaAudioUrl('كَالسَّيْفِ'), null);
+  assert.equal(getDuaAudioUrl('أَيْنَ الْمَسْجِدُ؟'), null);
+
+  // 2. Neural Arabic voice priority: Hamed Neural > Maged > Google Arabic > robotic eSpeak
+  const espeakVoice = { name: 'Arabic eSpeak', lang: 'ar' };
+  const googleVoice = { name: 'Google العربية', lang: 'ar-SA' };
+  const magedVoice = { name: 'Maged', lang: 'ar-SA' };
+  const hamedVoice = { name: 'Microsoft Hamed Online (Natural) - Arabic (Saudi Arabia)', lang: 'ar-SA' };
+  const englishVoice = { name: 'Microsoft Aria Online (Natural) - English', lang: 'en-US' };
+
+  assert.equal(selectBestArabicVoice([englishVoice]), null);
+  assert.equal(selectBestArabicVoice([englishVoice, espeakVoice]), espeakVoice);
+  assert.equal(isPremiumNeuralArabicVoice(espeakVoice), false);
+
+  assert.equal(selectBestArabicVoice([espeakVoice, googleVoice]), googleVoice);
+  assert.equal(isPremiumNeuralArabicVoice(googleVoice), true);
+
+  assert.equal(selectBestArabicVoice([googleVoice, magedVoice]), magedVoice);
+  assert.equal(isPremiumNeuralArabicVoice(magedVoice), true);
+
+  assert.equal(selectBestArabicVoice([espeakVoice, googleVoice, magedVoice, hamedVoice]), hamedVoice);
+  assert.equal(isPremiumNeuralArabicVoice(hamedVoice), true);
+});
+
 
 
 

@@ -10,7 +10,14 @@ export interface ArabicAudioState {
 export interface ArabicAudioSource {
   url: string;
   crossOrigin: boolean;
-  provider: 'letter-mp3' | 'streamelements' | 'youdao';
+  provider: 'letter-mp3' | 'hisnmuslim' | 'streamelements' | 'youdao';
+}
+
+export interface SpeechVoiceLike {
+  name: string;
+  lang: string;
+  localService?: boolean;
+  default?: boolean;
 }
 
 interface CachedAudioMeta {
@@ -101,12 +108,120 @@ export function getArabicLetterAudioUrl(arabicText: string): string | null {
 const ALLAH_BARE_FORMS = new Set(['الله', 'لله', 'بالله', 'والله', 'تالله', 'فالله']);
 
 /**
+ * Connected Hamzatul Wasl elision prepositions before "ال" (e.g. فِي الْمَسْجِدِ -> فِلْمَسْجِدْ).
+ */
+const WASL_PREP_PREFIXES: Record<string, string> = {
+  في: 'فِ',
+  الى: 'إِلَ',
+  على: 'عَلَ',
+};
+
+/**
+ * Normalizes Arabic Du'a & Dhikr text for resilient lookup across Harakat,
+ * Superscript Alif, Alif variants, Tatweel, and punctuation.
+ */
+export function normalizeDuaLookupKey(arabicText: string): string {
+  return String(arabicText ?? '')
+    .trim()
+    .replace(/[\u0640\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/[.,!؟،؛:"'()\[\]«»\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Verified Hisn al-Muslim MP3 IDs hosted at https://www.hisnmuslim.com/audio/ar/<id>.mp3
+ */
+export const HISNMUSLIM_DUA_AUDIO_IDS: Readonly<Record<string, string>> = {
+  'الحمد لله الذي احيانا': '1',
+  'الحمد لله الذي احيانا بعد ما اماتنا واليه النشور': '1',
+  'لا اله الا الله وحده لا شريك له': '2',
+  'الحمد لله الذي عافاني في جسدي': '3',
+  'اللهم اني اعوذ بك من الخبث والخبائث': '10',
+  'بسم الله اللهم اني اعوذ بك من الخبث والخبائث': '10',
+  'غفرانك': '11',
+  'بسم الله توكلت على الله': '16',
+  'بسم الله توكلت على الله ولا حول ولا قوة الا بالله': '16',
+  'اللهم اني اعوذ بك ان اضل او اضل': '17',
+  'بسم الله ولجنا وبسم الله خرجنا': '18',
+  'بسم الله ولجنا وبسم الله خرجنا وعلى الله ربنا توكلنا': '18',
+  'اعوذ بالله العظيم وبوجهه الكريم': '20',
+  'بسم الله والصلاة والسلام على رسول الله': '21',
+  'اصبحنا واصبح الملك لله': '77',
+  'بسم الله الذي لا يضر مع اسمه شيء في الارض ولا في السماء': '86',
+  'سبحان الله وبحمده': '91',
+  'سبحان الله وبحمده عدد خلقه': '94',
+  'استغفر الله واتوب اليه': '96',
+  'لا باس طهور ان شاء الله': '147',
+  'اسال الله العظيم رب العرش العظيم ان يشفيك': '148',
+  'اللهم صيبا نافعا': '172',
+  'اللهم بارك لنا فيه واطعمنا خيرا منه': '179',
+  'الحمد لله الذي اطعمني هذا': '180',
+  'جزاك الله خيرا': '198',
+  'جزاكم الله خيرا': '198',
+  'بسم الله والحمد لله سبحان الذي سخر لنا هذا': '206',
+  'سبحان الذي سخر لنا هذا': '206',
+  'سبحان الله وبحمده سبحان الله العظيم': '256',
+  'سبحان الله والحمد لله ولا اله الا الله والله اكبر': '257',
+};
+
+export function getDuaAudioUrl(arabicText: string): string | null {
+  const key = normalizeDuaLookupKey(arabicText);
+  if (!key) return null;
+  const id = HISNMUSLIM_DUA_AUDIO_IDS[key];
+  if (!id) return null;
+  return `https://www.hisnmuslim.com/audio/ar/${id}.mp3`;
+}
+
+function formatSingleArabicToken(core: string, applyPausal: boolean): string {
+  let word = core;
+  const bareWord = word.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+  const isAllahForm = ALLAH_BARE_FORMS.has(bareWord);
+
+  // 1. Sun-letter (Al-Shamsiyyah) assimilation
+  if (!isAllahForm) {
+    // Prefixed ال (كَالـ, بِالـ, وَالـ, فَالـ) + Sun letter + Shadda -> strip Alif + silent Lam
+    word = word.replace(
+      /^([كبوف][\u064E-\u0650]?)ا[\u064E]?ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
+      '$1$2$3'
+    );
+    // Word-initial ال / اَل + Sun letter + Shadda -> strip silent Lam, keep Alif
+    word = word.replace(
+      /^ا([\u064E]?)ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
+      'ا$1$2$3'
+    );
+    // Preposition لِـ + ال (لِلـ) + Sun letter + Shadda -> strip silent Lam
+    word = word.replace(
+      /^(ل[\u0650]?)ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
+      '$1$2$3'
+    );
+  }
+
+  // 2. Natural Pausal Ending (Al-Waqf) on isolated word or final word of sentence
+  if (applyPausal) {
+    const baseLetters = word.match(/[\u0621-\u064A]/g);
+    if (baseLetters && baseLetters.length >= 3) {
+      if (/\u0651[\u064E\u064F\u0650]$/.test(word)) {
+        word = word.slice(0, -1);
+      } else if (/[\u064E\u064F\u0650]$/.test(word)) {
+        word = word.slice(0, -1) + '\u0652';
+      }
+    }
+  }
+
+  return word;
+}
+
+/**
  * Formats vocalized Arabic text for natural spoken TTS pronunciation without
  * altering the visual text shown to learners:
  * 1. Sun-letter (Al-Shamsiyyah) assimilation: strips silent Lam (and silent
  *    connective Alif after prefixes كَـ / بِـ / وَ / فَـ) before any Sun letter
  *    carrying Shadda (e.g. كَالسَّيْفِ -> كَسَّيْفْ).
- * 2. Natural pausal ending (Al-Waqf): on isolated words or sentence-final words
+ * 2. Connected Hamzatul Wasl prepositions before "ال" (e.g. فِي الْمَسْجِدِ -> فِلْمَسْجِدْ,
+ *    فِي السُّوقِ -> فِسُّوقْ, إِلَى الْمَسْجِدِ -> إِلَلْمَسْجِدْ).
+ * 3. Natural pausal ending (Al-Waqf): on isolated words or sentence-final words
  *    (>= 3 Arabic base letters), replaces a trailing short case vowel (َ ِ ُ)
  *    with Sukoon (ْ) while keeping Tanween Fath (ـًا) and single-letter Harakat
  *    syllables intact.
@@ -117,52 +232,45 @@ export function formatForArabicTTS(rawText: string): string {
 
   const tokens = cleaned.split(/\s+/);
   const lastIdx = tokens.length - 1;
+  const wordRegex =
+    /^([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)([\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]+)([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)$/;
 
-  const formattedTokens = tokens.map((token, idx) => {
-    const match = token.match(
-      /^([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)([\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]+)([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)$/
-    );
-    if (!match) return token;
-
-    const [, leadPunct, core, trailPunct] = match;
-    let word = core;
-
-    const bareWord = word.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
-    const isAllahForm = ALLAH_BARE_FORMS.has(bareWord);
-
-    // 1. Sun-letter (Al-Shamsiyyah) assimilation
-    if (!isAllahForm) {
-      // Prefixed ال (كَالـ, بِالـ, وَالـ, فَالـ) + Sun letter + Shadda -> strip Alif + silent Lam
-      word = word.replace(
-        /^([كبوف][\u064E-\u0650]?)ا[\u064E]?ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
-        '$1$2$3'
-      );
-      // Word-initial ال / اَل + Sun letter + Shadda -> strip silent Lam, keep Alif
-      word = word.replace(
-        /^ا([\u064E]?)ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
-        'ا$1$2$3'
-      );
-      // Preposition لِـ + ال (لِلـ) + Sun letter + Shadda -> strip silent Lam
-      word = word.replace(
-        /^(ل[\u0650]?)ل\u0652?([تثدذرزسشصضطظلن])([\u064E-\u0650\u0670]*\u0651)/,
-        '$1$2$3'
-      );
+  const formattedTokens: string[] = [];
+  for (let idx = 0; idx < tokens.length; idx++) {
+    const token = tokens[idx];
+    const match = token.match(wordRegex);
+    if (!match) {
+      formattedTokens.push(token);
+      continue;
     }
 
-    // 2. Natural Pausal Ending (Al-Waqf) on isolated word or final word of sentence
-    if (idx === lastIdx) {
-      const baseLetters = word.match(/[\u0621-\u064A]/g);
-      if (baseLetters && baseLetters.length >= 3) {
-        if (/\u0651[\u064E\u064F\u0650]$/.test(word)) {
-          word = word.slice(0, -1);
-        } else if (/[\u064E\u064F\u0650]$/.test(word)) {
-          word = word.slice(0, -1) + '\u0652';
-        }
+    const [, leadPunct, core, trailPunct] = match;
+    const bare = core
+      .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+      .replace(/[أإآٱ]/g, 'ا');
+
+    // Check connected Wasl preposition merging with following "ال..." token
+    const nextToken = idx + 1 < tokens.length ? tokens[idx + 1] : null;
+    const nextMatch = !trailPunct && nextToken ? nextToken.match(wordRegex) : null;
+    const prepPrefix =
+      WASL_PREP_PREFIXES[bare] ?? (core === 'مِنَ' ? 'مِنَ' : undefined);
+
+    if (prepPrefix && nextMatch && !nextMatch[1]) {
+      const nextCore = nextMatch[2];
+      const nextTrail = nextMatch[3];
+      const nextBare = nextCore.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+      if (!ALLAH_BARE_FORMS.has(nextBare) && /^ا[\u064E]?ل/.test(nextCore)) {
+        const formattedNext = formatSingleArabicToken(nextCore, idx + 1 === lastIdx);
+        const elidedNext = formattedNext.replace(/^ا[\u064E]?/, '');
+        formattedTokens.push(`${leadPunct}${prepPrefix}${elidedNext}${nextTrail}`);
+        idx += 1;
+        continue;
       }
     }
 
-    return `${leadPunct}${word}${trailPunct}`;
-  });
+    const formattedWord = formatSingleArabicToken(core, idx === lastIdx);
+    formattedTokens.push(`${leadPunct}${formattedWord}${trailPunct}`);
+  }
 
   return formattedTokens.join(' ');
 }
@@ -182,7 +290,11 @@ export function buildYoudaoTtsUrl(arabicText: string): string {
 }
 
 export function buildArabicTtsUrl(arabicText: string): string {
-  return getArabicLetterAudioUrl(arabicText) ?? buildStreamElementsTtsUrl(arabicText);
+  return (
+    getArabicLetterAudioUrl(arabicText) ??
+    getDuaAudioUrl(arabicText) ??
+    buildStreamElementsTtsUrl(arabicText)
+  );
 }
 
 export function buildArabicAudioSources(arabicText: string): ArabicAudioSource[] {
@@ -193,6 +305,11 @@ export function buildArabicAudioSources(arabicText: string): ArabicAudioSource[]
   const letterUrl = getArabicLetterAudioUrl(cleaned);
   if (letterUrl) {
     sources.push({ url: letterUrl, crossOrigin: true, provider: 'letter-mp3' });
+  } else {
+    const duaUrl = getDuaAudioUrl(cleaned);
+    if (duaUrl) {
+      sources.push({ url: duaUrl, crossOrigin: true, provider: 'hisnmuslim' });
+    }
   }
   sources.push({
     url: buildStreamElementsTtsUrl(cleaned),
@@ -205,6 +322,46 @@ export function buildArabicAudioSources(arabicText: string): ArabicAudioSource[]
     provider: 'youdao',
   });
   return sources;
+}
+
+export function scoreArabicVoice(voice: SpeechVoiceLike): number {
+  const lang = (voice.lang || '').toLowerCase();
+  if (!lang.startsWith('ar')) return -1;
+  const name = (voice.name || '').toLowerCase();
+
+  let score = 10;
+  if (/hamed/.test(name)) score += 120;
+  else if (/maged|majed|tariq/.test(name)) score += 95;
+  else if (/zariyah|salma|shakir|laith|rana|hamdan|fadwa|jamal|bassel|mouna|amany|omar|laila/.test(name)) {
+    score += 80;
+  }
+
+  if (/natural|neural|online|wavenet|studio|enhanced|premium/.test(name)) score += 50;
+  if (/google/.test(name)) score += 55;
+  if (lang === 'ar-sa') score += 25;
+  else if (lang.startsWith('ar-ae') || lang.startsWith('ar-eg') || lang.startsWith('ar-001')) {
+    score += 15;
+  }
+  if (/espeak|eloquence|compact/.test(name)) score -= 40;
+  return Math.max(1, score);
+}
+
+export function selectBestArabicVoice<T extends SpeechVoiceLike>(voices: readonly T[]): T | null {
+  let best: T | null = null;
+  let bestScore = -1;
+  for (const voice of voices) {
+    const s = scoreArabicVoice(voice);
+    if (s > bestScore) {
+      bestScore = s;
+      best = voice;
+    }
+  }
+  return bestScore >= 0 ? best : null;
+}
+
+export function isPremiumNeuralArabicVoice(voice: SpeechVoiceLike | null | undefined): boolean {
+  if (!voice) return false;
+  return scoreArabicVoice(voice) >= 65;
 }
 
 export function resolveArabicPlaybackRate(rate: number): number {
@@ -451,7 +608,8 @@ function speakOfflineFallback(
   text: string,
   rate: number,
   token: number,
-  sourceId: string | null
+  sourceId: string | null,
+  preferredVoice?: SpeechSynthesisVoice | null
 ): void {
   if (token !== activePlayToken) return;
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -462,11 +620,11 @@ function speakOfflineFallback(
   try {
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'ar-SA';
+    utter.lang = preferredVoice?.lang || 'ar-SA';
     utter.rate = rate;
 
     const voices = window.speechSynthesis.getVoices();
-    const arVoice = voices.find((v) => v.lang.toLowerCase().startsWith('ar'));
+    const arVoice = preferredVoice ?? selectBestArabicVoice(voices);
     if (arVoice) {
       utter.voice = arVoice;
     }
@@ -501,11 +659,12 @@ function speakOfflineFallback(
     setAudioState({ status: 'playing', sourceId });
     window.speechSynthesis.speak(utter);
 
+    const safetyMs = Math.max(2400, Math.min(8000, Math.round((text.length * 110) / Math.max(rate, 0.6))));
     fallbackSafetyTimer = window.setTimeout(() => {
       if (token === activePlayToken) {
         setAudioState({ status: 'idle', sourceId: null });
       }
-    }, 2400);
+    }, safetyMs);
   } catch {
     if (token === activePlayToken) {
       setAudioState({ status: 'idle', sourceId: null });
@@ -530,16 +689,28 @@ export function speakArabic(
   const targetRate = resolveArabicPlaybackRate(rate);
   const resolvedSource = sourceId ?? null;
   const ttsText = formatForArabicTTS(cleaned);
+  const hasDirectHumanMp3 = Boolean(getArabicLetterAudioUrl(cleaned) || getDuaAudioUrl(cleaned));
+
+  const voices =
+    'speechSynthesis' in window ? window.speechSynthesis.getVoices() : [];
+  const bestVoice = selectBestArabicVoice(voices);
+
+  // For dynamic sentences (non-letter, non-HisnMuslim-Du'a), prioritize a realistic
+  // browser Neural Arabic voice (e.g. Microsoft Hamed Online (Natural) / Maged) when available
+  if (!hasDirectHumanMp3 && isPremiumNeuralArabicVoice(bestVoice)) {
+    speakOfflineFallback(ttsText, targetRate, token, resolvedSource, bestVoice);
+    return;
+  }
 
   if (typeof Audio === 'undefined') {
-    speakOfflineFallback(ttsText, targetRate, token, resolvedSource);
+    speakOfflineFallback(ttsText, targetRate, token, resolvedSource, bestVoice);
     return;
   }
 
   const playAudioElement = (audio: HTMLAudioElement | null) => {
     if (token !== activePlayToken) return;
     if (!audio) {
-      speakOfflineFallback(ttsText, targetRate, token, resolvedSource);
+      speakOfflineFallback(ttsText, targetRate, token, resolvedSource, bestVoice);
       return;
     }
 
@@ -577,11 +748,14 @@ export function speakArabic(
             audioCache.delete(meta.key);
           }
         }
-        speakOfflineFallback(ttsText, targetRate, token, resolvedSource);
+        speakOfflineFallback(ttsText, targetRate, token, resolvedSource, bestVoice);
       }
     };
 
     if (!alreadyBuffered) {
+      const currentProvider = meta?.sources[meta.sourceIndex]?.provider;
+      const timeoutMs =
+        currentProvider === 'hisnmuslim' ? Math.max(BUFFER_TIMEOUT_MS, 2000) : BUFFER_TIMEOUT_MS;
       bufferTimeoutTimer = window.setTimeout(() => {
         if (settled || token !== activePlayToken) return;
         timedOut = true;
@@ -601,8 +775,8 @@ export function speakArabic(
         if (activeCloudAudio === audio) {
           activeCloudAudio = null;
         }
-        speakOfflineFallback(ttsText, targetRate, token, resolvedSource);
-      }, BUFFER_TIMEOUT_MS);
+        speakOfflineFallback(ttsText, targetRate, token, resolvedSource, bestVoice);
+      }, timeoutMs);
     }
 
     audio.onloadedmetadata = () => {
