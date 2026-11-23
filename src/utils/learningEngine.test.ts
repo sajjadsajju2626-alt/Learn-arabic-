@@ -22,6 +22,7 @@ import {
   enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
+  evaluateSpeechMatch,
   evaluateStoryCheckAnswer,
   fisherYatesShuffle,
   getActiveNodeTargetId,
@@ -38,6 +39,7 @@ import {
   migrateLegacyCompletedIds,
   MISTAKE_REVIEW_BANNER_TEXT,
   normalizeArabicDictation,
+  normalizeArabicSpeech,
   normalizeWordBankText,
   prepareSessionQuestions,
   prepareStorySteps,
@@ -45,6 +47,8 @@ import {
   REVIEW_XP_REWARD,
   shouldShowArabicPromptCard,
   shuffleArray,
+  SPEAK_MATCH_THRESHOLD,
+  SPEAK_MIN_UNIT_NUMBER,
   STORY_XP_REWARD,
   unlockLessonsUpToUnit,
 } from './learningEngine';
@@ -1674,6 +1678,99 @@ test('Auto-scroll progress helpers accurately resolve active lesson node, sticky
   assert.equal(computeJumpButtonDirection({ top: 100, bottom: 240 }, 900, 120, 92), null);
   assert.equal(computeJumpButtonDirection({ top: 740, bottom: 860 }, 900, 120, 92), null);
 });
+
+test('Speaking Exercise (speak) strips Harakat/punctuation with 70% word-match threshold and appears EXCLUSIVELY in Units 20 to 35', () => {
+  assert.equal(SPEAK_MIN_UNIT_NUMBER, 20);
+  assert.equal(SPEAK_MATCH_THRESHOLD, 0.7);
+
+  // 1. Harakat/Tashkeel, punctuation, Alef/Yaa/Taa-Marbuta normalization
+  assert.equal(normalizeArabicSpeech('الْمَدْرَسَةُ الْكَبِيرَةُ!'), 'المدرسه الكبيره');
+  assert.equal(normalizeArabicSpeech('إِلَى الْمَسْجِدِ؟'), 'الي المسجد');
+
+  // 2. 70% word-match acceptance & rejection
+  // 4-word sentence: 3/4 = 75% >= 70% -> PASS; 2/4 = 50% < 70% -> FAIL
+  const target4 = 'أُرِيدُ أَنْ أَتَعَلَّمَ الْعَرَبِيَّةَ';
+  const pass75 = evaluateSpeechMatch('اريد ان اتعلم', target4);
+  assert.equal(pass75.matched, true);
+  assert.equal(pass75.matchedCount, 3);
+  assert.equal(pass75.totalWords, 4);
+  assert.equal(pass75.wordStatuses[3].matched, false);
+
+  const fail50 = evaluateSpeechMatch('اريد ان', target4);
+  assert.equal(fail50.matched, false);
+  assert.equal(fail50.matchedCount, 2);
+
+  // Repeating one word 4 times must NOT pass the 70% threshold
+  const repeatCheat = evaluateSpeechMatch('اريد اريد اريد اريد', target4);
+  assert.equal(repeatCheat.matched, false);
+  assert.equal(repeatCheat.matchedCount, 1);
+
+  // Exact full vocalized vs unvocalized match with Taa Marbuta -> Haa
+  const taaMatch = evaluateSpeechMatch('المدرسه الكبيره جميله', 'الْمَدْرَسَةُ الْكَبِيرَةُ جَمِيلَةٌ.');
+  assert.equal(taaMatch.matched, true);
+  assert.equal(taaMatch.ratio, 1);
+
+  // Empty transcript -> rejected
+  assert.equal(evaluateSpeechMatch('', target4).matched, false);
+
+  // 3. Question evaluation & audio preloading
+  const sampleSpeak: LessonQuestion = {
+    type: 'speak',
+    prompt: 'കേട്ട ശേഷം ഉറക്കെ വായിക്കുക',
+    arabic: 'بَابُ الْمَسْجِدِ مَفْتُوحٌ',
+    translit: 'ബാബുൽ മസ്ജിദി മഫ്തൂഹുൻ',
+    meaningMl: 'പള്ളിയുടെ വാതിൽ തുറന്നിരിക്കുന്നു',
+    avatar: '🧕',
+  };
+  assert.equal(shouldShowArabicPromptCard(sampleSpeak), false);
+  assert.ok(collectQuestionArabicTexts(sampleSpeak).includes('بَابُ الْمَسْجِدِ مَفْتُوحٌ'));
+  assert.equal(evaluateQuestionAnswer(sampleSpeak, 'باب المسجد مفتوح', []).correct, true);
+  assert.equal(evaluateQuestionAnswer(sampleSpeak, 'باب المسجد', []).correct, false); // 2/3 = 66.7% < 70%
+
+  // 4. Exclusive Unit 20–35 gating across ALL 35 units (245 non-chest nodes)
+  let seed = 2026;
+  const rng = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
+  for (let uIdx = 0; uIdx < UNITS.length; uIdx++) {
+    const unit = UNITS[uIdx];
+    const priorCompleted = unlockLessonsUpToUnit([], uIdx);
+    for (const lesson of unit.lessons) {
+      if (lesson.nodeType === 'chest') continue;
+      const session = buildLessonSessionQuestions(lesson, priorCompleted, UNITS, rng);
+      const speakQs = session.filter((q) => q.type === 'speak');
+
+      if (unit.number < 20) {
+        assert.equal(
+          speakQs.length,
+          0,
+          `Unit ${unit.number} (${lesson.id}) must have 0 speaking exercises, got ${speakQs.length}`
+        );
+      } else {
+        assert.ok(
+          speakQs.length >= 1 && speakQs.length <= 2,
+          `Unit ${unit.number} (${lesson.id}) must include 1-2 speaking exercises, got ${speakQs.length}`
+        );
+        for (const sq of speakQs) {
+          if (sq.type !== 'speak') continue;
+          assert.ok(/[\u0621-\u064A]/.test(sq.arabic), `${lesson.id} speak needs Arabic sentence`);
+          assert.equal(/[\u0D00-\u0D7F]/.test(sq.arabic), false, `${lesson.id} speak arabic must not contain Malayalam`);
+          assert.ok(sq.meaningMl.trim().length > 0, `${lesson.id} speak needs Malayalam meaning`);
+          assert.ok(sq.avatar === '🧕' || sq.avatar === '👳‍♂️');
+        }
+      }
+    }
+  }
+
+  // 5. Legendary & Review sessions in Units 1-19 stay free of speaking prompts
+  const u19Leg = buildLegendarySessionQuestions(UNITS[18].lessons[1], UNITS, rng);
+  assert.equal(u19Leg.filter((q) => q.type === 'speak').length, 0);
+  const u20Leg = buildLegendarySessionQuestions(UNITS[19].lessons[1], UNITS, rng);
+  assert.ok(u20Leg.some((q) => q.type === 'speak'), 'Unit 20 Legendary should include speaking challenges');
+});
+
 
 
 

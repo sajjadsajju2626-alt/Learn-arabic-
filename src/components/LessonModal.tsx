@@ -8,6 +8,8 @@ import {
   Keyboard,
   Loader2,
   Lock,
+  Mic,
+  MicOff,
   Pause,
   Play,
   RotateCcw,
@@ -22,12 +24,14 @@ import {
   enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
+  evaluateSpeechMatch,
   fisherYatesShuffle,
   isPodcastQuestion,
   MAX_HEARTS,
   MISTAKE_REVIEW_BANNER_TEXT,
   normalizeWordBankText,
   shouldShowArabicPromptCard,
+  type SpeechEvaluationResult,
 } from '../utils/learningEngine';
 import {
   collectQuestionArabicTexts,
@@ -56,6 +60,49 @@ interface WordChip {
   text: string;
 }
 
+interface SpeechRecognitionAltLike {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  length: number;
+  [index: number]: SpeechRecognitionAltLike;
+}
+
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<SpeechRecognitionResultLike>;
+}
+
+interface SpeechRecognitionErrorEventLike {
+  error?: string;
+}
+
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  maxAlternatives: number;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
+function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
+  if (typeof window === 'undefined') return null;
+  const win = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionCtor;
+    webkitSpeechRecognition?: SpeechRecognitionCtor;
+  };
+  return win.SpeechRecognition ?? win.webkitSpeechRecognition ?? null;
+}
+
 export const LessonModal: React.FC<LessonModalProps> = ({
   session,
   soundEnabled,
@@ -82,6 +129,14 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const [dictationInput, setDictationInput] = useState('');
   const [quickKeysOpen, setQuickKeysOpen] = useState(true);
   const dictationInputRef = useRef<HTMLInputElement | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [spokenTranscript, setSpokenTranscript] = useState('');
+  const [speechEval, setSpeechEval] = useState<SpeechEvaluationResult | null>(null);
+  const [speechStatus, setSpeechStatus] = useState<
+    'idle' | 'unsupported' | 'denied' | 'no-speech' | 'retry'
+  >('idle');
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const speakSettledRef = useRef(false);
   const [audioState, setAudioState] = useState<ArabicAudioState>(() => getArabicAudioState());
 
   const question = questionQueue[currentIndex];
@@ -90,6 +145,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const isLegendary = session.variant === 'legendary';
   const isPodcast = isPodcastQuestion(question);
   const isDictation = question.type === 'dictation';
+  const isSpeak = question.type === 'speak';
   const showArabicPromptCard = shouldShowArabicPromptCard(question);
   const shouldGateTranslit =
     showArabicPromptCard &&
@@ -98,12 +154,34 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     Boolean(question.translit) &&
     question.arabic!.replace(/[\u064B-\u065F\u0670]/g, '').trim().length <= 2;
 
-  // Subscribe to Cloud Arabic TTS playback state & stop audio on unmount
+  const stopSpeechRecognition = () => {
+    const rec = recognitionRef.current;
+    recognitionRef.current = null;
+    if (rec) {
+      rec.onstart = null;
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+      try {
+        rec.abort();
+      } catch {
+        try {
+          rec.stop();
+        } catch {
+          // Ignore stop errors
+        }
+      }
+    }
+    setIsListening(false);
+  };
+
+  // Subscribe to Cloud Arabic TTS playback state & clean up audio + speech recognition on unmount
   useEffect(() => {
     const unsub = subscribeArabicAudioState(setAudioState);
     return () => {
       unsub();
       stopArabicAudio();
+      stopSpeechRecognition();
     };
   }, []);
 
@@ -146,18 +224,45 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     preloadArabicAudioBatch(collectQuestionArabicTexts(question));
   }, [question]);
 
-  // Auto-pronounce Arabic prompt for standard Arabic prompt cards, Podcast, AND Dictation exercises
+  // Auto-pronounce Arabic prompt for standard Arabic prompt cards, Podcast, Dictation, AND Speaking exercises
   useEffect(() => {
-    if ((showArabicPromptCard || isPodcast || isDictation) && 'arabic' in question && question.arabic) {
+    if (
+      (showArabicPromptCard || isPodcast || isDictation || isSpeak) &&
+      'arabic' in question &&
+      question.arabic
+    ) {
       const sourceKey = isPodcast
         ? 'podcast-main'
         : isDictation
           ? 'dictation-normal'
-          : 'lesson-normal';
+          : isSpeak
+            ? 'speak-normal'
+            : 'lesson-normal';
       const timer = window.setTimeout(() => {
         speakArabic(question.arabic!, soundEnabled, 1.0, sourceKey);
       }, 140);
       return () => {
+        window.clearTimeout(timer);
+      };
+    }
+  }, [currentIndex, question, showArabicPromptCard, isPodcast, isDictation, isSpeak, soundEnabled]);
+
+  // Detect SpeechRecognition support upfront when a Speaking question loads
+  useEffect(() => {
+    if (isSpeak) {
+      speakSettledRef.current = false;
+      if (!getSpeechRecognitionCtor()) {
+        setSpeechStatus('unsupported');
+      } else {
+        setSpeechStatus('idle');
+      }
+    }
+    return () => {
+      if (isSpeak) {
+        stopSpeechRecognition();
+      }
+    };
+  }, [currentIndex, isSpeak]);
         window.clearTimeout(timer);
         stopArabicAudio();
       };
@@ -178,17 +283,163 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   };
 
   const resetQuestionState = () => {
+    stopSpeechRecognition();
+    speakSettledRef.current = false;
     setSelectedOption(null);
     setWordBankSelected([]);
     setPodcastSelectedWords([]);
     setPodcastTranscriptOpen(false);
     setDictationInput('');
+    setSpokenTranscript('');
+    setSpeechEval(null);
+    setSpeechStatus('idle');
     setMatchedPairIndices([]);
     setSelectedLeft(null);
     setSelectedRight(null);
     setWrongPairFlash(null);
     setFeedback(null);
     setHintRevealed(false);
+  };
+
+  const handleToggleSpeakMic = () => {
+    if (question.type !== 'speak' || feedback) return;
+    if (isListening) {
+      playTone('tap', soundEnabled);
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        stopSpeechRecognition();
+      }
+      return;
+    }
+
+    const SpeechRec = getSpeechRecognitionCtor();
+    if (!SpeechRec) {
+      setSpeechStatus('unsupported');
+      return;
+    }
+
+    stopArabicAudio();
+    playTone('tap', soundEnabled);
+    speakSettledRef.current = false;
+    setSpeechStatus('idle');
+    setSpokenTranscript('');
+    setSpeechEval(null);
+
+    try {
+      const recognition = new SpeechRec();
+      recognition.lang = 'ar-SA';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 3;
+      recognitionRef.current = recognition;
+
+      let latestTranscript = '';
+      let latestEval: SpeechEvaluationResult | null = null;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        if (speakSettledRef.current) return;
+        const primaryParts: string[] = [];
+        const altCandidates: string[] = [];
+
+        for (let i = 0; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (res && res.length > 0 && res[0]?.transcript) {
+            primaryParts.push(res[0].transcript.trim());
+          }
+        }
+        const combinedPrimary = primaryParts.join(' ').trim();
+        if (combinedPrimary) altCandidates.push(combinedPrimary);
+
+        // Also evaluate alternative hypotheses from the latest result segment
+        const lastRes = event.results[event.results.length - 1];
+        if (lastRes && lastRes.length > 1) {
+          const prefix = primaryParts.slice(0, -1).join(' ').trim();
+          for (let a = 1; a < lastRes.length; a++) {
+            const altText = `${prefix} ${lastRes[a]?.transcript ?? ''}`.trim();
+            if (altText) altCandidates.push(altText);
+          }
+        }
+
+        let bestText = combinedPrimary;
+        let bestResult = evaluateSpeechMatch(combinedPrimary, question.arabic);
+        for (const cand of altCandidates) {
+          const ev = evaluateSpeechMatch(cand, question.arabic);
+          if (ev.ratio > bestResult.ratio) {
+            bestResult = ev;
+            bestText = cand;
+          }
+        }
+
+        latestTranscript = bestText;
+        latestEval = bestResult;
+        setSpokenTranscript(bestText);
+        setSpeechEval(bestResult);
+
+        if (bestResult.matched) {
+          speakSettledRef.current = true;
+          stopSpeechRecognition();
+          setScore((s) => s + 1);
+          playTone('correct', soundEnabled);
+          setFeedback({
+            isCorrect: true,
+            detail: `മികച്ച ഉച്ചാരണം! (${Math.round(bestResult.ratio * 100)}% പൊരുത്തപ്പെട്ടു)`,
+          });
+        }
+      };
+
+      recognition.onerror = (event) => {
+        const code = event?.error ?? '';
+        stopSpeechRecognition();
+        if (speakSettledRef.current) return;
+        if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture') {
+          setSpeechStatus('denied');
+        } else if (code === 'no-speech') {
+          setSpeechStatus('no-speech');
+        } else if (code !== 'aborted') {
+          setSpeechStatus('retry');
+        }
+      };
+
+      recognition.onend = () => {
+        recognitionRef.current = null;
+        setIsListening(false);
+        if (speakSettledRef.current) return;
+        if (latestTranscript && latestEval && !latestEval.matched) {
+          setSpeechStatus('retry');
+        }
+      };
+
+      recognition.start();
+    } catch {
+      stopSpeechRecognition();
+      setSpeechStatus('unsupported');
+    }
+  };
+
+  const handleSkipSpeak = () => {
+    playTone('tap', soundEnabled);
+    stopSpeechRecognition();
+    stopArabicAudio();
+    if (currentIndex + 1 < questionQueue.length) {
+      setCurrentIndex((i) => i + 1);
+      resetQuestionState();
+    } else {
+      const result = evaluateSessionOutcome({
+        mode: session.mode,
+        variant: session.variant,
+        lessonId: session.lessonId,
+        targetUnitIndex: session.targetUnitIndex,
+        score,
+        totalQuestions: questionQueue.length,
+        xpReward: session.xpReward,
+      });
+      onComplete(result);
+    }
   };
 
   const insertDictationText = (charToInsert: string) => {
@@ -384,6 +635,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
             onClick={() => {
               playTone('tap', soundEnabled);
               stopArabicAudio();
+              stopSpeechRecognition();
               onClose();
             }}
             aria-label="പാഠം അടയ്ക്കുക"
@@ -1564,6 +1816,243 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                 </div>
               );
             })()}
+
+            {/* Duolingo Speaking Exercise ("Read Aloud") — Exclusive Units 20-35 */}
+            {question.type === 'speak' && (() => {
+              const avatarEmoji = question.avatar ?? '🧕';
+              const normalBusy = audioState.sourceId === 'speak-normal';
+              const normalLoading = normalBusy && audioState.status === 'loading';
+              const normalPlaying = normalBusy && audioState.status === 'playing';
+              const slowBusy = audioState.sourceId === 'speak-slow';
+              const slowLoading = slowBusy && audioState.status === 'loading';
+              const slowPlaying = slowBusy && audioState.status === 'playing';
+              const targetWords = speechEval?.wordStatuses ??
+                question.arabic
+                  .trim()
+                  .split(/\s+/)
+                  .map((w) => ({ word: w, matched: Boolean(feedback?.isCorrect) }));
+              const isUnavailable = speechStatus === 'unsupported' || speechStatus === 'denied';
+
+              return (
+                <div data-testid="speak-exercise" className="space-y-6">
+                  {/* Character Avatar + Speech Bubble with Vocalized Arabic, Translit, Meaning & Speaker */}
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div
+                      aria-hidden="true"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-emerald-50 border-2 border-b-4 border-sky-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
+                    >
+                      {avatarEmoji}
+                    </div>
+
+                    <div className="relative flex-1 rounded-2xl border-2 border-b-4 border-sky-200 bg-white p-4 sm:p-5 shadow-xs space-y-2.5">
+                      <div
+                        aria-hidden="true"
+                        className="absolute -left-2.5 top-6 w-4 h-4 bg-white border-l-2 border-b-2 border-sky-200 rotate-45"
+                      />
+
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            data-testid="speak-play-normal"
+                            aria-label="അറബി ഉച്ചാരണം കേൾക്കുക"
+                            onClick={() => {
+                              stopSpeechRecognition();
+                              speakArabic(question.arabic, soundEnabled, 1.0, 'speak-normal');
+                            }}
+                            className={`btn-3d w-11 h-11 rounded-2xl bg-[#1CB0F6] hover:bg-[#1899D6] border-b-4 border-[#1177A8] text-white flex items-center justify-center transition ${
+                              normalPlaying ? 'ring-4 ring-sky-200 animate-pulse' : ''
+                            }`}
+                          >
+                            {normalLoading ? (
+                              <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <Volume2 className="w-5 h-5" aria-hidden="true" />
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            data-testid="speak-play-slow"
+                            aria-label="പതുക്കെ കേൾക്കുക (0.65x)"
+                            title="പതുക്കെ കേൾക്കുക (0.65x)"
+                            onClick={() => {
+                              stopSpeechRecognition();
+                              speakArabic(question.arabic, soundEnabled, 0.65, 'speak-slow');
+                            }}
+                            className={`btn-3d w-10 h-11 rounded-2xl border-2 border-b-4 flex items-center justify-center transition ${
+                              slowBusy
+                                ? 'bg-sky-100 border-[#0284C7] text-[#0369A1]'
+                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                            } ${slowPlaying ? 'animate-pulse' : ''}`}
+                          >
+                            {slowLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <Turtle className="w-5 h-5" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
+
+                        <div
+                          dir="rtl"
+                          lang="ar"
+                          data-testid="speak-target-arabic"
+                          className="flex-1 text-right font-arabic text-2xl sm:text-3xl font-bold leading-relaxed flex flex-wrap justify-start gap-x-2 gap-y-1"
+                        >
+                          {targetWords.map((item, idx) => (
+                            <span
+                              key={`${item.word}-${idx}`}
+                              className={`transition-colors duration-200 ${
+                                item.matched ? 'text-[#357A00]' : 'text-slate-900'
+                              }`}
+                            >
+                              {item.word}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 space-y-0.5 text-left">
+                        {!hideTranslit && question.translit && (
+                          <p
+                            data-translit="true"
+                            className="text-xs sm:text-sm font-bold text-[#0369A1]"
+                          >
+                            {question.translit}
+                          </p>
+                        )}
+                        <p className="text-xs sm:text-sm font-extrabold text-slate-700">
+                          {question.meaningMl}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Large Sky-Blue Microphone Button with Pulsing Sound-Wave Animation */}
+                  <div className="flex flex-col items-center gap-4 pt-1">
+                    <div className="relative w-full sm:max-w-md flex items-center justify-center">
+                      {isListening && (
+                        <div
+                          aria-hidden="true"
+                          className="animate-mic-ring pointer-events-none absolute inset-0 rounded-2xl border-4 border-[#1CB0F6]"
+                        />
+                      )}
+                      <button
+                        type="button"
+                        data-testid="speak-mic-btn"
+                        disabled={Boolean(feedback) || isUnavailable}
+                        aria-pressed={isListening}
+                        onClick={handleToggleSpeakMic}
+                        className={`btn-3d relative w-full min-h-[64px] px-6 py-4 rounded-2xl border-b-4 font-extrabold text-base sm:text-lg flex items-center justify-center gap-3 transition ${
+                          isUnavailable
+                            ? 'bg-slate-200 border-slate-300 text-slate-500 cursor-not-allowed'
+                            : isListening
+                              ? 'bg-[#0284C7] border-[#0369A1] text-white shadow-lg ring-4 ring-sky-200'
+                              : 'bg-[#1CB0F6] hover:bg-[#0EA5E9] border-[#1177A8] text-white shadow-sm'
+                        }`}
+                      >
+                        {isListening ? (
+                          <>
+                            <span
+                              data-testid="speak-sound-wave"
+                              className="inline-flex items-center gap-1 h-7"
+                              aria-hidden="true"
+                            >
+                              {[0, 0.14, 0.28, 0.18, 0.08].map((delay, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{ animationDelay: `${delay}s` }}
+                                  className="animate-sound-wave w-1.5 h-6 rounded-full bg-white"
+                                />
+                              ))}
+                            </span>
+                            <span className="whitespace-nowrap">കേൾക്കുന്നു... സംസാരിക്കൂ</span>
+                          </>
+                        ) : isUnavailable ? (
+                          <>
+                            <MicOff className="w-5 h-5 shrink-0" aria-hidden="true" />
+                            <span className="whitespace-nowrap">മൈക്രോഫോൺ ലഭ്യമല്ല</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="w-6 h-6 shrink-0" aria-hidden="true" />
+                            <span className="whitespace-nowrap">
+                              {speechStatus === 'retry' || speechStatus === 'no-speech'
+                                ? '🎤 വീണ്ടും സംസാരിക്കുക'
+                                : '🎤 സംസാരിക്കുക'}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Live Recognized Arabic Words Display */}
+                    {(isListening || spokenTranscript) && (
+                      <div
+                        data-testid="speak-live-transcript"
+                        className={`w-full rounded-2xl border-2 p-4 text-center space-y-1.5 transition ${
+                          feedback?.isCorrect
+                            ? 'bg-emerald-50 border-emerald-300'
+                            : isListening
+                              ? 'bg-sky-50/70 border-sky-200'
+                              : 'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-500">
+                          <span>നിങ്ങൾ പറഞ്ഞത് (Recognized Arabic)</span>
+                          {speechEval && (
+                            <span className="font-latin tabular-nums text-[#0369A1]">
+                              {speechEval.matchedCount} / {speechEval.totalWords} വാക്കുകൾ (
+                              {Math.round(speechEval.ratio * 100)}%)
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          dir="rtl"
+                          lang="ar"
+                          className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 min-h-[2.25rem]"
+                        >
+                          {spokenTranscript || '...'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Retry / No-Speech Inline Nudge */}
+                    {!feedback && (speechStatus === 'retry' || speechStatus === 'no-speech') && (
+                      <div
+                        role="status"
+                        data-testid="speak-retry-notice"
+                        className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs sm:text-sm font-bold text-amber-900"
+                      >
+                        {speechStatus === 'no-speech'
+                          ? 'ശബ്ദം കേട്ടില്ല — മൈക്ക് അമർത്തി ഒരിക്കൽ കൂടി ഉറക്കെ വായിക്കൂ, അല്ലെങ്കിൽ താഴെ ഒഴിവാക്കാം.'
+                          : 'കുറച്ചുകൂടി വ്യക്തമായി വീണ്ടും ശ്രമിക്കാം — അല്ലെങ്കിൽ താഴെ "ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല" അമർത്താം.'}
+                      </div>
+                    )}
+
+                    {/* Friendly Fallback when SpeechRecognition is Unsupported or Mic Permission Denied */}
+                    {!feedback && isUnavailable && (
+                      <div
+                        role="status"
+                        data-testid="speak-fallback-notice"
+                        className="w-full rounded-2xl border-2 border-amber-200 bg-amber-50/90 p-4 text-left space-y-1.5"
+                      >
+                        <div className="text-xs sm:text-sm font-extrabold text-amber-900">
+                          {speechStatus === 'denied'
+                            ? 'മൈക്രോഫോൺ അനുമതി ലഭിച്ചില്ല'
+                            : 'ഈ ബ്രൗസറിൽ സ്പീച്ച് റെക്കഗ്നിഷൻ ലഭ്യമല്ല'}
+                        </div>
+                        <p className="text-xs sm:text-sm font-medium text-amber-800 leading-relaxed">
+                          മുകളിലെ 🔊 ബട്ടൺ അമർത്തി ഉച്ചാരണം കേട്ട് സ്വയം പരിശീലിക്കാം. തുടരാൻ താഴെയുള്ള
+                          &ldquo;ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല&rdquo; ബട്ടൺ അമർത്തുക — ഹാർട്ട് നഷ്ടപ്പെടില്ല.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="h-4" />
@@ -1612,6 +2101,19 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               }`}
             >
               തുടരുക
+            </button>
+          </div>
+        </div>
+      ) : question.type === 'speak' ? (
+        <div className="border-t border-slate-200 bg-white">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-center">
+            <button
+              type="button"
+              data-testid="speak-skip-btn"
+              onClick={handleSkipSpeak}
+              className="btn-3d w-full sm:w-auto py-3 px-6 rounded-2xl border-2 border-b-4 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-extrabold text-xs sm:text-sm whitespace-nowrap transition"
+            >
+              ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല (CAN&apos;T SPEAK NOW)
             </button>
           </div>
         </div>

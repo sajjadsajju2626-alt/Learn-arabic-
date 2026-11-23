@@ -143,6 +143,21 @@ export interface DictationQuestion {
   isSpacedRepetition?: boolean;
 }
 
+export interface SpeakQuestion {
+  type: 'speak';
+  prompt: string;
+  /** Vocalized Arabic phrase or sentence to read aloud */
+  arabic: string;
+  /** Malayalam phonetic transliteration (hidden in Legendary zero-hint mode) */
+  translit?: string;
+  /** Malayalam meaning displayed inside the speech bubble */
+  meaningMl: string;
+  /** Friendly Arabic character avatar beside the speech bubble */
+  avatar?: '🧕' | '👳‍♂️';
+  isReview?: boolean;
+  isSpacedRepetition?: boolean;
+}
+
 export type LessonQuestion =
   | McqQuestion
   | ListenQuestion
@@ -152,7 +167,8 @@ export type LessonQuestion =
   | RadioTfQuestion
   | RadioSelect3Question
   | RadioMcqQuestion
-  | DictationQuestion;
+  | DictationQuestion
+  | SpeakQuestion;
 
 export type NodeKind =
   | 'lesson'

@@ -1,6 +1,6 @@
 {
   "name": "മലയാളത്തിലൂടെ അറബി പഠിക്കാം | Learn Arabic",
   "description": "കളികളിലൂടെയും ക്വിസുകളിലൂടെയും മലയാളത്തിലൂടെ എളുപ്പത്തിൽ അറബി ഭാഷ, അക്ഷരമാല, ഹറകത്തുകൾ, സംഭാഷണങ്ങൾ എന്നിവ പഠിക്കാം.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

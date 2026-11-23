@@ -224,6 +224,79 @@ export function areDictationAnswersEqual(
   return Boolean(normExpected) && normUser === normExpected;
 }
 
+export const SPEAK_MIN_UNIT_NUMBER = 20;
+export const SPEAK_MATCH_THRESHOLD = 0.7;
+
+export interface SpeechWordStatus {
+  word: string;
+  matched: boolean;
+}
+
+export interface SpeechEvaluationResult {
+  matched: boolean;
+  ratio: number;
+  matchedCount: number;
+  totalWords: number;
+  wordStatuses: SpeechWordStatus[];
+}
+
+/**
+ * Strips Arabic Harakat/Tashkeel, Tatweel, and punctuation and normalizes Alef/Yaa/Taa Marbuta
+ * for fair Web Speech API (`ar-SA`) spoken-word comparison.
+ */
+export function normalizeArabicSpeech(text: string): string {
+  return normalizeArabicDictation(text).replace(/ة/g, 'ه');
+}
+
+export function evaluateSpeechMatch(
+  spokenTranscript: string,
+  expectedArabic: string,
+  threshold: number = SPEAK_MATCH_THRESHOLD
+): SpeechEvaluationResult {
+  const displayWords = String(expectedArabic ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter((w) => normalizeArabicSpeech(w).length > 0);
+
+  const expectedTokens = displayWords.map((w) => normalizeArabicSpeech(w));
+  const totalWords = expectedTokens.length;
+
+  if (totalWords === 0) {
+    return { matched: false, ratio: 0, matchedCount: 0, totalWords: 0, wordStatuses: [] };
+  }
+
+  const spokenTokens = normalizeArabicSpeech(spokenTranscript)
+    .split(/\s+/)
+    .filter(Boolean);
+
+  // Bag-of-words frequency map so repeating one word cannot game the 70% threshold
+  const spokenCounts = new Map<string, number>();
+  for (const tok of spokenTokens) {
+    spokenCounts.set(tok, (spokenCounts.get(tok) ?? 0) + 1);
+  }
+
+  let matchedCount = 0;
+  const wordStatuses: SpeechWordStatus[] = displayWords.map((word, idx) => {
+    const normExpected = expectedTokens[idx];
+    const available = spokenCounts.get(normExpected) ?? 0;
+    if (available > 0) {
+      spokenCounts.set(normExpected, available - 1);
+      matchedCount += 1;
+      return { word, matched: true };
+    }
+    return { word, matched: false };
+  });
+
+  const ratio = matchedCount / totalWords;
+  return {
+    matched: ratio >= threshold - 1e-9,
+    ratio,
+    matchedCount,
+    totalWords,
+    wordStatuses,
+  };
+}
+
 export function isPodcastQuestion(question: LessonQuestion): boolean {
   return (
     question.type === 'radio_tf' ||
@@ -316,6 +389,13 @@ export function evaluateQuestionAnswer(
   if (question.type === 'dictation') {
     return {
       correct: areDictationAnswersEqual(selectedOption ?? '', question.arabic),
+      expectedDisplay: question.arabic,
+    };
+  }
+  if (question.type === 'speak') {
+    const result = evaluateSpeechMatch(selectedOption ?? '', question.arabic);
+    return {
+      correct: result.matched,
       expectedDisplay: question.arabic,
     };
   }
@@ -552,7 +632,7 @@ export function shouldShowArabicPromptCard(question: LessonQuestion): boolean {
   if (!('arabic' in question) || !question.arabic) {
     return false;
   }
-  if (question.type === 'dictation' || isPodcastQuestion(question)) {
+  if (question.type === 'dictation' || question.type === 'speak' || isPodcastQuestion(question)) {
     return false;
   }
   if (question.type === 'listen') {
@@ -653,6 +733,9 @@ export function getQuestionFingerprint(q: LessonQuestion): string {
   }
   if (q.type === 'dictation') {
     return `dictation|${normalizeArabicDictation(q.arabic)}`;
+  }
+  if (q.type === 'speak') {
+    return `speak|${normalizeArabicSpeech(q.arabic)}`;
   }
   if (q.type === 'radio_tf') {
     return `radio_tf|${norm(q.arabic)}|${norm(q.statementMl)}|${String(q.answer)}`;
@@ -824,7 +907,77 @@ function generateDynamicUnitQuestions(
     });
   });
 
+  // 4. Dynamic Speaking ("Read Aloud") questions — EXCLUSIVELY Units 20 to 35
+  if (unit.number >= SPEAK_MIN_UNIT_NUMBER) {
+    const speakCandidates = shuffleArray(collectUnitSpeakPool(unit), rng);
+    speakCandidates.forEach((entry, idx) => {
+      generated.push({
+        type: 'speak',
+        prompt: 'കേട്ട ശേഷം ഉറക്കെ വായിക്കുക',
+        arabic: entry.ar,
+        translit: entry.tr || undefined,
+        meaningMl: entry.ml,
+        avatar: idx % 2 === 0 ? '🧕' : '👳‍♂️',
+      });
+    });
+  }
+
   return generated;
+}
+
+function collectUnitSpeakPool(unit: Unit): VocabEntry[] {
+  const seen = new Set<string>();
+  const sentences: VocabEntry[] = [];
+  const singleWords: VocabEntry[] = [];
+
+  const pushCandidate = (ar: string, tr: string, ml: string) => {
+    const cleanAr = String(ar ?? '').trim();
+    const cleanMl = String(ml ?? '').trim();
+    if (!cleanAr || !cleanMl) return;
+    if (/[_→\/]/.test(cleanAr)) return;
+    if (/[\u0D00-\u0D7F]/.test(cleanAr)) return;
+    if (!/[\u0621-\u064A]/.test(cleanAr)) return;
+
+    const normKey = normalizeArabicSpeech(cleanAr);
+    if (!normKey || seen.has(normKey)) return;
+    const wordCount = normKey.split(/\s+/).filter(Boolean).length;
+    if (wordCount < 1 || wordCount > 7) return;
+    seen.add(normKey);
+
+    const entry: VocabEntry = { ar: cleanAr, tr: String(tr ?? '').trim(), ml: cleanMl };
+    if (wordCount >= 2) {
+      sentences.push(entry);
+    } else {
+      singleWords.push(entry);
+    }
+  };
+
+  for (const g of unit.guidebook ?? []) {
+    pushCandidate(g.ar, g.tr, g.ml);
+  }
+  for (const l of unit.lessons) {
+    if (l.nodeType === 'chest') continue;
+    if (l.story) {
+      for (const step of l.story.steps) {
+        if (step.kind === 'line') {
+          pushCandidate(step.ar, step.tr, step.ml);
+        }
+      }
+    }
+    for (const q of l.questions) {
+      if (q.type === 'pairs') {
+        for (const p of q.pairs) {
+          pushCandidate(p.ar, p.tr ?? '', p.ml);
+        }
+      } else if ((q.type === 'mcq' || q.type === 'listen') && q.arabic && !q.isArabicOption) {
+        pushCandidate(q.arabic, q.translit ?? '', q.answer);
+      } else if (q.type === 'fill_blank' && q.sentence && q.answer && q.hintMl) {
+        pushCandidate(buildFilledSentence(q.sentence, q.answer), '', q.hintMl);
+      }
+    }
+  }
+
+  return sentences.length >= 4 ? sentences : [...sentences, ...singleWords];
 }
 
 function collectUnitDictationPool(unit: Unit): VocabEntry[] {
@@ -1035,6 +1188,52 @@ export function buildLessonSessionQuestions(
     if (!addedDictation) break;
   }
 
+  // 4d. Mix 1-2 Speaking ("Read Aloud") exercises EXCLUSIVELY in Units 20 to 35
+  const allowSpeak = Boolean(unit && unit.number >= SPEAK_MIN_UNIT_NUMBER);
+  if (allowSpeak) {
+    const countSpeak = () =>
+      [...handcrafted, ...spacedRepetition, ...reinforcements].filter((q) => q.type === 'speak')
+        .length;
+    const desiredSpeakCount =
+      lesson.nodeType === 'hard' || lesson.nodeType === 'trophy' ? 2 : 1;
+
+    while (countSpeak() < desiredSpeakCount) {
+      if (currentTotal() >= maxSessionCount) {
+        // Free a redundant non-protected reinforcement slot if session hit 12 before adding speak
+        const allSoFar = [...handcrafted, ...spacedRepetition, ...reinforcements];
+        const countsByType: Record<string, number> = {};
+        for (const item of allSoFar) {
+          countsByType[item.type] = (countsByType[item.type] ?? 0) + 1;
+        }
+        const removableIdx = reinforcements.findIndex((r) => {
+          if (r.type === 'speak') return false;
+          if (r.type === 'dictation') {
+            return countsByType.dictation > desiredDictationCount;
+          }
+          if (isPodcastQuestion(r)) {
+            return allSoFar.filter(isPodcastQuestion).length > 1;
+          }
+          return (countsByType[r.type] ?? 0) > 1;
+        });
+        if (removableIdx >= 0) {
+          reinforcements.splice(removableIdx, 1);
+        } else {
+          break;
+        }
+      }
+
+      let addedSpeak = false;
+      for (const cand of allCandidates) {
+        if (cand.type !== 'speak') continue;
+        if (tryAccept(reinforcements, cand, false)) {
+          addedSpeak = true;
+          break;
+        }
+      }
+      if (!addedSpeak) break;
+    }
+  }
+
   if (currentTotal() > effectiveTargetCount) {
     effectiveTargetCount = Math.min(maxSessionCount, currentTotal());
   }
@@ -1050,22 +1249,37 @@ export function buildLessonSessionQuestions(
     radio_select3: 0,
     radio_mcq: 0,
     dictation: 0,
+    speak: 0,
   };
   for (const q of [...handcrafted, ...spacedRepetition, ...reinforcements]) {
     typeCounts[q.type] += 1;
   }
 
-  const fillTypes: readonly LessonQuestion['type'][] = [...ALL_QUESTION_TYPES, 'dictation'];
+  const fillTypes: readonly LessonQuestion['type'][] = allowSpeak
+    ? [...ALL_QUESTION_TYPES, 'dictation', 'speak']
+    : [...ALL_QUESTION_TYPES, 'dictation'];
   while (currentTotal() < effectiveTargetCount) {
-    // Pick the least-represented question type (capping pairs & dictation at 2 so sessions stay snappy)
+    // Pick the least-represented question type (capping pairs, dictation & speak at 2 so sessions stay snappy)
     const prioritizedTypes = [...fillTypes].sort((a, b) => {
-      const penA = (a === 'pairs' && typeCounts.pairs >= 2) || (a === 'dictation' && typeCounts.dictation >= 2) ? 10 : 0;
-      const penB = (b === 'pairs' && typeCounts.pairs >= 2) || (b === 'dictation' && typeCounts.dictation >= 2) ? 10 : 0;
+      const penA =
+        (a === 'pairs' && typeCounts.pairs >= 2) ||
+        (a === 'dictation' && typeCounts.dictation >= 2) ||
+        (a === 'speak' && typeCounts.speak >= 2)
+          ? 10
+          : 0;
+      const penB =
+        (b === 'pairs' && typeCounts.pairs >= 2) ||
+        (b === 'dictation' && typeCounts.dictation >= 2) ||
+        (b === 'speak' && typeCounts.speak >= 2)
+          ? 10
+          : 0;
       return typeCounts[a] + penA - (typeCounts[b] + penB);
     });
 
     let added = false;
     for (const t of prioritizedTypes) {
+      if (t === 'speak' && typeCounts.speak >= 2) continue;
+      if (t === 'dictation' && typeCounts.dictation >= 2) continue;
       for (const cand of allCandidates) {
         if (cand.type !== t) continue;
         if (tryAccept(reinforcements, cand, false)) {
@@ -1154,13 +1368,14 @@ export function buildLegendarySessionQuestions(
 
   const difficultyRank = (q: LessonQuestion): number => {
     if (q.type === 'dictation') return 0;
-    if (q.type === 'wordbank' && q.isArabicWords) return 1;
-    if (q.type === 'fill_blank') return 2;
-    if (q.type === 'listen') return 3;
-    if (q.type === 'mcq' && q.isArabicOption) return 4;
-    if (q.type === 'wordbank') return 5;
-    if (q.type === 'mcq') return 6;
-    return 7;
+    if (q.type === 'speak') return 1;
+    if (q.type === 'wordbank' && q.isArabicWords) return 2;
+    if (q.type === 'fill_blank') return 3;
+    if (q.type === 'listen') return 4;
+    if (q.type === 'mcq' && q.isArabicOption) return 5;
+    if (q.type === 'wordbank') return 6;
+    if (q.type === 'mcq') return 7;
+    return 8;
   };
 
   const ranked = [...combined].sort((a, b) => difficultyRank(a) - difficultyRank(b));

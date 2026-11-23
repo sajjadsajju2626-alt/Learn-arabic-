@@ -84,7 +84,10 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
   const syncScrollIndicators = useCallback(() => {
     if (typeof window === 'undefined') return;
     const isDesktop = window.innerWidth >= 1024;
-    const stickyAnchorY = isDesktop ? 136 : 168;
+    const stickyAnchorY = Math.max(
+      isDesktop ? 140 : 168,
+      Math.round(window.innerHeight * 0.42)
+    );
 
     const rects = sectionRefs.current
       .map((el, idx) => {
