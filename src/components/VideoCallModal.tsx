@@ -573,10 +573,11 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
           {/* Center Animated Character Portrait & Optional Subtitles */}
           <div
             data-scroll-container="true"
-            className="flex-1 overflow-y-auto px-4 sm:px-6 py-2 flex flex-col items-center justify-center gap-4"
+            className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 flex flex-col"
           >
+            <div className="my-auto w-full flex flex-col items-center gap-4">
             {/* Large Animated Arab Character Portrait */}
-            <div className="relative flex flex-col items-center">
+            <div className="relative flex flex-col items-center shrink-0">
               <div className="relative flex items-center justify-center">
                 {isCharacterSpeaking && (
                   <>
@@ -715,6 +716,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {/* Bottom Call Controls Dock */}
