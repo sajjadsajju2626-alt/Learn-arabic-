@@ -10,7 +10,7 @@ export interface ArabicAudioState {
 export interface ArabicAudioSource {
   url: string;
   crossOrigin: boolean;
-  provider: 'letter-mp3' | 'hisnmuslim' | 'streamelements' | 'youdao';
+  provider: 'letter-mp3' | 'hisnmuslim' | 'hamed-neural';
 }
 
 export interface SpeechVoiceLike {
@@ -30,6 +30,8 @@ interface CachedAudioMeta {
 
 type AudioStateListener = (state: ArabicAudioState) => void;
 
+export const PRIMARY_ARABIC_VOICE_ID = 'ar-SA-HamedNeural';
+export const PRIMARY_ARABIC_VOICE_LABEL = 'Hamed - Saudi Arabic Natural Male Voice';
 export const BUFFER_TIMEOUT_MS = 800;
 
 export const BASE_ARABIC_LETTERS = [
@@ -199,7 +201,7 @@ function formatSingleArabicToken(core: string, applyPausal: boolean): string {
     );
   }
 
-  // 2. Natural Pausal Ending (Al-Waqf) on isolated word or final word of sentence
+  // 2. End-of-sentence Pausal Sukoon (Al-Waqf) on multi-word sentences only
   if (applyPausal) {
     const baseLetters = word.match(/[\u0621-\u064A]/g);
     if (baseLetters && baseLetters.length >= 3) {
@@ -217,21 +219,20 @@ function formatSingleArabicToken(core: string, applyPausal: boolean): string {
 /**
  * Formats vocalized Arabic text for natural spoken TTS pronunciation without
  * altering the visual text shown to learners:
- * 1. Sun-letter (Al-Shamsiyyah) assimilation: strips silent Lam (and silent
- *    connective Alif after prefixes كَـ / بِـ / وَ / فَـ) before any Sun letter
- *    carrying Shadda (e.g. كَالسَّيْفِ -> كَسَّيْفْ).
- * 2. Connected Hamzatul Wasl prepositions before "ال" (e.g. فِي الْمَسْجِدِ -> فِلْمَسْجِدْ,
- *    فِي السُّوقِ -> فِسُّوقْ, إِلَى الْمَسْجِدِ -> إِلَلْمَسْجِدْ).
- * 3. Natural pausal ending (Al-Waqf): on isolated words or sentence-final words
- *    (>= 3 Arabic base letters), replaces a trailing short case vowel (َ ِ ُ)
- *    with Sukoon (ْ) while keeping Tanween Fath (ـًا) and single-letter Harakat
- *    syllables intact.
+ * 1. Single-word taps preserve their exact final Harakat (e.g. الْمَسْجِدُ -> الْمَسْجِدُ "Al-masjidu"),
+ *    while still applying Sun-letter assimilation (كَالسَّيْفِ -> كَسَّيْفِ).
+ * 2. Full multi-word sentences apply:
+ *    - Sun-letter (Al-Shamsiyyah) assimilation (كَالسَّيْفِ -> كَسَّيْفِ),
+ *    - Connected Hamzat al-Wasl elision (فِي الْمَسْجِدِ -> فِلْمَسْجِدْ, فِي السُّوقِ -> فِسُّوقْ),
+ *    - End-of-sentence pausal Sukoon (الْوَقْف) on the final word (>= 3 base letters) while
+ *      preserving Tanween Fath (ـًا) and single-letter Harakat syllables.
  */
 export function formatForArabicTTS(rawText: string): string {
   const cleaned = String(rawText ?? '').trim();
   if (!cleaned) return '';
 
   const tokens = cleaned.split(/\s+/);
+  const isMultiWord = tokens.length > 1;
   const lastIdx = tokens.length - 1;
   const wordRegex =
     /^([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)([\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]+)([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)$/;
@@ -261,7 +262,10 @@ export function formatForArabicTTS(rawText: string): string {
       const nextTrail = nextMatch[3];
       const nextBare = nextCore.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
       if (!ALLAH_BARE_FORMS.has(nextBare) && /^ا[\u064E]?ل/.test(nextCore)) {
-        const formattedNext = formatSingleArabicToken(nextCore, idx + 1 === lastIdx);
+        const formattedNext = formatSingleArabicToken(
+          nextCore,
+          isMultiWord && idx + 1 === lastIdx
+        );
         const elidedNext = formattedNext.replace(/^ا[\u064E]?/, '');
         formattedTokens.push(`${leadPunct}${prepPrefix}${elidedNext}${nextTrail}`);
         idx += 1;
@@ -269,32 +273,25 @@ export function formatForArabicTTS(rawText: string): string {
       }
     }
 
-    const formattedWord = formatSingleArabicToken(core, idx === lastIdx);
+    const formattedWord = formatSingleArabicToken(core, isMultiWord && idx === lastIdx);
     formattedTokens.push(`${leadPunct}${formattedWord}${trailPunct}`);
   }
 
   return formattedTokens.join(' ');
 }
 
-export function buildStreamElementsTtsUrl(arabicText: string): string {
+export function buildHamedNeuralTtsUrl(arabicText: string): string {
   const ttsText = formatForArabicTTS(arabicText);
-  return `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(
+  return `/api/tts?voice=${encodeURIComponent(PRIMARY_ARABIC_VOICE_ID)}&text=${encodeURIComponent(
     ttsText
   )}`;
-}
-
-export function buildYoudaoTtsUrl(arabicText: string): string {
-  const ttsText = formatForArabicTTS(arabicText);
-  return `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(
-    ttsText
-  )}&le=ar`;
 }
 
 export function buildArabicTtsUrl(arabicText: string): string {
   return (
     getArabicLetterAudioUrl(arabicText) ??
     getDuaAudioUrl(arabicText) ??
-    buildStreamElementsTtsUrl(arabicText)
+    buildHamedNeuralTtsUrl(arabicText)
   );
 }
 
@@ -313,16 +310,19 @@ export function buildArabicAudioSources(arabicText: string): ArabicAudioSource[]
     }
   }
   sources.push({
-    url: buildStreamElementsTtsUrl(cleaned),
+    url: buildHamedNeuralTtsUrl(cleaned),
     crossOrigin: true,
-    provider: 'streamelements',
-  });
-  sources.push({
-    url: buildYoudaoTtsUrl(cleaned),
-    crossOrigin: false,
-    provider: 'youdao',
+    provider: 'hamed-neural',
   });
   return sources;
+}
+
+export function isHamedNeuralVoice(voice: SpeechVoiceLike | null | undefined): boolean {
+  if (!voice) return false;
+  const lang = (voice.lang || '').toLowerCase();
+  if (!lang.startsWith('ar')) return false;
+  const name = (voice.name || '').toLowerCase();
+  return /hamed/.test(name);
 }
 
 export function scoreArabicVoice(voice: SpeechVoiceLike): number {
@@ -331,18 +331,15 @@ export function scoreArabicVoice(voice: SpeechVoiceLike): number {
   const name = (voice.name || '').toLowerCase();
 
   let score = 10;
-  if (/hamed/.test(name)) score += 120;
-  else if (/maged|majed|tariq/.test(name)) score += 95;
-  else if (/zariyah|salma|shakir|laith|rana|hamdan|fadwa|jamal|bassel|mouna|amany|omar|laila/.test(name)) {
-    score += 80;
+  // Exclusive primary preference for ar-SA-HamedNeural (Hamed - Saudi Arabic Natural Male)
+  if (/hamed/.test(name)) score += 220;
+  else if (lang === 'ar-sa') score += 60;
+  else if (lang.startsWith('ar-ae') || lang.startsWith('ar-eg') || lang.startsWith('ar-001')) {
+    score += 30;
   }
 
-  if (/natural|neural|online|wavenet|studio|enhanced|premium/.test(name)) score += 50;
-  if (/google/.test(name)) score += 55;
-  if (lang === 'ar-sa') score += 25;
-  else if (lang.startsWith('ar-ae') || lang.startsWith('ar-eg') || lang.startsWith('ar-001')) {
-    score += 15;
-  }
+  if (/natural|neural|online|wavenet|studio|enhanced|premium/.test(name)) score += 40;
+  if (/google/.test(name)) score += 25;
   if (/espeak|eloquence|compact/.test(name)) score -= 40;
   return Math.max(1, score);
 }
@@ -361,8 +358,7 @@ export function selectBestArabicVoice<T extends SpeechVoiceLike>(voices: readonl
 }
 
 export function isPremiumNeuralArabicVoice(voice: SpeechVoiceLike | null | undefined): boolean {
-  if (!voice) return false;
-  return scoreArabicVoice(voice) >= 65;
+  return isHamedNeuralVoice(voice);
 }
 
 export function resolveArabicPlaybackRate(rate: number): number {
@@ -790,9 +786,9 @@ export function speakArabic(
     'speechSynthesis' in window ? window.speechSynthesis.getVoices() : [];
   const bestVoice = selectBestArabicVoice(voices);
 
-  // For dynamic sentences (non-letter, non-HisnMuslim-Du'a), prioritize a realistic
-  // browser Neural Arabic voice (e.g. Microsoft Hamed Online (Natural) / Maged) when available
-  if (!hasDirectHumanMp3 && isPremiumNeuralArabicVoice(bestVoice)) {
+  // For lessons, stories, and podcasts (non-letter, non-HisnMuslim-Du'a), use native browser
+  // ar-SA-HamedNeural (Microsoft Hamed) directly if available; otherwise stream /api/tts ar-SA-HamedNeural MP3
+  if (!hasDirectHumanMp3 && isHamedNeuralVoice(bestVoice)) {
     speakOfflineFallback(ttsText, targetRate, token, resolvedSource, bestVoice);
     return;
   }
@@ -850,7 +846,9 @@ export function speakArabic(
     if (!alreadyBuffered) {
       const currentProvider = meta?.sources[meta.sourceIndex]?.provider;
       const timeoutMs =
-        currentProvider === 'hisnmuslim' ? Math.max(BUFFER_TIMEOUT_MS, 2000) : BUFFER_TIMEOUT_MS;
+        currentProvider === 'hisnmuslim' || currentProvider === 'hamed-neural'
+          ? Math.max(BUFFER_TIMEOUT_MS, 2500)
+          : BUFFER_TIMEOUT_MS;
       bufferTimeoutTimer = window.setTimeout(() => {
         if (settled || token !== activePlayToken) return;
         timedOut = true;

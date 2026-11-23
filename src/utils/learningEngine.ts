@@ -1,5 +1,6 @@
 import { COMMUNITY_LEARNERS, UNITS } from '../data/curriculum';
 import type {
+  AppTab,
   ArabicLetter,
   LeaderboardEntry,
   Lesson,
@@ -1596,4 +1597,164 @@ export function computeJumpButtonDirection(
   if (activeRect.top > viewportHeight - bottomOffset) return 'down';
   return null;
 }
+
+export const VALID_APP_TABS: readonly AppTab[] = ['path', 'alphabet', 'leaderboard', 'profile'];
+
+export interface StorageLike {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+/**
+ * Resolves the active unit ID (e.g. 'u1'..'u35') from completedLessons,
+ * falling back to 'u1' or the last unit when all nodes are finished.
+ */
+export function resolveCurrentUnitId(
+  completedLessons: string[],
+  units: Unit[] = UNITS
+): string {
+  const activeNodeId = getActiveNodeTargetId(completedLessons, units);
+  if (activeNodeId) {
+    const unit = units.find((u) => u.lessons.some((l) => l.id === activeNodeId));
+    if (unit) return unit.id;
+  }
+  return units[0]?.id ?? 'u1';
+}
+
+export function normalizeAppTab(tab: unknown): AppTab {
+  return VALID_APP_TABS.includes(tab as AppTab) ? (tab as AppTab) : 'path';
+}
+
+/**
+ * Synchronously persists user progress, XP, streak, hearts, activeTab, and currentUnitId
+ * to localStorage the exact instant a state change happens.
+ */
+export function persistUserStateSync(
+  storage: StorageLike | null | undefined,
+  storageKey: string,
+  state: UserState,
+  units: Unit[] = UNITS
+): UserState {
+  const normalized: UserState = {
+    ...state,
+    activeTab: normalizeAppTab(state.activeTab),
+    currentUnitId: state.currentUnitId || resolveCurrentUnitId(state.completedLessons, units),
+  };
+  if (storage) {
+    try {
+      storage.setItem(storageKey, JSON.stringify(normalized));
+    } catch {
+      // Ignore storage quota / private mode errors
+    }
+  }
+  return normalized;
+}
+
+/**
+ * Synchronously hydrates persisted user state before UI render, migrating legacy IDs,
+ * preserving activeTab & currentUnitId, and updating daily streak safely.
+ */
+export function hydratePersistedUserState(
+  storage: StorageLike | null | undefined,
+  storageKey: string,
+  fallback: UserState,
+  options: { autostart?: boolean; now?: Date; units?: Unit[] } = {}
+): UserState {
+  const units = options.units ?? UNITS;
+  const autostart = Boolean(options.autostart);
+  const now = options.now ?? new Date();
+
+  const defaultState: UserState = {
+    ...fallback,
+    activeTab: normalizeAppTab(fallback.activeTab),
+    currentUnitId: fallback.currentUnitId || resolveCurrentUnitId(fallback.completedLessons, units),
+  };
+
+  if (!storage) return defaultState;
+
+  try {
+    const raw = storage.getItem(storageKey);
+    if (!raw) return defaultState;
+    const parsed = JSON.parse(raw) as Partial<UserState>;
+    const completedLessons = migrateLegacyCompletedIds(parsed.completedLessons ?? [], units);
+    const legendaryLessons = Array.isArray(parsed.legendaryLessons)
+      ? Array.from(new Set(parsed.legendaryLessons))
+      : [];
+    const validUnitIds = new Set(units.map((u) => u.id));
+    const resolvedUnitId =
+      typeof parsed.currentUnitId === 'string' && validUnitIds.has(parsed.currentUnitId)
+        ? parsed.currentUnitId
+        : resolveCurrentUnitId(completedLessons, units);
+
+    let merged: UserState = {
+      ...defaultState,
+      ...parsed,
+      completedLessons,
+      legendaryLessons,
+      activeTab: normalizeAppTab(parsed.activeTab),
+      currentUnitId: resolvedUnitId,
+      onboarded: Boolean(parsed.onboarded && parsed.name) || autostart,
+      name: parsed.name || (autostart ? 'അഹമ്മദ്' : ''),
+    };
+
+    const streakCheck = computeStreakUpdate(merged, now);
+    if (streakCheck.changed) {
+      merged = {
+        ...merged,
+        streak: streakCheck.streak,
+        hearts: streakCheck.hearts,
+        lastActiveDate: streakCheck.lastActiveDate,
+      };
+      persistUserStateSync(storage, storageKey, merged, units);
+    }
+    return merged;
+  } catch {
+    return defaultState;
+  }
+}
+
+/**
+ * Monotonically merges Firestore cloud progress into local state so a slower cloud
+ * snapshot can never reset or regress locally completed lessons, XP, streak, or activeTab.
+ */
+export function mergeCloudUserState(
+  local: UserState,
+  cloud: Partial<UserState>,
+  units: Unit[] = UNITS
+): { state: UserState; changed: boolean } {
+  const cloudCompleted = migrateLegacyCompletedIds(cloud.completedLessons ?? [], units);
+  const mergedCompleted = Array.from(new Set([...local.completedLessons, ...cloudCompleted]));
+  const cloudLegendary = Array.isArray(cloud.legendaryLessons) ? cloud.legendaryLessons : [];
+  const mergedLegendary = Array.from(
+    new Set([...(local.legendaryLessons ?? []), ...cloudLegendary])
+  );
+  const nextXp = Math.max(Number(local.xp) || 0, Number(cloud.xp) || 0);
+  const nextStreak = Math.max(Number(local.streak) || 1, Number(cloud.streak) || 1);
+  const nextCurrentUnitId = resolveCurrentUnitId(mergedCompleted, units);
+
+  const changed =
+    mergedCompleted.length > local.completedLessons.length ||
+    mergedLegendary.length > (local.legendaryLessons ?? []).length ||
+    nextXp !== local.xp ||
+    nextStreak !== local.streak;
+
+  if (!changed) {
+    return { state: local, changed: false };
+  }
+
+  return {
+    changed: true,
+    state: {
+      ...local,
+      completedLessons: mergedCompleted,
+      legendaryLessons: mergedLegendary,
+      xp: nextXp,
+      streak: nextStreak,
+      name: local.name || cloud.name || '',
+      avatar: local.avatar || cloud.avatar || '🧕',
+      currentUnitId: nextCurrentUnitId,
+    },
+  };
+}
+
 

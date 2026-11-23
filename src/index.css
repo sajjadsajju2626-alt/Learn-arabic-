@@ -4,12 +4,22 @@
   html {
     font-family: 'Noto Sans Malayalam', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    touch-action: pan-y;
   }
 
   body {
     background-color: #F8FAFC;
     color: #1E293B;
     overflow-x: hidden;
+    overscroll-behavior-y: none;
+    touch-action: pan-y;
+  }
+
+  main,
+  [data-scroll-container='true'] {
+    overscroll-behavior-y: none;
+    touch-action: pan-y;
   }
 
   button:focus-visible,

@@ -280,6 +280,8 @@ export interface UserState {
   lastActiveDate: string;
   soundEnabled: boolean;
   onboarded: boolean;
+  activeTab?: AppTab;
+  currentUnitId?: string;
 }
 
 export type SessionMode = 'lesson' | 'placement' | 'jump';

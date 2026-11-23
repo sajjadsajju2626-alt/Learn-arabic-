@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PLACEMENT_QUESTIONS, UNITS } from './data/curriculum';
 import type { AppTab, Lesson, SessionConfig, SessionResult, UserState } from './types/learning';
 import {
@@ -8,13 +8,15 @@ import {
   buildReviewSessionQuestions,
   buildUnitJumpQuestions,
   claimTreasureChest,
-  computeStreakUpdate,
+  hydratePersistedUserState,
   LEGENDARY_HEARTS,
   LEGENDARY_XP_REWARD,
   MAX_HEARTS,
   mergeAndSortLeaderboard,
-  migrateLegacyCompletedIds,
+  normalizeAppTab,
+  persistUserStateSync,
   prepareSessionQuestions,
+  resolveCurrentUnitId,
   REVIEW_XP_REWARD,
 } from './utils/learningEngine';
 import { OnboardingScreen } from './components/OnboardingScreen';
@@ -28,6 +30,23 @@ import { StoryModal } from './components/StoryModal';
 import { CompleteModal } from './components/CompleteModal';
 
 const STORAGE_KEY = 'arabic_ml_app_state_v2';
+
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  try {
+    window.history.scrollRestoration = 'manual';
+  } catch {
+    // Ignore restricted history APIs
+  }
+}
+
+function getSafeLocalStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 function createInitialUserState(): UserState {
   const autostart =
@@ -46,60 +65,79 @@ function createInitialUserState(): UserState {
     lastActiveDate: new Date().toDateString(),
     soundEnabled: true,
     onboarded: autostart,
+    activeTab: 'path',
+    currentUnitId: UNITS[0]?.id ?? 'u1',
   };
 
-  if (typeof window === 'undefined') return fallback;
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as Partial<UserState>;
-    const merged: UserState = {
-      ...fallback,
-      ...parsed,
-      completedLessons: migrateLegacyCompletedIds(parsed.completedLessons ?? [], UNITS),
-      legendaryLessons: Array.isArray(parsed.legendaryLessons) ? parsed.legendaryLessons : [],
-      onboarded: Boolean(parsed.onboarded && parsed.name) || autostart,
-      name: parsed.name || (autostart ? 'അഹമ്മദ്' : ''),
-    };
-    const streakCheck = computeStreakUpdate(merged);
-    if (streakCheck.changed) {
-      return {
-        ...merged,
-        streak: streakCheck.streak,
-        hearts: streakCheck.hearts,
-        lastActiveDate: streakCheck.lastActiveDate,
-      };
-    }
-    return merged;
-  } catch {
-    return fallback;
-  }
+  return hydratePersistedUserState(getSafeLocalStorage(), STORAGE_KEY, fallback, {
+    autostart,
+    units: UNITS,
+  });
 }
 
 export default function App() {
   const [user, setUser] = useState<UserState>(createInitialUserState);
-  const [activeTab, setActiveTab] = useState<AppTab>('path');
+  const userRef = useRef<UserState>(user);
+  userRef.current = user;
+
+  const activeTab: AppTab = normalizeAppTab(user.activeTab);
   const [pathFocusTrigger, setPathFocusTrigger] = useState(0);
   const [activeSession, setActiveSession] = useState<SessionConfig | null>(null);
   const [activeStoryLesson, setActiveStoryLesson] = useState<Lesson | null>(null);
   const [completeResult, setCompleteResult] = useState<SessionResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const handleSelectTab = (tab: AppTab) => {
-    setActiveTab(tab);
-    if (tab === 'path') {
-      setPathFocusTrigger((n) => n + 1);
-    }
-  };
+  const updateUserSync = useCallback((updater: (prev: UserState) => UserState) => {
+    setUser((prev) => {
+      const next = persistUserStateSync(
+        getSafeLocalStorage(),
+        STORAGE_KEY,
+        updater(prev),
+        UNITS
+      );
+      userRef.current = next;
+      return next;
+    });
+  }, []);
 
+  const handleSelectTab = useCallback(
+    (tab: AppTab) => {
+      const normalized = normalizeAppTab(tab);
+      updateUserSync((prev) => ({ ...prev, activeTab: normalized }));
+      if (normalized === 'path') {
+        setPathFocusTrigger((n) => n + 1);
+      }
+    },
+    [updateUserSync]
+  );
+
+  const handleVisibleUnitChange = useCallback(
+    (unitId: string) => {
+      if (!unitId || userRef.current.currentUnitId === unitId) return;
+      updateUserSync((prev) =>
+        prev.currentUnitId === unitId ? prev : { ...prev, currentUnitId: unitId }
+      );
+    },
+    [updateUserSync]
+  );
+
+  // Flush synchronously on page hide / tab backgrounding so mobile WebView kills never drop progress
   useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    } catch {
-      // Ignore storage quota errors
-    }
-  }, [user]);
+    const flushNow = () => {
+      persistUserStateSync(getSafeLocalStorage(), STORAGE_KEY, userRef.current, UNITS);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') flushNow();
+    };
+    window.addEventListener('pagehide', flushNow);
+    window.addEventListener('beforeunload', flushNow);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flushNow);
+      window.removeEventListener('beforeunload', flushNow);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -112,11 +150,13 @@ export default function App() {
   const showToast = (msg: string) => setToast(msg);
 
   const handleOnboardingComplete = (name: string, avatar: string, takePlacement: boolean) => {
-    setUser((prev) => ({
+    updateUserSync((prev) => ({
       ...prev,
       name,
       avatar,
       onboarded: true,
+      activeTab: 'path',
+      currentUnitId: resolveCurrentUnitId(prev.completedLessons, UNITS),
       lastActiveDate: new Date().toDateString(),
     }));
     if (takePlacement) {
@@ -125,14 +165,17 @@ export default function App() {
   };
 
   const handleClaimChest = (lesson: Lesson) => {
-    setUser((prev) => {
+    updateUserSync((prev) => {
       const outcome = claimTreasureChest(prev, lesson.id, lesson.xpReward, lesson.heartReward);
       if (outcome.alreadyClaimed) {
         showToast('ഈ നിധിപ്പെട്ടി ഇതിനകം തുറന്നതാണ്!');
       } else {
         showToast(`🎁 നിധിപ്പെട്ടി തുറന്നു! +${outcome.earnedXp} XP & +${outcome.earnedHearts} ❤️`);
       }
-      return outcome.user;
+      return {
+        ...outcome.user,
+        currentUnitId: resolveCurrentUnitId(outcome.user.completedLessons, UNITS),
+      };
     });
   };
 
@@ -146,7 +189,7 @@ export default function App() {
       return;
     }
     if (user.hearts <= 0) {
-      setUser((prev) => ({ ...prev, hearts: MAX_HEARTS }));
+      updateUserSync((prev) => ({ ...prev, hearts: MAX_HEARTS }));
       showToast('ഹാർട്ടുകൾ സ്വയമേവ നിറച്ചിരിക്കുന്നു! പാഠം തുടങ്ങാം.');
     }
     setActiveSession({
@@ -217,7 +260,13 @@ export default function App() {
   };
 
   const handleSessionComplete = (result: SessionResult) => {
-    setUser((prev) => applySessionResult(prev, result, UNITS));
+    updateUserSync((prev) => {
+      const updated = applySessionResult(prev, result, UNITS);
+      return {
+        ...updated,
+        currentUnitId: resolveCurrentUnitId(updated.completedLessons, UNITS),
+      };
+    });
     setActiveSession(null);
     setActiveStoryLesson(null);
     setCompleteResult(result);
@@ -225,19 +274,20 @@ export default function App() {
   };
 
   const handleRefillHearts = () => {
-    setUser((prev) => ({ ...prev, hearts: MAX_HEARTS }));
+    updateUserSync((prev) => ({ ...prev, hearts: MAX_HEARTS }));
     showToast('5 ഹാർട്ടുകൾ നിറച്ചിരിക്കുന്നു!');
   };
 
   const handleResetProgress = () => {
-    setUser((prev) => ({
+    updateUserSync((prev) => ({
       ...prev,
       xp: 0,
       completedLessons: [],
       legendaryLessons: [],
       hearts: MAX_HEARTS,
+      activeTab: 'path',
+      currentUnitId: UNITS[0]?.id ?? 'u1',
     }));
-    setActiveTab('path');
     setPathFocusTrigger((n) => n + 1);
     showToast('പഠന പുരോഗതി റീസെറ്റ് ചെയ്തിരിക്കുന്നു.');
   };
@@ -268,6 +318,7 @@ export default function App() {
             legendaryLessons={user.legendaryLessons ?? []}
             soundEnabled={user.soundEnabled}
             focusTrigger={pathFocusTrigger}
+            onVisibleUnitChange={handleVisibleUnitChange}
             onStartLesson={startLesson}
             onStartReview={startReview}
             onStartLegendary={startLegendary}
@@ -288,14 +339,14 @@ export default function App() {
           <ProfileTab
             user={user}
             onUpdateName={(newName) => {
-              setUser((prev) => ({ ...prev, name: newName }));
+              updateUserSync((prev) => ({ ...prev, name: newName }));
               showToast('പേര് അപ്‌ഡേറ്റ് ചെയ്തിരിക്കുന്നു.');
             }}
             onUpdateAvatar={(newAvatar) => {
-              setUser((prev) => ({ ...prev, avatar: newAvatar }));
+              updateUserSync((prev) => ({ ...prev, avatar: newAvatar }));
             }}
             onToggleSound={(enabled) => {
-              setUser((prev) => ({ ...prev, soundEnabled: enabled }));
+              updateUserSync((prev) => ({ ...prev, soundEnabled: enabled }));
             }}
             onRetakePlacement={startPlacementTest}
             onRefillHearts={handleRefillHearts}
@@ -308,8 +359,8 @@ export default function App() {
         <LessonModal
           session={activeSession}
           soundEnabled={user.soundEnabled}
-          onHeartsChange={(hearts) => setUser((prev) => ({ ...prev, hearts }))}
-          onRefillHearts={() => setUser((prev) => ({ ...prev, hearts: MAX_HEARTS }))}
+          onHeartsChange={(hearts) => updateUserSync((prev) => ({ ...prev, hearts }))}
+          onRefillHearts={() => updateUserSync((prev) => ({ ...prev, hearts: MAX_HEARTS }))}
           onComplete={handleSessionComplete}
           onClose={() => setActiveSession(null)}
         />

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, BookOpen, Check, Lock, Rocket, Star, Volume2, X } from 'lucide-react';
 import { UNITS } from '../data/curriculum';
 import type { Lesson, Unit } from '../types/learning';
@@ -17,6 +17,7 @@ interface LearningPathTabProps {
   legendaryLessons?: string[];
   soundEnabled: boolean;
   focusTrigger?: number;
+  onVisibleUnitChange?: (unitId: string) => void;
   onStartLesson: (lesson: Lesson) => void;
   onStartReview?: (lesson: Lesson) => void;
   onStartLegendary?: (lesson: Lesson) => void;
@@ -41,6 +42,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
   legendaryLessons = [],
   soundEnabled,
   focusTrigger = 0,
+  onVisibleUnitChange,
   onStartLesson,
   onStartReview,
   onStartLegendary,
@@ -67,6 +69,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const activeNodeRef = useRef<HTMLDivElement | null>(null);
   const lastScrolledTargetRef = useRef<string | null>(null);
+  const hasInitialPositionedRef = useRef(false);
 
   const scrollToActiveNode = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const target = activeNodeRef.current;
@@ -100,6 +103,10 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
     if (rects.length > 0) {
       const nextVisible = computeVisibleUnitIndex(rects, stickyAnchorY);
       setVisibleUnitIndex((prev) => (prev === nextVisible ? prev : nextVisible));
+      const unitId = UNITS[nextVisible]?.id;
+      if (unitId && onVisibleUnitChange) {
+        onVisibleUnitChange(unitId);
+      }
     }
 
     const activeEl = activeNodeRef.current;
@@ -117,19 +124,28 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
     } else {
       setJumpDirection(null);
     }
-  }, []);
+  }, [onVisibleUnitChange]);
 
-  // Auto-scroll to active node on initial mount, when active node advances, or when Path tab is re-focused
-  useEffect(() => {
+  // Immediately position on active node before first paint on launch/refresh, and smoothly scroll on later tab/progress updates
+  useLayoutEffect(() => {
     const triggerKey = `${activeNodeId ?? ''}:${focusTrigger}`;
     if (lastScrolledTargetRef.current === triggerKey) return;
     lastScrolledTargetRef.current = triggerKey;
+
+    const isInitial = !hasInitialPositionedRef.current;
+    hasInitialPositionedRef.current = true;
+    const behavior: ScrollBehavior = isInitial ? 'auto' : 'smooth';
+
+    if (isInitial) {
+      scrollToActiveNode('auto');
+      syncScrollIndicators();
+    }
 
     let raf1 = 0;
     let raf2 = 0;
     raf1 = window.requestAnimationFrame(() => {
       raf2 = window.requestAnimationFrame(() => {
-        scrollToActiveNode('smooth');
+        scrollToActiveNode(behavior);
         syncScrollIndicators();
       });
     });
@@ -544,7 +560,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto space-y-4">
+            <div data-scroll-container="true" className="p-5 overflow-y-auto space-y-4">
               {guidebookUnit.guidebookTip && (
                 <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
                   {guidebookUnit.guidebookTip}
