@@ -4,6 +4,12 @@ import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum'
 import { UNIT_STORIES } from '../data/unitStories';
 import { UNIT_VIDEO_CALLS } from '../data/unitVideoCalls';
 import {
+  canUseServerGeminiEndpoint,
+  detectArabicIntent,
+  extractMirrorSnippet,
+  generateSmartArabicReply,
+} from './videoCallConversation';
+import {
   ALL_QUESTION_TYPES,
   applySessionResult,
   ARABIC_QUICK_KEYS,
@@ -1940,3 +1946,74 @@ test('Video Call Roleplay (video_call) appears EXCLUSIVELY in Units 15 to 35 wit
   assert.equal(updated.xp, 39);
   assert.ok(updated.completedLessons.includes('u15_vc'));
 });
+
+test('Dynamic Video Call Smart Arabic Conversational Engine detects intents, mirrors custom Arabic words, refreshes hints, and routes GitHub Pages / APK vs server cleanly', () => {
+  const tariqScenario = UNIT_VIDEO_CALLS.u15;
+  const laylaScenario = UNIT_VIDEO_CALLS.u16;
+  assert.ok(tariqScenario && laylaScenario);
+
+  // 1. Intent detection across key Arabic topics
+  assert.equal(detectArabicIntent('السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللّٰهِ').intent, 'greeting');
+  assert.equal(detectArabicIntent('أُرِيدُ قَهْوَةً عَرَبِيَّةً مَعَ التَّمْرِ').intent, 'food_drink');
+  assert.equal(detectArabicIntent('سَأُسَافِرُ إِلَى دُبَي غَدًا').intent, 'travel');
+  assert.equal(detectArabicIntent('أُمِّي وَأَبِي بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ').intent, 'family');
+  assert.equal(detectArabicIntent('أَنَا سَعِيدٌ جِدًّا الْيَوْمَ').intent, 'feelings_positive');
+  assert.equal(detectArabicIntent('أَنَا تَعْبَانٌ قَلِيلًا').intent, 'feelings_tired');
+  assert.equal(detectArabicIntent('الْجَوُّ حَارٌّ جِدًّا').intent, 'weather');
+  assert.equal(detectArabicIntent('أَدْرُسُ اللُّغَةَ الْعَرَبِيَّةَ فِي الْجَامِعَةِ').intent, 'work_study');
+  assert.equal(detectArabicIntent('نَعَمْ أَكِيدٌ').intent, 'affirmative');
+  assert.equal(detectArabicIntent('لَا شُكْرًا').intent, 'gratitude_farewell');
+  assert.equal(detectArabicIntent('لَا أَعْرِفُ').intent, 'negative');
+
+  // 2. Mirror snippet strips filler stop-words and keeps meaningful custom Arabic words
+  assert.equal(extractMirrorSnippet('أنا أحب القهوة العربية الساخنة!'), 'أحب القهوة العربية');
+  assert.equal(extractMirrorSnippet('أريد شراء ساعة زرقاء'), 'أريد شراء ساعة');
+
+  // 3. Custom spoken food sentence gets mirrored in Tariq's vocalized Arabic reply + refreshed hints
+  const foodReply = generateSmartArabicReply({
+    userSpokenText: 'أريد قهوة عربية مع التمر',
+    scenario: tariqScenario,
+    turnIndex: 0,
+    history: [{ speaker: 'character', text: tariqScenario.turns[0].characterAr }],
+  });
+  assert.equal(foodReply.source, 'smart_local');
+  assert.equal(foodReply.intent, 'food_drink');
+  assert.equal(foodReply.isFinalTurn, false);
+  assert.ok(foodReply.replyArabic.includes('قهوة'), 'Tariq reply must mirror user spoken Arabic words');
+  assert.ok(foodReply.replyTransliteration.trim().length > 0);
+  assert.ok(foodReply.replyMalayalam.trim().length > 0);
+  assert.equal(foodReply.nextHints.length, 3, 'Must refresh 3 tailored Arabic follow-up hints');
+  assert.equal(foodReply.xpEarned, 10);
+
+  // 4. Arbitrary custom Arabic sentence falls back to custom_mirror and acknowledges exact words
+  assert.equal(detectArabicIntent('سَأَلْتَقِي بِكَ غَدًا فِي السَّاعَةِ الْخَامِسَةِ').intent, 'time');
+  const customReply = generateSmartArabicReply({
+    userSpokenText: 'اشْتَرَيْتُ دَرَّاجَةً زَرْقَاءَ',
+    scenario: laylaScenario,
+    turnIndex: 1,
+    history: [],
+  });
+  assert.equal(customReply.intent, 'custom_mirror');
+  assert.ok(customReply.replyArabic.includes('اشْتَرَيْتُ'), 'Layla reply must mirror custom spoken Arabic');
+  assert.ok(customReply.nextHints.length >= 2);
+  assert.equal(customReply.isFinalTurn, false);
+
+  // 5. Final turn returns closing farewell with isFinalTurn: true and empty nextHints
+  const finalReply = generateSmartArabicReply({
+    userSpokenText: 'شُكْرًا جَزِيلًا يَا طَارِقُ',
+    scenario: tariqScenario,
+    turnIndex: tariqScenario.turns.length - 1,
+    history: [],
+  });
+  assert.equal(finalReply.isFinalTurn, true);
+  assert.deepEqual(finalReply.nextHints, []);
+  assert.ok(finalReply.replyArabic.includes('إِلَى اللِّقَاءِ'));
+
+  // 6. Automatic environment routing: GitHub Pages & Android APK skip server endpoint; AI Studio / localhost use it
+  assert.equal(canUseServerGeminiEndpoint({ protocol: 'https:', hostname: 'user.github.io' }), false);
+  assert.equal(canUseServerGeminiEndpoint({ protocol: 'file:', hostname: '' }), false);
+  assert.equal(canUseServerGeminiEndpoint({ protocol: 'capacitor:', hostname: 'localhost' }), false);
+  assert.equal(canUseServerGeminiEndpoint({ protocol: 'http:', hostname: 'localhost' }), true);
+  assert.equal(canUseServerGeminiEndpoint({ protocol: 'https:', hostname: 'myapp.run.app' }), true);
+});
+

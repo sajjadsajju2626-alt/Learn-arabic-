@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CheckCircle2,
   MessageSquareText,
   Mic,
   MicOff,
@@ -18,6 +17,10 @@ import {
   evaluateSessionOutcome,
 } from '../utils/learningEngine';
 import { playTone, preloadArabicAudioBatch, speakArabic, stopArabicAudio } from '../utils/audio';
+import {
+  requestDynamicVideoCallReply,
+  type VideoCallChatEntry,
+} from '../utils/videoCallConversation';
 
 interface VideoCallModalProps {
   lessonId: string;
@@ -34,6 +37,22 @@ interface CompletedTurnRecord {
   characterAr: string;
   userReplyAr: string;
   wordCount: number;
+}
+
+interface ActivePromptState {
+  ar: string;
+  tr: string;
+  ml: string;
+}
+
+interface LiveChatBubble {
+  id: string;
+  speaker: 'character' | 'user';
+  ar: string;
+  tr?: string;
+  ml?: string;
+  wordCount?: number;
+  xpEarned?: number;
 }
 
 interface SpeechRecognitionAlternativeLike {
@@ -121,6 +140,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   onComplete,
   onClose,
 }) => {
+  const initialTurn = scenario.turns[0];
   const [stage, setStage] = useState<CallStage>('ringing');
   const [turnIndex, setTurnIndex] = useState(0);
   const [showSubtitles, setShowSubtitles] = useState(false);
@@ -128,20 +148,44 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   const [backdropFailed, setBackdropFailed] = useState(false);
   const [isCharacterSpeaking, setIsCharacterSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [micNote, setMicNote] = useState<string | null>(null);
-  const [reactionBanner, setReactionBanner] = useState<string | null>(null);
   const [turnRecords, setTurnRecords] = useState<CompletedTurnRecord[]>([]);
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [activePrompt, setActivePrompt] = useState<ActivePromptState>(() => ({
+    ar: initialTurn?.characterAr ?? '',
+    tr: initialTurn?.characterTr ?? '',
+    ml: initialTurn?.characterMl ?? '',
+  }));
+  const [activeHints, setActiveHints] = useState<VideoCallReplySuggestion[]>(
+    () => initialTurn?.suggestedReplies ?? []
+  );
+  const [chatMessages, setChatMessages] = useState<LiveChatBubble[]>(() =>
+    initialTurn
+      ? [
+          {
+            id: 'opening-0',
+            speaker: 'character',
+            ar: initialTurn.characterAr,
+            tr: initialTurn.characterTr,
+            ml: initialTurn.characterMl,
+          },
+        ]
+      : []
+  );
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const transcriptRef = useRef('');
   const mountedRef = useRef(true);
+  const greetedRef = useRef(false);
+  const historyRef = useRef<VideoCallChatEntry[]>(
+    initialTurn ? [{ speaker: 'character', text: initialTurn.characterAr }] : []
+  );
   const speakingTimerRef = useRef<number | null>(null);
   const advanceTimerRef = useRef<number | null>(null);
   const speechSupported = useMemo(() => Boolean(getSpeechRecognitionCtor()), []);
 
-  const currentTurn = scenario.turns[turnIndex] ?? scenario.turns[0];
   const totalTurns = scenario.turns.length;
 
   const totalSpokenWords = useMemo(
@@ -197,7 +241,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
       }
       setIsCharacterSpeaking(true);
       speakArabic(arabicText, soundEnabled, 0.96);
-      const estimatedMs = Math.min(4800, Math.max(1600, arabicText.length * 52));
+      const estimatedMs = Math.min(5400, Math.max(1600, arabicText.length * 52));
       speakingTimerRef.current = window.setTimeout(() => {
         if (mountedRef.current) setIsCharacterSpeaking(false);
       }, estimatedMs);
@@ -221,61 +265,120 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     };
   }, [stage, soundEnabled]);
 
-  // Speak the character's current Arabic prompt when entering a turn
+  // Speak the opening Arabic greeting once when the call connects
   useEffect(() => {
-    if (stage !== 'active' || !currentTurn) return;
-    setLiveTranscript('');
-    transcriptRef.current = '';
-    setReactionBanner(null);
-    setIsAdvancing(false);
-    // If SpeechRecognition is unavailable (e.g., restricted WebView), open quick-reply chips automatically
+    if (stage !== 'active' || greetedRef.current) return;
+    greetedRef.current = true;
     if (!speechSupported) {
       setShowSuggestions(true);
     }
+    const openingLine = initialTurn?.characterAr ?? '';
+    if (!openingLine) return;
     const speakDelay = window.setTimeout(() => {
       if (mountedRef.current) {
-        speakCharacterLine(currentTurn.characterAr);
+        speakCharacterLine(openingLine);
       }
     }, 240);
     return () => window.clearTimeout(speakDelay);
-  }, [stage, turnIndex, currentTurn, speechSupported, speakCharacterLine]);
+  }, [stage, initialTurn, speechSupported, speakCharacterLine]);
 
   const submitTurnReply = useCallback(
-    (replyText: string) => {
-      if (!currentTurn || isAdvancing) return;
+    async (replyText: string) => {
+      if (isAdvancing) return;
       const cleaned = replyText.trim();
       if (!cleaned) return;
 
       stopRecognition();
       const words = Math.max(1, countSpokenArabicWords(cleaned));
+      const turnXp = Math.min(16, Math.max(2, words * 2));
 
       playTone('correct', soundEnabled);
       setIsAdvancing(true);
-      setLiveTranscript(cleaned);
-      setReactionBanner(currentTurn.reactionAr);
+      setIsThinking(true);
+      setLiveTranscript('');
+      transcriptRef.current = '';
+      setMicNote(null);
+
+      const userEntry: VideoCallChatEntry = { speaker: 'user', text: cleaned };
+      const updatedHistory = [...historyRef.current, userEntry];
+      historyRef.current = updatedHistory;
+
+      setChatMessages((prev) => [
+        ...prev.slice(-4),
+        {
+          id: `user-${turnIndex}-${Date.now()}`,
+          speaker: 'user',
+          ar: cleaned,
+          wordCount: words,
+          xpEarned: turnXp,
+        },
+      ]);
+
       setTurnRecords((prev) => [
         ...prev,
         {
           turnIndex,
-          characterAr: currentTurn.characterAr,
+          characterAr: activePrompt.ar,
           userReplyAr: cleaned,
           wordCount: words,
         },
       ]);
 
-      speakCharacterLine(currentTurn.reactionAr);
+      const dynamicReply = await requestDynamicVideoCallReply({
+        userSpokenText: cleaned,
+        scenario,
+        turnIndex,
+        history: updatedHistory,
+      });
 
-      advanceTimerRef.current = window.setTimeout(() => {
-        if (!mountedRef.current) return;
-        if (turnIndex + 1 < totalTurns) {
-          setTurnIndex((idx) => idx + 1);
-        } else {
+      if (!mountedRef.current) return;
+
+      historyRef.current = [
+        ...historyRef.current,
+        { speaker: 'character', text: dynamicReply.replyArabic },
+      ];
+
+      setActivePrompt({
+        ar: dynamicReply.replyArabic,
+        tr: dynamicReply.replyTransliteration,
+        ml: dynamicReply.replyMalayalam,
+      });
+      setActiveHints(dynamicReply.nextHints);
+      setChatMessages((prev) => [
+        ...prev.slice(-4),
+        {
+          id: `char-${turnIndex + 1}-${Date.now()}`,
+          speaker: 'character',
+          ar: dynamicReply.replyArabic,
+          tr: dynamicReply.replyTransliteration,
+          ml: dynamicReply.replyMalayalam,
+        },
+      ]);
+      setIsThinking(false);
+      speakCharacterLine(dynamicReply.replyArabic);
+
+      if (!dynamicReply.isFinalTurn) {
+        setTurnIndex((idx) => Math.min(totalTurns - 1, idx + 1));
+        setIsAdvancing(false);
+      } else {
+        advanceTimerRef.current = window.setTimeout(() => {
+          if (!mountedRef.current) return;
           playTone('complete', soundEnabled);
           setStage('summary');
-        }
-      }, 1550);
+          setIsAdvancing(false);
+        }, 2200);
+      }
     },
-    [currentTurn, isAdvancing, stopRecognition, soundEnabled, turnIndex, totalTurns, speakCharacterLine]
+    [
+      isAdvancing,
+      stopRecognition,
+      soundEnabled,
+      turnIndex,
+      activePrompt.ar,
+      scenario,
+      speakCharacterLine,
+      totalTurns,
+    ]
   );
 
   const handleToggleSpeak = useCallback(() => {
@@ -521,7 +624,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
       )}
 
       {/* STAGE 2: INTERACTIVE VIDEO CALL CONVERSATION SCREEN */}
-      {stage === 'active' && currentTurn && (
+      {stage === 'active' && (
         <div
           data-testid="video-call-active"
           className="relative z-10 flex-1 flex flex-col justify-between max-w-2xl mx-auto w-full h-full"
@@ -570,152 +673,212 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
             </div>
           </header>
 
-          {/* Center Animated Character Portrait & Optional Subtitles */}
+          {/* Center Animated Character Portrait, Live Speech Bubbles & Optional Subtitles */}
           <div
             data-scroll-container="true"
             className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 flex flex-col"
           >
-            <div className="my-auto w-full flex flex-col items-center gap-4">
-            {/* Large Animated Arab Character Portrait */}
-            <div className="relative flex flex-col items-center shrink-0">
-              <div className="relative flex items-center justify-center">
-                {isCharacterSpeaking && (
-                  <>
+            <div className="my-auto w-full flex flex-col items-center gap-3.5">
+              {/* Large Animated Arab Character Portrait */}
+              <div className="relative flex flex-col items-center shrink-0">
+                <div className="relative flex items-center justify-center">
+                  {isCharacterSpeaking && (
+                    <>
+                      <span
+                        aria-hidden="true"
+                        className="absolute w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-amber-400/25 animate-ping"
+                        style={{ animationDuration: '1.4s' }}
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="absolute w-36 h-36 sm:w-40 sm:h-40 rounded-full border-2 border-amber-300/70 animate-pulse"
+                      />
+                    </>
+                  )}
+                  {isListening && (
                     <span
                       aria-hidden="true"
-                      className="absolute w-44 h-44 sm:w-48 sm:h-48 rounded-full bg-amber-400/25 animate-ping"
-                      style={{ animationDuration: '1.4s' }}
+                      className="absolute w-40 h-40 sm:w-44 sm:h-44 rounded-full border-4 border-sky-400/75 animate-pulse"
                     />
-                    <span
-                      aria-hidden="true"
-                      className="absolute w-38 h-38 sm:w-42 sm:h-42 rounded-full border-2 border-amber-300/70 animate-pulse"
-                    />
-                  </>
-                )}
-                {isListening && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute w-44 h-44 sm:w-48 sm:h-48 rounded-full border-4 border-sky-400/75 animate-pulse"
-                  />
-                )}
-                <button
-                  type="button"
-                  aria-label="ചോദ്യം വീണ്ടും കേൾക്കുക"
-                  onClick={() => speakCharacterLine(currentTurn.characterAr)}
-                  className={`relative w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-b from-amber-50 via-amber-100 to-amber-300 border-4 shadow-2xl flex items-center justify-center text-7xl sm:text-8xl transition-transform duration-300 ${
-                    isCharacterSpeaking
-                      ? 'border-amber-300 scale-105'
-                      : isListening
-                        ? 'border-sky-400 scale-100'
-                        : 'border-white/90 hover:scale-[1.03]'
-                  }`}
-                >
-                  <span aria-hidden="true">{scenario.characterAvatar}</span>
-                </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label="ചോദ്യം വീണ്ടും കേൾക്കുക"
+                    onClick={() => speakCharacterLine(activePrompt.ar)}
+                    className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-b from-amber-50 via-amber-100 to-amber-300 border-4 shadow-2xl flex items-center justify-center text-6xl sm:text-7xl transition-transform duration-300 ${
+                      isCharacterSpeaking
+                        ? 'border-amber-300 scale-105'
+                        : isListening
+                          ? 'border-sky-400 scale-100'
+                          : 'border-white/90 hover:scale-[1.03]'
+                    }`}
+                  >
+                    <span aria-hidden="true">{scenario.characterAvatar}</span>
+                  </button>
+                </div>
+
+                {/* Subtle status label */}
+                <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/65 backdrop-blur-md border border-white/15 text-xs font-bold text-white/95">
+                  {isThinking ? (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" aria-hidden="true" />
+                      <span>{scenario.characterNameMl} മറുപടി പറയുന്നു...</span>
+                    </>
+                  ) : isCharacterSpeaking ? (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5 text-amber-300 animate-pulse" aria-hidden="true" />
+                      <span>{scenario.characterNameMl} സംസാരിക്കുന്നു...</span>
+                    </>
+                  ) : isListening ? (
+                    <>
+                      <Mic className="w-3.5 h-3.5 text-sky-400 animate-pulse" aria-hidden="true" />
+                      <span>കേൾക്കുന്നു... അറബിയിൽ സംസാരിക്കൂ!</span>
+                    </>
+                  ) : (
+                    <span>മറുപടി പറയാൻ 🎤 അമർത്തുക</span>
+                  )}
+                </div>
               </div>
 
-              {/* Subtle status label */}
-              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/65 backdrop-blur-md border border-white/15 text-xs font-bold text-white/95">
-                {isCharacterSpeaking ? (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-amber-300 animate-pulse" aria-hidden="true" />
-                    <span>{scenario.characterNameMl} സംസാരിക്കുന്നു...</span>
-                  </>
-                ) : isListening ? (
-                  <>
-                    <Mic className="w-3.5 h-3.5 text-sky-400 animate-pulse" aria-hidden="true" />
-                    <span>കേൾക്കുന്നു... അറബിയിൽ സംസാരിക്കൂ!</span>
-                  </>
-                ) : reactionBanner ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#58CC02]" aria-hidden="true" />
-                    <span className="font-arabic text-base text-emerald-200">{reactionBanner}</span>
-                  </>
-                ) : (
-                  <span>മറുപടി പറയാൻ 🎤 അമർത്തുക</span>
-                )}
-              </div>
-            </div>
-
-            {/* Optional Subtitle Reveal Card */}
-            {showSubtitles && (
-              <div
-                data-testid="video-call-subtitles"
-                className="w-full max-w-lg bg-slate-950/78 backdrop-blur-md border border-white/20 rounded-2xl p-4 text-center space-y-1.5 shadow-xl animate-pop"
-              >
+              {/* Live Dynamic Conversation Bubbles (User Spoken Bubble + Character Dynamic Reply) */}
+              {chatMessages.length > 0 && (
                 <div
-                  dir="rtl"
-                  lang="ar"
-                  className="font-arabic text-2xl sm:text-3xl font-bold text-white leading-relaxed"
+                  data-testid="video-call-chat-thread"
+                  className="w-full max-w-lg space-y-2.5"
                 >
-                  {currentTurn.characterAr}
-                </div>
-                <div className="text-xs font-bold text-sky-300">{currentTurn.characterTr}</div>
-                <div className="text-xs sm:text-sm font-semibold text-amber-100/95">
-                  {currentTurn.characterMl}
-                </div>
-              </div>
-            )}
-
-            {/* Live Spoken Arabic Transcript Pill */}
-            {liveTranscript && (
-              <div
-                data-testid="video-call-live-transcript"
-                className="w-full max-w-lg bg-sky-950/80 backdrop-blur-md border border-sky-400/45 rounded-2xl px-4 py-3 text-center space-y-1 shadow-lg animate-pop"
-              >
-                <div className="text-[11px] font-extrabold text-sky-300 uppercase tracking-wide">
-                  നിങ്ങൾ പറഞ്ഞത് ({countSpokenArabicWords(liveTranscript)} വാക്കുകൾ)
-                </div>
-                <div dir="rtl" lang="ar" className="font-arabic text-xl sm:text-2xl font-bold text-white">
-                  {liveTranscript}
-                </div>
-              </div>
-            )}
-
-            {/* Friendly Mic Fallback Note */}
-            {micNote && (
-              <div className="w-full max-w-lg bg-amber-950/80 border border-amber-400/40 rounded-xl px-3.5 py-2 text-xs font-bold text-amber-100 text-center">
-                {micNote}
-              </div>
-            )}
-
-            {/* Suggested Arabic Replies Drawer (Helpful for Learners & WebView Fallback) */}
-            {showSuggestions && !isAdvancing && (
-              <div
-                data-testid="video-call-suggestions"
-                className="w-full max-w-lg bg-slate-950/80 backdrop-blur-md border border-white/15 rounded-2xl p-3 space-y-2 shadow-xl"
-              >
-                <div className="flex items-center justify-between text-[11px] font-extrabold text-amber-200 px-1">
-                  <span>💡 പറയാവുന്ന അറബി മറുപടികൾ (കൂടുതൽ വാക്കുകൾ = കൂടുതൽ XP)</span>
-                </div>
-                <div className="space-y-2">
-                  {currentTurn.suggestedReplies.map((reply, rIdx) => {
-                    const wc = countSpokenArabicWords(reply.ar);
-                    return (
-                      <button
-                        key={rIdx}
-                        type="button"
-                        data-testid={`video-call-quick-reply-${rIdx}`}
-                        onClick={() => handleQuickReply(reply)}
-                        className="w-full text-right bg-white/10 hover:bg-sky-500/25 border border-white/15 hover:border-sky-300/60 rounded-xl px-3.5 py-2.5 transition flex items-center justify-between gap-3"
-                      >
-                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-200 text-[11px] font-extrabold font-latin tabular-nums">
-                          +{wc * 2} XP
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div dir="rtl" lang="ar" className="font-arabic text-lg sm:text-xl font-bold text-white leading-snug">
-                            {reply.ar}
+                  {chatMessages.slice(-2).map((msg) =>
+                    msg.speaker === 'user' ? (
+                      <div key={msg.id} className="flex justify-end animate-pop">
+                        <div
+                          data-testid="video-call-user-bubble"
+                          className="max-w-[88%] rounded-2xl rounded-br-md bg-[#0284C7]/90 backdrop-blur-md border border-sky-300/45 px-4 py-2.5 text-right shadow-lg"
+                        >
+                          <div className="flex items-center justify-end gap-2 text-[10px] font-extrabold text-sky-100/90 mb-0.5">
+                            <span>നിങ്ങൾ</span>
+                            {typeof msg.wordCount === 'number' && (
+                              <span className="px-1.5 py-0.5 rounded-md bg-white/15 font-latin tabular-nums">
+                                {msg.wordCount}w · +{msg.xpEarned ?? msg.wordCount * 2} XP
+                              </span>
+                            )}
                           </div>
-                          <div dir="ltr" className="text-[11px] font-semibold text-white/75 truncate">
-                            {reply.ml}
+                          <div
+                            dir="rtl"
+                            lang="ar"
+                            className="font-arabic text-lg sm:text-xl font-bold text-white leading-relaxed"
+                          >
+                            {msg.ar}
                           </div>
                         </div>
-                      </button>
-                    );
-                  })}
+                      </div>
+                    ) : (
+                      <div key={msg.id} className="flex justify-start animate-pop">
+                        <button
+                          type="button"
+                          data-testid="video-call-character-bubble"
+                          onClick={() => speakCharacterLine(msg.ar)}
+                          aria-label="മറുപടി വീണ്ടും കേൾക്കുക"
+                          className="max-w-[92%] text-left rounded-2xl rounded-bl-md bg-slate-950/80 hover:bg-slate-950/90 backdrop-blur-md border border-amber-300/35 px-4 py-3 shadow-xl transition space-y-1"
+                        >
+                          <div className="flex items-center justify-between gap-2 text-[10px] font-extrabold text-amber-200/95">
+                            <span>
+                              {scenario.characterAvatar} {scenario.characterNameMl}
+                            </span>
+                            <Volume2 className="w-3.5 h-3.5 text-amber-300 shrink-0" aria-hidden="true" />
+                          </div>
+                          <div
+                            dir="rtl"
+                            lang="ar"
+                            className="font-arabic text-xl sm:text-2xl font-bold text-white leading-relaxed text-right"
+                          >
+                            {msg.ar}
+                          </div>
+                          {showSubtitles && (msg.tr || msg.ml) && (
+                            <div
+                              data-testid="video-call-subtitles"
+                              className="pt-1.5 mt-1 border-t border-white/15 space-y-0.5"
+                            >
+                              {msg.tr && <div className="text-xs font-bold text-sky-300">{msg.tr}</div>}
+                              {msg.ml && (
+                                <div className="text-xs sm:text-sm font-semibold text-amber-100/95">
+                                  {msg.ml}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                    )
+                  )}
+
+                  {isThinking && (
+                    <div className="flex justify-start animate-pulse">
+                      <div className="rounded-2xl rounded-bl-md bg-slate-950/75 border border-white/20 px-4 py-2.5 text-xs font-bold text-amber-200">
+                        {scenario.characterAvatar} {scenario.characterNameMl} ചിന്തിക്കുന്നു...
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Live Interim Speech Transcript while Listening */}
+              {liveTranscript && (
+                <div
+                  data-testid="video-call-live-transcript"
+                  className="w-full max-w-lg bg-sky-950/85 backdrop-blur-md border border-sky-400/50 rounded-2xl px-4 py-2.5 text-center space-y-1 shadow-lg animate-pop"
+                >
+                  <div className="text-[11px] font-extrabold text-sky-300 uppercase tracking-wide">
+                    കേൾക്കുന്നു ({countSpokenArabicWords(liveTranscript)} വാക്കുകൾ)
+                  </div>
+                  <div dir="rtl" lang="ar" className="font-arabic text-xl sm:text-2xl font-bold text-white">
+                    {liveTranscript}
+                  </div>
+                </div>
+              )}
+
+              {/* Friendly Mic Fallback Note */}
+              {micNote && (
+                <div className="w-full max-w-lg bg-amber-950/80 border border-amber-400/40 rounded-xl px-3.5 py-2 text-xs font-bold text-amber-100 text-center">
+                  {micNote}
+                </div>
+              )}
+
+              {/* Dynamically Refreshed Suggested Arabic Replies Drawer */}
+              {showSuggestions && !isAdvancing && activeHints.length > 0 && (
+                <div
+                  data-testid="video-call-suggestions"
+                  className="w-full max-w-lg bg-slate-950/80 backdrop-blur-md border border-white/15 rounded-2xl p-3 space-y-2 shadow-xl"
+                >
+                  <div className="flex items-center justify-between text-[11px] font-extrabold text-amber-200 px-1">
+                    <span>💡 പറയാവുന്ന അറബി മറുപടികൾ (കൂടുതൽ വാക്കുകൾ = കൂടുതൽ XP)</span>
+                  </div>
+                  <div className="space-y-2">
+                    {activeHints.map((reply, rIdx) => {
+                      const wc = countSpokenArabicWords(reply.ar);
+                      return (
+                        <button
+                          key={`${turnIndex}-${rIdx}`}
+                          type="button"
+                          data-testid={`video-call-quick-reply-${rIdx}`}
+                          onClick={() => handleQuickReply(reply)}
+                          className="w-full text-right bg-white/10 hover:bg-sky-500/25 border border-white/15 hover:border-sky-300/60 rounded-xl px-3.5 py-2.5 transition flex items-center justify-between gap-3"
+                        >
+                          <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-200 text-[11px] font-extrabold font-latin tabular-nums">
+                            +{wc * 2} XP
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div dir="rtl" lang="ar" className="font-arabic text-lg sm:text-xl font-bold text-white leading-snug">
+                              {reply.ar}
+                            </div>
+                            <div dir="ltr" className="text-[11px] font-semibold text-white/75 truncate">
+                              {reply.ml}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -751,7 +914,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                   aria-label="ചോദ്യം വീണ്ടും കേൾക്കുക"
                   onClick={() => {
                     playTone('tap', soundEnabled);
-                    speakCharacterLine(currentTurn.characterAr);
+                    speakCharacterLine(activePrompt.ar);
                   }}
                   className="btn-3d w-14 h-14 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-white/20 border-b-4 border-b-slate-950 text-white flex flex-col items-center justify-center gap-0.5 shrink-0"
                 >
@@ -800,7 +963,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                   className={`btn-3d w-14 h-14 rounded-2xl border border-b-4 flex flex-col items-center justify-center gap-0.5 shrink-0 transition ${
                     showSubtitles
                       ? 'bg-amber-400 border-amber-600 text-slate-950'
-                      : 'bg-slate-900/85 hover:bg-slate-800 border-white/20 border-b-slate-950 text-white'
+                      : 'bg-slate-900/85 hover:bg-slate-800 border-white/20 border-b-4 border-b-slate-950 text-white'
                   }`}
                 >
                   <Subtitles className="w-5 h-5" aria-hidden="true" />

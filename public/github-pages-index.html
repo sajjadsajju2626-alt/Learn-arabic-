@@ -572,33 +572,29 @@
       </header>
 
       <div id="video-call-scroll-area" data-scroll-container="true" class="flex-1 overflow-y-auto px-4 sm:px-6 py-3 flex flex-col">
-        <div class="my-auto w-full flex flex-col items-center gap-4">
-        <div class="relative flex flex-col items-center shrink-0">
-          <div class="relative flex items-center justify-center">
-            <span id="vc-speak-ping" aria-hidden="true" class="hidden absolute w-44 h-44 sm:w-48 sm:h-48 rounded-full bg-amber-400/25 animate-ping" style="animation-duration:1.4s;"></span>
-            <span id="vc-listen-ring" aria-hidden="true" class="hidden absolute w-44 h-44 sm:w-48 sm:h-48 rounded-full border-4 border-sky-400/75 animate-pulse"></span>
-            <button id="vc-portrait-btn" type="button" aria-label="ചോദ്യം വീണ്ടും കേൾക്കുക" class="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-gradient-to-b from-amber-50 via-amber-100 to-amber-300 border-4 border-white/90 shadow-2xl flex items-center justify-center text-6xl sm:text-8xl transition-transform duration-300">👳‍♂️</button>
+        <div class="my-auto w-full flex flex-col items-center gap-3.5">
+          <div class="relative flex flex-col items-center shrink-0">
+            <div class="relative flex items-center justify-center">
+              <span id="vc-speak-ping" aria-hidden="true" class="hidden absolute w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-amber-400/25 animate-ping" style="animation-duration:1.4s;"></span>
+              <span id="vc-listen-ring" aria-hidden="true" class="hidden absolute w-40 h-40 sm:w-44 sm:h-44 rounded-full border-4 border-sky-400/75 animate-pulse"></span>
+              <button id="vc-portrait-btn" type="button" aria-label="ചോദ്യം വീണ്ടും കേൾക്കുക" class="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-b from-amber-50 via-amber-100 to-amber-300 border-4 border-white/90 shadow-2xl flex items-center justify-center text-6xl sm:text-7xl transition-transform duration-300">👳‍♂️</button>
+            </div>
+            <div id="vc-status-pill" class="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-950/65 backdrop-blur-md border border-white/15 text-xs font-bold text-white/95">മറുപടി പറയാൻ 🎤 അമർത്തുക</div>
           </div>
-          <div id="vc-status-pill" class="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-950/65 backdrop-blur-md border border-white/15 text-xs font-bold text-white/95">മറുപടി പറയാൻ 🎤 അമർത്തുക</div>
-        </div>
 
-        <div id="vc-subtitle-card" data-testid="video-call-subtitles" class="hidden w-full max-w-lg bg-slate-950/80 backdrop-blur-md border border-white/20 rounded-2xl p-4 text-center space-y-1.5 shadow-xl animate-pop">
-          <div id="vc-sub-ar" dir="rtl" lang="ar" class="font-arabic text-2xl sm:text-3xl font-bold text-white leading-relaxed"></div>
-          <div id="vc-sub-tr" class="text-xs font-bold text-sky-300"></div>
-          <div id="vc-sub-ml" class="text-xs sm:text-sm font-semibold text-amber-100/95"></div>
-        </div>
+          <div id="vc-chat-thread" data-testid="video-call-chat-thread" class="w-full max-w-lg space-y-2.5"></div>
 
-        <div id="vc-live-transcript-box" data-testid="video-call-live-transcript" class="hidden w-full max-w-lg bg-sky-950/80 backdrop-blur-md border border-sky-400/45 rounded-2xl px-4 py-3 text-center space-y-1 shadow-lg animate-pop">
-          <div id="vc-live-transcript-meta" class="text-[11px] font-extrabold text-sky-300 uppercase tracking-wide">നിങ്ങൾ പറഞ്ഞത്</div>
-          <div id="vc-live-transcript-text" dir="rtl" lang="ar" class="font-arabic text-xl sm:text-2xl font-bold text-white"></div>
-        </div>
+          <div id="vc-live-transcript-box" data-testid="video-call-live-transcript" class="hidden w-full max-w-lg bg-sky-950/85 backdrop-blur-md border border-sky-400/50 rounded-2xl px-4 py-2.5 text-center space-y-1 shadow-lg animate-pop">
+            <div id="vc-live-transcript-meta" class="text-[11px] font-extrabold text-sky-300 uppercase tracking-wide">കേൾക്കുന്നു</div>
+            <div id="vc-live-transcript-text" dir="rtl" lang="ar" class="font-arabic text-xl sm:text-2xl font-bold text-white"></div>
+          </div>
 
-        <div id="vc-mic-note" class="hidden w-full max-w-lg bg-amber-950/80 border border-amber-400/40 rounded-xl px-3.5 py-2 text-xs font-bold text-amber-100 text-center"></div>
+          <div id="vc-mic-note" class="hidden w-full max-w-lg bg-amber-950/80 border border-amber-400/40 rounded-xl px-3.5 py-2 text-xs font-bold text-amber-100 text-center"></div>
 
-        <div id="vc-suggestions-box" data-testid="video-call-suggestions" class="hidden w-full max-w-lg bg-slate-950/80 backdrop-blur-md border border-white/15 rounded-2xl p-3 space-y-2 shadow-xl">
-          <div class="text-[11px] font-extrabold text-amber-200 px-1">💡 പറയാവുന്ന അറബി മറുപടികൾ (കൂടുതൽ വാക്കുകൾ = കൂടുതൽ XP)</div>
-          <div id="vc-suggestions-list" class="space-y-2"></div>
-        </div>
+          <div id="vc-suggestions-box" data-testid="video-call-suggestions" class="hidden w-full max-w-lg bg-slate-950/80 backdrop-blur-md border border-white/15 rounded-2xl p-3 space-y-2 shadow-xl">
+            <div class="text-[11px] font-extrabold text-amber-200 px-1">💡 പറയാവുന്ന അറബി മറുപടികൾ (കൂടുതൽ വാക്കുകൾ = കൂടുതൽ XP)</div>
+            <div id="vc-suggestions-list" class="space-y-2"></div>
+          </div>
         </div>
       </div>
 
@@ -7560,6 +7556,351 @@
       } catch (e) {}
     }
 
+    // ================= SMART ARABIC CONVERSATIONAL ENGINE + GEMINI AUTO-INTEGRATION =================
+    const VC_INTENT_RULES = [
+      { intent: "greeting", keywords: ["السلام", "سلام", "مرحبا", "اهلا", "صباح", "مساء", "حياك", "هلا", "كيف حالك", "كيفك"] },
+      { intent: "food_drink", keywords: ["قهوه", "شاي", "ماء", "طعام", "اكل", "اشرب", "خبز", "ارز", "رز", "دجاج", "لحم", "سمك", "فاكهه", "عصير", "حليب", "تمر", "كبسه", "مطعم", "مقهي", "لذيذ", "جائع", "عطشان", "فطور", "غداء", "عشاء", "حلي", "سكر"] },
+      { intent: "travel", keywords: ["سفر", "مسافر", "اسافر", "مطار", "طائره", "جواز", "تاشيره", "فيزا", "دبي", "الرياض", "جده", "الدوحه", "مسقط", "الكويت", "مكه", "المدينه", "فندق", "تذكره", "حقيبه", "بوابه", "رحله", "سياره", "قطار", "شارع"] },
+      { intent: "family", keywords: ["ابي", "امي", "اخي", "اختي", "عائله", "عائلتي", "اسره", "اسرتي", "ابني", "بنتي", "ولدي", "زوجي", "زوجتي", "اطفال", "اولاد", "جد", "جده", "صديق", "صديقي", "اصدقاء", "اصدقائي", "بيت", "بيتي"] },
+      { intent: "feelings_tired", keywords: ["تعبان", "متعب", "حزين", "مريض", "قلق", "صعب", "مشكله", "مشغول", "بردان", "صداع", "الم"] },
+      { intent: "feelings_positive", keywords: ["بخير", "الحمد", "سعيد", "فرحان", "ممتاز", "رائع", "جميل", "جيد", "مبسوط", "مرتاح", "احب", "اعجبني", "مشتاق", "مستعد"] },
+      { intent: "weather", keywords: ["جو", "طقس", "حار", "حر", "بارد", "برد", "مطر", "تمطر", "شمس", "مشمس", "غائم", "رياح", "صيف", "شتاء", "ربيع", "معتدل"] },
+      { intent: "time", keywords: ["ساعه", "اليوم", "غدا", "بكره", "امس", "اسبوع", "شهر", "سنه", "مبكرا", "متاخر", "وقت", "الان", "دقيقه", "ليل", "نهار", "جمعه", "سبت", "احد", "اثنين"] },
+      { intent: "work_study", keywords: ["عمل", "عملي", "مكتب", "شركه", "طبيب", "مهندس", "معلم", "استاذ", "طالب", "مدرسه", "جامعه", "كتاب", "درس", "عربيه", "لغه", "اقرا", "اكتب", "ادرس", "اتعلم", "امتحان", "مشروع", "وظيفه"] },
+      { intent: "gratitude_farewell", keywords: ["شكرا", "جزاك", "عفوا", "مع السلامه", "الي اللقاء", "وداعا", "يعطيك", "تشرفت", "الله يحفظك"] },
+      { intent: "negative", keywords: ["لا", "مش", "ليس", "لن", "لم", "ابدا", "للاسف", "لا اعرف", "لا اريد", "ما في", "ما عندي"] },
+      { intent: "affirmative", keywords: ["نعم", "ايوه", "اكيد", "طبعا", "موافق", "حسنا", "طيب", "تمام", "بالتاكيد", "صح", "صحيح", "ان شاء الله"] }
+    ];
+
+    const VC_STOP_WORDS_NORM = new Set(["انا", "انت", "هو", "هي", "نحن", "في", "من", "الي", "علي", "عن", "مع", "هذا", "هذه", "ذلك", "تلك", "نعم", "لا", "جدا", "ان", "و", "يا"]);
+
+    function extractVcMirrorSnippet(userSpokenText) {
+      const cleaned = String(userSpokenText || "")
+        .replace(/[.,!؟،؛:"'()[\]«»\-–—…]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!cleaned) return "";
+      const arabicTokens = cleaned.split(/\s+/).filter(t => /[\u0621-\u064A]/.test(t));
+      if (!arabicTokens.length) return "";
+      const meaningful = arabicTokens.filter(tok => !VC_STOP_WORDS_NORM.has(normalizeArabicSpeech(tok)));
+      return (meaningful.length ? meaningful : arabicTokens).slice(0, 3).join(" ");
+    }
+
+    function detectVcArabicIntent(userSpokenText) {
+      const norm = normalizeArabicSpeech(userSpokenText);
+      if (!norm) return { intent: "custom_mirror", matchedKeyword: null };
+      const rawTokens = norm.split(/\s+/).filter(Boolean);
+      const tokenSet = new Set();
+      for (const tok of rawTokens) {
+        tokenSet.add(tok);
+        if (tok.startsWith("ال") && tok.length > 3) tokenSet.add(tok.slice(2));
+        if (tok.startsWith("وال") && tok.length > 4) tokenSet.add(tok.slice(3));
+        if (tok.startsWith("بال") && tok.length > 4) tokenSet.add(tok.slice(3));
+      }
+      for (const rule of VC_INTENT_RULES) {
+        for (const kw of rule.keywords) {
+          if (kw.includes(" ")) {
+            if (norm.includes(kw)) return { intent: rule.intent, matchedKeyword: kw };
+          } else if (tokenSet.has(kw)) {
+            return { intent: rule.intent, matchedKeyword: kw };
+          }
+        }
+      }
+      for (const rule of VC_INTENT_RULES) {
+        if (rule.intent === "negative" || rule.intent === "affirmative") continue;
+        for (const kw of rule.keywords) {
+          if (kw.length < 3 || kw.includes(" ")) continue;
+          for (const tok of tokenSet) {
+            if (tok.includes(kw)) return { intent: rule.intent, matchedKeyword: kw };
+          }
+        }
+      }
+      return { intent: "custom_mirror", matchedKeyword: null };
+    }
+
+    function buildVcIntentTemplates(isLayla) {
+      const friendAr = isLayla ? "يَا صَدِيقِي" : "يَا أَخِي";
+      const friendTr = isLayla ? "യാ സ്വദീഖീ" : "യാ അഖീ";
+      return {
+        greeting: {
+          ackAr: () => `وَعَلَيْكُمُ السَّلَامُ وَأَهْلًا بِكَ ${friendAr}!`,
+          ackTr: () => `വ അലൈക്കുമുസ്സലാമു വ അഹ്‌ലൻ ബിക ${friendTr}!`,
+          ackMl: () => "വ അലൈക്കുമുസ്സലാം, നിങ്ങൾക്ക് സ്വാഗതം!",
+          followUpAr: "كَيْفَ حَالُكَ الْيَوْمَ؟ وَمَاذَا تَفْعَلُ الْآنَ؟",
+          followUpTr: "കൈഫ ഹാലുകൽ യൗം? വ മാദാ തഫ്അലുൽ ആൻ?",
+          followUpMl: "ഇന്ന് നിങ്ങൾക്ക് സുഖമാണോ? ഇപ്പോൾ എന്ത് ചെയ്യുകയാണ്?",
+          hints: [
+            { ar: "بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ", tr: "ബിഖൈറിൻ വൽഹംദുലില്ലാഹ്", ml: "സുഖമാണ്, അൽഹംദുലില്ലാഹ്" },
+            { ar: "أَنَا بِخَيْرٍ وَأَتَعَلَّمُ اللُّغَةَ الْعَرَبِيَّةَ الْآنَ", tr: "അന ബിഖൈറിൻ വ അതഅല്ലമുല്ലുഗതൽ അറബിയ്യത്തൽ ആൻ", ml: "എനിക്ക് സുഖമാണ്, ഇപ്പോൾ അറബി പഠിക്കുകയാണ്" },
+            { ar: "الْحَمْدُ لِلّٰهِ أَنَا سَعِيدٌ جِدًّا بِالتَّحَدُّثِ مَعَكَ الْيَوْمَ", tr: "അൽഹംദുലില്ലാഹി അന സഈദുൻ ജിദ്ദൻ ബിത്തഹദ്ദുഥി മഅകൽ യൗം", ml: "അൽഹംദുലില്ലാഹ്, ഇന്ന് നിങ്ങളോട് സംസാരിക്കാൻ വളരെ സന്തോഷമുണ്ട്" }
+          ]
+        },
+        food_drink: {
+          ackAr: m => m ? `اِخْتِيَارٌ شَهِيٌّ! «${m}» رَائِعٌ جِدًّا!` : "اِخْتِيَارٌ شَهِيٌّ وَلَذِيذٌ جِدًّا!",
+          ackTr: () => "ഇഖ്തിയാറുൻ ശഹിയ്യുൻ! റാഇഉൻ ജിദ്ദൻ!",
+          ackMl: () => "വളരെ നല്ലതും രുചികരവുമായ തിരഞ്ഞെടുപ്പ്!",
+          followUpAr: "هَلْ تُفَضِّلُ الْقَهْوَةَ الْعَرَبِيَّةَ أَمِ الشَّايَ مَعَ الطَّعَامِ؟",
+          followUpTr: "ഹൽ തുഫള്‌ളിലുൽ ഖഹ്‌വത്തൽ അറബിയ്യത്ത അമിശ്ശായ മഅത്ത്വആം?",
+          followUpMl: "ഭക്ഷണത്തോടൊപ്പം അറബി കാപ്പിയാണോ ചായയാണോ നിങ്ങൾക്ക് കൂടുതൽ ഇഷ്ടം?",
+          hints: [
+            { ar: "أُفَضِّلُ الشَّايَ", tr: "ഉഫള്‌ളിലുശ്ശായ", ml: "എനിക്ക് ചായയാണ് ഇഷ്ടം" },
+            { ar: "أُحِبُّ الْقَهْوَةَ الْعَرَبِيَّةَ مَعَ التَّمْرِ", tr: "ഉഹിബ്ബുൽ ഖഹ്‌വത്തൽ അറബിയ്യത്ത മഅത്തംർ", ml: "ഈന്തപ്പഴത്തോടൊപ്പം അറബി കാപ്പി എനിക്കിഷ്ടമാണ്" },
+            { ar: "أُفَضِّلُ الشَّايَ السَّاخِنَ بَعْدَ الطَّعَامِ وَأَشْرَبُ الْمَاءَ الْبَارِدَ", tr: "ഉഫള്‌ളിലുശ്ശായസ്സാഖിന ബഅ്ദത്ത്വആമി വ അശ്‌റബുൽ മാഅൽ ബാരിദ്", ml: "ഭക്ഷണത്തിന് ശേഷം ചൂട് ചായയും തണുത്ത വെള്ളവും കുടിക്കാൻ എനിക്കിഷ്ടമാണ്" }
+          ]
+        },
+        travel: {
+          ackAr: m => m ? `مَا شَاءَ اللّٰهُ! «${m}» — سَفَرًا سَعِيدًا!` : "مَا شَاءَ اللّٰهُ! سَفَرًا سَعِيدًا وَمُمْتِعًا!",
+          ackTr: () => "മാ ശാ അല്ലാഹ്! സഫറൻ സഈദൻ വ മുംതിഅൻ!",
+          ackMl: () => "മാ ശാ അല്ലാഹ്! സന്തോഷകരമായ ശുഭയാത്ര ആശംസിക്കുന്നു!",
+          followUpAr: "كَمْ يَوْمًا سَتَبْقَى هُنَاكَ وَمَعَ مَنْ تُسَافِرُ؟",
+          followUpTr: "കം യൗമൻ സതബ്ഖാ ഹുനാക വ മഅ മൻ തുസാഫിർ?",
+          followUpMl: "നിങ്ങൾ അവിടെ എത്ര ദിവസം തങ്ങും, ആരുടെ കൂടെയാണ് യാത്ര?",
+          hints: [
+            { ar: "لِمُدَّةِ أُسْبُوعٍ", tr: "ലിമുദ്ദത്തി ഉസ്ബൂഇൻ", ml: "ഒരാഴ്ചത്തേക്ക്" },
+            { ar: "سَأَبْقَى خَمْسَةَ أَيَّامٍ مَعَ عَائِلَتِي", tr: "സഅബ്ഖാ ഖംസത്ത അയ്യാമിൻ മഅ ആഇലതീ", ml: "എന്റെ കുടുംബത്തോടൊപ്പം അഞ്ച് ദിവസം തങ്ങും" },
+            { ar: "سَأُسَافِرُ لِلْعَمَلِ وَالزِّيَارَةِ وَأَبْقَى أُسْبُوعًا كَامِلًا إِنْ شَاءَ اللّٰهُ", tr: "സഉസാഫിറു ലിൽഅമലി വസ്സിയാറത്തി വ അബ്ഖാ ഉസ്ബൂഅൻ കാമിലൻ ഇൻ ശാ അല്ലാഹ്", ml: "ജോലിക്കും സന്ദർശനത്തിനുമായി യാത്ര ചെയ്ത് ഒരാഴ്ച പൂർണ്ണമായി തങ്ങും ഇൻ ശാ അല്ലാഹ്" }
+          ]
+        },
+        family: {
+          ackAr: m => m ? `بَارَكَ اللّٰهُ فِي «${m}» وَحَفِظَهُمْ!` : "بَارَكَ اللّٰهُ فِي عَائِلَتِكَ وَأَحِبَّائِكَ!",
+          ackTr: () => "ബാറകല്ലാഹു ഫീ ആഇലതിക വ ഹഫിളഹും!",
+          ackMl: () => "നിങ്ങളുടെ കുടുംബത്തെയും പ്രിയപ്പെട്ടവരെയും അല്ലാഹു അനുഗ്രഹിക്കട്ടെ!",
+          followUpAr: "كَيْفَ تَقْضُونَ الْوَقْتَ مَعًا فِي عُطْلَةِ نِهَايَةِ الْأُسْبُوعِ؟",
+          followUpTr: "കൈഫ തഖ്‌ളൂനൽ വഖ്ത മഅൻ ഫീ ഉത്‌ലത്തി നിഹായത്തിൽ ഉസ്ബൂഅ്?",
+          followUpMl: "വാരാന്ത്യ അവധി ദിവസങ്ങളിൽ നിങ്ങൾ ഒരുമിച്ച് എങ്ങനെയാണ് സമയം ചെലവഴിക്കുന്നത്?",
+          hints: [
+            { ar: "نَجْلِسُ فِي الْبَيْتِ", tr: "നജ്‌ലിസു ഫിൽ ബയ്ത്ത്", ml: "ഞങ്ങൾ വീട്ടിലിരിക്കും" },
+            { ar: "نَخْرُجُ إِلَى الْحَدِيقَةِ وَنَتَنَاوَلُ الْعَشَاءَ مَعًا", tr: "നഖ്‌റുജു ഇലൽ ഹദീഖത്തി വ നതനാവലുൽ അശാഅ മഅൻ", ml: "ഞങ്ങൾ പാർക്കിൽ പോയി ഒരുമിച്ച് അത്താഴം കഴിക്കും" },
+            { ar: "نَزُورُ الْأَقَارِبَ وَنَتَحَدَّثُ كَثِيرًا وَنَشْرَبُ الشَّايَ مَعَ الْعَائِلَةِ", tr: "നസൂറുൽ അഖാരിബ വ നതഹദ്ദഥു കഥീറൻ വ നശ്‌റബുശ്ശായ മഅൽ ആഇല", ml: "ഞങ്ങൾ ബന്ധുക്കളെ സന്ദർശിക്കുകയും കുടുംബത്തോടൊപ്പം സംസാരിച്ച് ചായ കുടിക്കുകയും ചെയ്യും" }
+          ]
+        },
+        feelings_positive: {
+          ackAr: m => m ? `الْحَمْدُ لِلّٰهِ! يَسُرُّنِي جِدًّا سَمَاعُ «${m}»!` : "الْحَمْدُ لِلّٰهِ! يَسُرُّنِي جِدًّا أَنَّكَ بِخَيْرٍ وَسَعِيدٌ!",
+          ackTr: () => "അൽഹംദുലില്ലാഹ്! യസുർറുനീ ജിദ്ദൻ സമാഉ ദാലിക്!",
+          ackMl: () => "അൽഹംദുലില്ലാഹ്! ഇത് കേട്ടതിൽ എനിക്ക് വളരെ സന്തോഷം!",
+          followUpAr: "مَا أَجْمَلُ شَيْءٍ حَدَثَ مَعَكَ الْيَوْمَ؟",
+          followUpTr: "മാ അജ്മലു ശൈഇൻ ഹദഥ മഅകൽ യൗം?",
+          followUpMl: "ഇന്ന് നിങ്ങളുടെ ജീവിതത്തിൽ നടന്ന ഏറ്റവും നല്ല കാര്യം എന്താണ്?",
+          hints: [
+            { ar: "تَعَلَّمْتُ كَلِمَاتٍ جَدِيدَةً", tr: "തഅല്ലംതു കലിമാതിൻ ജദീദ", ml: "ഞാൻ പുതിയ വാക്കുകൾ പഠിച്ചു" },
+            { ar: "تَحَدَّثْتُ بِالْعَرَبِيَّةِ وَشَعَرْتُ بِالسَّعَادَةِ", tr: "തഹദ്ദഥ്തു ബിൽഅറബിയ്യത്തി വ ശഅർതു ബിസ്സആദ", ml: "ഞാൻ അറബി സംസാരിക്കുകയും സന്തോഷം തോന്നുകയും ചെയ്തു" },
+            { ar: "أَنْجَزْتُ عَمَلِي مُبَكِّرًا وَالْآنَ أَتَدَرَّبُ عَلَى الْمُحَادَثَةِ الْعَرَبِيَّةِ", tr: "അൻജസ്തു അമലീ മുബക്കിറൻ വൽആന അതദർറബു അലൽ മുഹാദഥത്തിൽ അറബിയ്യ", ml: "എന്റെ ജോലി നേരത്തെ തീർത്തു, ഇപ്പോൾ അറബി സംഭാഷണം പരിശീലിക്കുകയാണ്" }
+          ]
+        },
+        feelings_tired: {
+          ackAr: m => m ? `سَلَامَتُكَ ${friendAr}! أَتَفَهَّمُ «${m}»، خُذْ قِسْطًا مِنَ الرَّاحَةِ.` : `سَلَامَتُكَ ${friendAr}! لَا تَقْلَقْ وَخُذْ قِسْطًا مِنَ الرَّاحَةِ.`,
+          ackTr: () => `സലാമത്തുക ${friendTr}! ഖുദ് ഖിസ്ത്വൻ മിനർറാഹ.`,
+          ackMl: () => "സലാമത്താകട്ടെ! ഞാൻ മനസ്സിലാക്കുന്നു, അല്പം വിശ്രമിക്കൂ.",
+          followUpAr: "هَلْ تَحْتَاجُ إِلَى كُوبِ شَايٍ دَافِئٍ أَمْ وَقْتٍ لِلرَّاحَةِ؟",
+          followUpTr: "ഹൽ തഹ്താജു ഇലാ കൂബി ശായിൻ ദാഫിഇൻ അം വഖ്തിൻ ലിർറാഹ?",
+          followUpMl: "നിങ്ങൾക്ക് ഒരു കപ്പ് ചൂട് ചായയാണോ അതോ വിശ്രമിക്കാനുള്ള സമയമാണോ വേണ്ടത്?",
+          hints: [
+            { ar: "أَحْتَاجُ إِلَى الرَّاحَةِ", tr: "അഹ്താജു ഇലർറാഹ", ml: "എനിക്ക് വിശ്രമം വേണം" },
+            { ar: "أُرِيدُ كُوبَ شَايٍ دَافِئٍ وَرَاحَةً قَصِيرَةً", tr: "ഉരീദു കൂബ ശായിൻ ദാഫിഇൻ വ റാഹത്തൻ ഖസ്വീറ", ml: "എനിക്ക് ഒരു കപ്പ് ചൂട് ചായയും ചെറിയൊരു വിശ്രമവും വേണം" },
+            { ar: "شُكْرًا عَلَى سُؤَالِكَ، سَأَسْتَرِيحُ قَلِيلًا وَأَشْرَبُ الْمَاءَ إِنْ شَاءَ اللّٰهُ", tr: "ശുക്റൻ അലാ സുആലിക, സഅസ്തരീഹു ഖലീലൻ വ അശ്‌റബുൽ മാഅ ഇൻ ശാ അല്ലാഹ്", ml: "അന്വേഷിച്ചതിന് നന്ദി, ഞാൻ അല്പം വിശ്രമിച്ച് വെള്ളം കുടിക്കാം ഇൻ ശാ അല്ലാഹ്" }
+          ]
+        },
+        weather: {
+          ackAr: m => m ? `فِعْلًا! «${m}» يُغَيِّرُ مِزَاجَ الْيَوْمِ كُلِّهِ!` : "فِعْلًا! الْجَوُّ الْيَوْمَ مُلْفِتٌ جِدًّا!",
+          ackTr: () => "ഫിഅ്ലൻ! ഹാദാ യുഗയ്യിറു മിസാജൽ യൗമി കുല്ലിഹ്!",
+          ackMl: () => "ശരിയാണ്! ഈ കാലാവസ്ഥ ദിവസത്തിന്റെ മുഴുവൻ മൂഡും മാറ്റുന്നു!",
+          followUpAr: "مَاذَا تُحِبُّ أَنْ تَفْعَلَ فِي مِثْلِ هٰذَا الْجَوِّ؟",
+          followUpTr: "മാദാ തുഹിബ്ബു അൻ തഫ്അല ഫീ മിഥ്‌ലി ഹാദൽ ജവ്വ്?",
+          followUpMl: "ഇതുപോലുള്ള കാലാവസ്ഥയിൽ എന്ത് ചെയ്യാനാണ് നിങ്ങൾക്ക് ഇഷ്ടം?",
+          hints: [
+            { ar: "أُحِبُّ شُرْبَ الشَّايِ", tr: "ഉഹിബ്ബു ശുർബശ്ശായ്", ml: "ചായ കുടിക്കാൻ ഇഷ്ടമാണ്" },
+            { ar: "أُحِبُّ الْمَشْيَ فِي الْمَسَاءِ مَعَ أَصْدِقَائِي", tr: "ഉഹിബ്ബുൽ മശ്‌യ ഫിൽ മസാഇ മഅ അസ്വ്ദിഖാഈ", ml: "വൈകുന്നേരം സുഹൃത്തുക്കളോടൊപ്പം നടക്കാൻ എനിക്കിഷ്ടമാണ്" },
+            { ar: "أُفَضِّلُ الْجُلُوسَ فِي الْبَيْتِ وَقِرَاءَةَ كِتَابٍ مَعَ فِنْجَانِ قَهْوَةٍ", tr: "ഉഫള്‌ളിലുൽ ജുലൂസ ഫിൽ ബയ്ത്തി വ ഖിറാഅത്ത കിതാബിൻ മഅ ഫിൻജാനി ഖഹ്‌വ", ml: "ഒരു കപ്പ് കാപ്പിയുമായി വീട്ടിലിരുന്ന് പുസ്തകം വായിക്കാനാണ് എനിക്കിഷ്ടം" }
+          ]
+        },
+        time: {
+          ackAr: m => m ? `تَوْقِيتٌ مُمْتَازٌ! «${m}» وَقْتٌ مُنَاسِبٌ جِدًّا.` : "تَوْقِيتٌ مُمْتَازٌ! تَنْظِيمُ الْوَقْتِ مِفْتَاحُ النَّجَاحِ.",
+          ackTr: () => "തൗഖീത്തുൻ മുംതാസുൻ! വഖ്തുൻ മുനാസിബുൻ ജിദ്ദൻ.",
+          ackMl: () => "മികച്ച സമയം! വളരെ അനുയോജ്യമായ സമയമാണിത്.",
+          followUpAr: "مَا هِيَ خُطَّتُكَ لِبَقِيَّةِ الْيَوْمِ؟",
+          followUpTr: "മാ ഹിയ ഖുത്ത്വതുക ലിബഖിയ്യത്തിൽ യൗം?",
+          followUpMl: "ഇന്നത്തെ ബാക്കി സമയത്തേക്കുള്ള നിങ്ങളുടെ പ്ലാൻ എന്താണ്?",
+          hints: [
+            { ar: "سَأَدْرُسُ قَلِيلًا", tr: "സഅദ്‌റുസു ഖലീലൻ", ml: "ഞാൻ അല്പം പഠിക്കും" },
+            { ar: "سَأَلْتَقِي بِأَصْدِقَائِي فِي الْمَسَاءِ إِنْ شَاءَ اللّٰهُ", tr: "സഅൽതഖീ ബിഅസ്വ്ദിഖാഈ ഫിൽ മസാഇ ഇൻ ശാ അല്ലാഹ്", ml: "വൈകുന്നേരം സുഹൃത്തുക്കളെ കാണും ഇൻ ശാ അല്ലാഹ്" },
+            { ar: "سَأُكْمِلُ عَمَلِي ثُمَّ أَعُودُ إِلَى الْبَيْتِ وَأَتَنَاوَلُ الْعَشَاءَ مُبَكِّرًا", tr: "സഉക്‌മിലു അമലീ ഥുമ്മ അഊദു ഇലൽ ബയ്ത്തി വ അതനാവലുൽ അശാഅ മുബക്കിറൻ", ml: "ജോലി പൂർത്തിയാക്കി വീട്ടിൽ തിരിച്ചെത്തി നേരത്തെ അത്താഴം കഴിക്കും" }
+          ]
+        },
+        work_study: {
+          ackAr: m => m ? `مَا شَاءَ اللّٰهُ! «${m}» مَجَالٌ رَائِعٌ، وَفَّقَكَ اللّٰهُ!` : "مَا شَاءَ اللّٰهُ! اِجْتِهَادُكَ فِي التَّعَلُّمِ وَالْعَمَلِ رَائِعٌ!",
+          ackTr: () => "മാ ശാ അല്ലാഹ്! മജാലുൻ റാഇഉൻ, വഫ്ഫഖകല്ലാഹ്!",
+          ackMl: () => "മാ ശാ അല്ലാഹ്! മികച്ച മേഖലയാണ്, അല്ലാഹു നിങ്ങൾക്ക് വിജയം നൽകട്ടെ!",
+          followUpAr: "مَا هُوَ هَدَفُكَ الْقَادِمُ فِي تَعَلُّمِ اللُّغَةِ الْعَرَبِيَّةِ؟",
+          followUpTr: "മാ ഹുവ ഹദഫുകൽ ഖാദിമു ഫീ തഅല്ലുമില്ലുഗത്തിൽ അറബിയ്യ?",
+          followUpMl: "അറബി ഭാഷ പഠിക്കുന്നതിൽ നിങ്ങളുടെ അടുത്ത ലക്ഷ്യം എന്താണ്?",
+          hints: [
+            { ar: "التَّحَدُّثُ بِطَلَاقَةٍ", tr: "അത്തഹദ്ദുഥു ബിത്വലാഖ", ml: "ഒഴുക്കോടെ സംസാരിക്കുക" },
+            { ar: "أُرِيدُ أَنْ أَتَحَدَّثَ الْعَرَبِيَّةَ بِثِقَةٍ فِي الْعَمَلِ", tr: "ഉരീദു അൻ അതഹദ്ദഥൽ അറബിയ്യത്ത ബിഥിഖത്തിൻ ഫിൽ അമൽ", ml: "ജോലിസ്ഥലത്ത് ആത്മവിശ്വാസത്തോടെ അറബി സംസാരിക്കാൻ ആഗ്രഹിക്കുന്നു" },
+            { ar: "هَدَفِي أَنْ أَفْهَمَ اللُّغَةَ الْعَرَبِيَّةَ وَأَتَحَدَّثَ مَعَ الْعَرَبِ بِطَلَاقَةٍ كُلَّ يَوْمٍ", tr: "ഹദഫീ അൻ അഫ്‌ഹമല്ലുഗത്തൽ അറബിയ്യത്ത വ അതഹദ്ദഥ മഅൽ അറബി ബിത്വലാഖത്തിൻ കുല്ല യൗം", ml: "അറബി ഭാഷ നന്നായി മനസ്സിലാക്കി എല്ലാ ദിവസവും ഒഴുക്കോടെ സംസാരിക്കുകയാണ് എന്റെ ലക്ഷ്യം" }
+          ]
+        },
+        gratitude_farewell: {
+          ackAr: () => `عَفْوًا ${friendAr}، بِكُلِّ سُرُورٍ! وَجَزَاكَ اللّٰهُ خَيْرًا!`,
+          ackTr: () => `അഫ്‌വൻ ${friendTr}, ബികുല്ലി സുറൂറിൻ! വ ജസാകല്ലാഹു ഖൈറൻ!`,
+          ackMl: () => "സന്തോഷത്തോടെ, നന്ദി! അല്ലാഹു നിങ്ങൾക്ക് നന്മ നൽകട്ടെ!",
+          followUpAr: "هَلْ هُنَاكَ شَيْءٌ آخَرُ تُحِبُّ أَنْ نَتَحَدَّثَ عَنْهُ؟",
+          followUpTr: "ഹൽ ഹുനാക ശൈഉൻ ആഖറു തുഹിബ്ബു അൻ നതഹദ്ദഥ അൻഹു?",
+          followUpMl: "നമുക്ക് സംസാരിക്കാൻ നിങ്ങൾ ആഗ്രഹിക്കുന്ന മറ്റെന്തെങ്കിലും കാര്യമുണ്ടോ?",
+          hints: [
+            { ar: "كُلُّ شَيْءٍ وَاضِحٌ شُكْرًا", tr: "കുല്ലു ശൈഇൻ വാളിഹുൻ ശുക്റൻ", ml: "എല്ലാം വ്യക്തമാണ്, നന്ദി" },
+            { ar: "أُحِبُّ هٰذِهِ الْمُحَادَثَةَ الْعَرَبِيَّةَ كَثِيرًا", tr: "ഉഹിബ്ബു ഹാദിഹിൽ മുഹാദഥത്തൽ അറബിയ്യത്ത കഥീറൻ", ml: "ഈ അറബി സംഭാഷണം എനിക്ക് വളരെ ഇഷ്ടമാണ്" },
+            { ar: "شُكْرًا عَلَى وَقْتِكَ، اِسْتَفَدْتُ كَثِيرًا مِنْ هٰذِهِ الْمُكَالَمَةِ الْجَمِيلَةِ", tr: "ശുക്റൻ അലാ വഖ്തിക, ഇസ്തഫദ്തു കഥീറൻ മിൻ ഹാദിഹിൽ മുകാലമത്തിൽ ജമീല", ml: "നിങ്ങളുടെ സമയത്തിന് നന്ദി, ഈ മനോഹരമായ കോളിൽ നിന്ന് എനിക്ക് ഒരുപാട് പ്രയോജനം ലഭിച്ചു" }
+          ]
+        },
+        affirmative: {
+          ackAr: m => m ? `مُمْتَازٌ! «${m}» — هٰذَا خَبَرٌ جَمِيلٌ جِدًّا!` : "مُمْتَازٌ! هٰذَا رَائِعٌ جِدًّا!",
+          ackTr: () => "മുംതാസുൻ! ഹാദാ ഖബറുൻ ജമീലുൻ ജിദ്ദൻ!",
+          ackMl: () => "ഗംഭീരം! വളരെ നല്ല വാർത്തയാണിത്!",
+          followUpAr: "", followUpTr: "", followUpMl: "", hints: []
+        },
+        negative: {
+          ackAr: m => m ? `لَا بَأْسَ أَبَدًا! أَتَفَهَّمُ «${m}»، مَا فِي مُشْكِلَة.` : "لَا بَأْسَ أَبَدًا، مَا فِي مُشْكِلَة!",
+          ackTr: () => "ലാ ബഅ്സ അബദൻ! അതഫഹ്ഹമു ദാലിക്, മാ ഫീ മുശ്‌കില.",
+          ackMl: () => "കുഴപ്പമില്ല! ഞാൻ മനസ്സിലാക്കുന്നു, ഒരു പ്രശ്നവുമില്ല.",
+          followUpAr: "", followUpTr: "", followUpMl: "", hints: []
+        },
+        custom_mirror: {
+          ackAr: m => m ? `جَمِيلٌ جِدًّا! أَعْجَبَنِي قَوْلُكَ: «${m}»!` : "مُمْتَازٌ! كَلَامُكَ بِالْعَرَبِيَّةِ وَاضِحٌ جِدًّا!",
+          ackTr: () => "ജമീലുൻ ജിദ്ദൻ! അഅ്ജബനീ ഖൗലുക!",
+          ackMl: () => "വളരെ മനോഹരം! നിങ്ങൾ അറബിയിൽ പറഞ്ഞത് എനിക്ക് വളരെ ഇഷ്ടമായി!",
+          followUpAr: "", followUpTr: "", followUpMl: "", hints: []
+        }
+      };
+    }
+
+    function generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex }) {
+      const totalTurns = scenario.turns.length;
+      const isFinalTurn = turnIndex + 1 >= totalTurns;
+      const nextScenarioTurn = scenario.turns[turnIndex + 1];
+      const isLayla = scenario.characterKey === "layla";
+
+      const spokenWords = Math.max(1, countSpokenArabicWords(userSpokenText));
+      const xpEarned = Math.min(16, Math.max(2, spokenWords * 2));
+      const mirror = extractVcMirrorSnippet(userSpokenText);
+      const { intent } = detectVcArabicIntent(userSpokenText);
+      const templates = buildVcIntentTemplates(isLayla);
+      const tpl = templates[intent] || templates.custom_mirror;
+
+      const ackAr = tpl.ackAr(mirror);
+      const ackTr = tpl.ackTr(mirror);
+      const ackMl = tpl.ackMl(mirror);
+
+      if (isFinalTurn) {
+        return {
+          replyArabic: `${ackAr} شُكْرًا جَزِيلًا عَلَى هٰذِهِ الْمُكَالَمَةِ الرَّائِعَةِ! إِلَى اللِّقَاءِ!`,
+          replyTransliteration: `${ackTr} ശുക്റൻ ജസീലൻ അലാ ഹാദിഹിൽ മുകാലമത്തിർറാഇഅ! ഇലല്ലിഖാഅ്!`,
+          replyMalayalam: `${ackMl} ഈ മനോഹരമായ വീഡിയോ കോളിന് വളരെ നന്ദി! വീണ്ടും കാണാം!`,
+          nextHints: [],
+          xpEarned,
+          isFinalTurn: true,
+          intent,
+          source: "smart_local"
+        };
+      }
+
+      const useIntentFollowUp = Boolean(tpl.followUpAr) && tpl.hints.length > 0 && turnIndex % 2 === 0;
+      if (useIntentFollowUp) {
+        return {
+          replyArabic: `${ackAr} ${tpl.followUpAr}`,
+          replyTransliteration: `${ackTr} ${tpl.followUpTr}`,
+          replyMalayalam: `${ackMl} ${tpl.followUpMl}`,
+          nextHints: tpl.hints,
+          xpEarned,
+          isFinalTurn: false,
+          intent,
+          source: "smart_local"
+        };
+      }
+
+      const nextQAr = (nextScenarioTurn && nextScenarioTurn.characterAr) || tpl.followUpAr || "وَمَا رَأْيُكَ فِي ذٰلِكَ؟";
+      const nextQTr = (nextScenarioTurn && nextScenarioTurn.characterTr) || tpl.followUpTr || "വ മാ റഅ്‌യുക ഫീ ദാലിക്?";
+      const nextQMl = (nextScenarioTurn && nextScenarioTurn.characterMl) || tpl.followUpMl || "അതിനെക്കുറിച്ച് നിങ്ങളുടെ അഭിപ്രായം എന്താണ്?";
+      const nextHints = (nextScenarioTurn && Array.isArray(nextScenarioTurn.suggestedReplies) && nextScenarioTurn.suggestedReplies.length)
+        ? nextScenarioTurn.suggestedReplies
+        : tpl.hints;
+
+      return {
+        replyArabic: `${ackAr} ${nextQAr}`,
+        replyTransliteration: `${ackTr} ${nextQTr}`,
+        replyMalayalam: `${ackMl} ${nextQMl}`,
+        nextHints,
+        xpEarned,
+        isFinalTurn: false,
+        intent,
+        source: "smart_local"
+      };
+    }
+
+    function canUseServerGeminiEndpoint() {
+      const proto = String((window.location && window.location.protocol) || "").toLowerCase();
+      const host = String((window.location && window.location.hostname) || "").toLowerCase();
+      if (proto !== "http:" && proto !== "https:") return false;
+      if (!host || host.endsWith(".github.io")) return false;
+      return true;
+    }
+
+    async function requestDynamicVideoCallReply({ userSpokenText, scenario, turnIndex, history }) {
+      const nextScenarioTurn = scenario.turns[turnIndex + 1];
+      if (canUseServerGeminiEndpoint() && typeof fetch === "function") {
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        const timer = controller ? setTimeout(() => controller.abort(), 6000) : null;
+        try {
+          const resp = await fetch("/api/video-call-reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: controller ? controller.signal : undefined,
+            body: JSON.stringify({
+              userSpokenText,
+              characterKey: scenario.characterKey,
+              characterNameEn: scenario.characterNameEn,
+              characterNameMl: scenario.characterNameMl,
+              characterNameAr: scenario.characterNameAr,
+              sceneTitleMl: scenario.sceneTitleMl,
+              sceneSettingMl: scenario.sceneSettingMl,
+              unitNumber: scenario.unitNumber,
+              turnIndex,
+              totalTurns: scenario.turns.length,
+              history: (history || []).slice(-8),
+              nextTopicAr: nextScenarioTurn ? nextScenarioTurn.characterAr : "",
+              nextTopicMl: nextScenarioTurn ? nextScenarioTurn.characterMl : ""
+            })
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && typeof data.replyArabic === "string" && /[\u0621-\u064A]/.test(data.replyArabic)) {
+              const fallback = generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex });
+              const validHints = Array.isArray(data.nextHints) && data.nextHints.length
+                ? data.nextHints.filter(h => h && typeof h.ar === "string" && h.ar.trim() && typeof h.ml === "string")
+                : fallback.nextHints;
+              return {
+                replyArabic: data.replyArabic.trim(),
+                replyTransliteration: (typeof data.replyTransliteration === "string" && data.replyTransliteration.trim())
+                  ? data.replyTransliteration.trim()
+                  : fallback.replyTransliteration,
+                replyMalayalam: (typeof data.replyMalayalam === "string" && data.replyMalayalam.trim())
+                  ? data.replyMalayalam.trim()
+                  : fallback.replyMalayalam,
+                nextHints: fallback.isFinalTurn ? [] : validHints.slice(0, 3),
+                xpEarned: (typeof data.xpEarned === "number" && data.xpEarned > 0) ? Math.round(data.xpEarned) : fallback.xpEarned,
+                isFinalTurn: fallback.isFinalTurn,
+                source: "gemini"
+              };
+            }
+          }
+        } catch (e) {
+          // Seamless fallback to Smart Arabic Conversational Engine on static hosting / APK / offline
+        } finally {
+          if (timer !== null) clearTimeout(timer);
+        }
+      }
+      return generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex });
+    }
+
     function stopVideoCallRecognition() {
       if (!activeVideoCallSession) return;
       const rec = activeVideoCallSession.recognition;
@@ -7588,7 +7929,7 @@
       activeVideoCallSession.isCharacterSpeaking = true;
       renderVideoCallModal();
       speakArabic(arabicText, 0.96);
-      const est = Math.min(4800, Math.max(1500, arabicText.length * 52));
+      const est = Math.min(5400, Math.max(1500, arabicText.length * 52));
       scheduleVcTimer(() => {
         if (!activeVideoCallSession) return;
         activeVideoCallSession.isCharacterSpeaking = false;
@@ -7601,7 +7942,9 @@
       stopArabicAudio();
       history.pushState({ view: "video_call" }, "");
       const SpeechCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+      const firstTurn = lesson.videoCall.turns[0] || { characterAr: "", characterTr: "", characterMl: "", suggestedReplies: [] };
       activeVideoCallSession = {
+        sessionToken: Date.now() + Math.random(),
         lessonId: lesson.id,
         scenario: lesson.videoCall,
         stage: "ringing",
@@ -7610,10 +7953,24 @@
         showSuggestions: !SpeechCtor,
         isCharacterSpeaking: false,
         isListening: false,
+        isThinking: false,
         isAdvancing: false,
         liveTranscript: "",
         micNote: "",
-        reactionBanner: "",
+        activePrompt: {
+          ar: firstTurn.characterAr,
+          tr: firstTurn.characterTr,
+          ml: firstTurn.characterMl
+        },
+        activeHints: Array.isArray(firstTurn.suggestedReplies) ? firstTurn.suggestedReplies.slice() : [],
+        chatMessages: firstTurn.characterAr ? [{
+          id: "opening-0",
+          speaker: "character",
+          ar: firstTurn.characterAr,
+          tr: firstTurn.characterTr,
+          ml: firstTurn.characterMl
+        }] : [],
+        history: firstTurn.characterAr ? [{ speaker: "character", text: firstTurn.characterAr }] : [],
         turnRecords: [],
         recognition: null,
         timers: []
@@ -7646,9 +8003,9 @@
       clearVideoCallTimers();
       activeVideoCallSession.stage = "active";
       renderVideoCallModal();
-      const turn = activeVideoCallSession.scenario.turns[activeVideoCallSession.turnIndex];
-      if (turn) {
-        scheduleVcTimer(() => speakVideoCallLine(turn.characterAr), 220);
+      const openingAr = activeVideoCallSession.activePrompt && activeVideoCallSession.activePrompt.ar;
+      if (openingAr) {
+        scheduleVcTimer(() => speakVideoCallLine(openingAr), 220);
       }
     }
 
@@ -7661,47 +8018,81 @@
       renderLearningPath();
     }
 
-    function submitVideoCallReply(replyText) {
+    async function submitVideoCallReply(replyText) {
       if (!activeVideoCallSession || activeVideoCallSession.isAdvancing) return;
       const cleaned = String(replyText || "").trim();
       if (!cleaned) return;
-      const sc = activeVideoCallSession.scenario;
-      const turn = sc.turns[activeVideoCallSession.turnIndex];
-      if (!turn) return;
+      const st = activeVideoCallSession;
+      const token = st.sessionToken;
+      const sc = st.scenario;
+      const turnIdx = st.turnIndex;
 
       stopVideoCallRecognition();
       const wc = Math.max(1, countSpokenArabicWords(cleaned));
+      const turnXp = Math.min(16, Math.max(2, wc * 2));
       playTone("correct");
-      activeVideoCallSession.isAdvancing = true;
-      activeVideoCallSession.liveTranscript = cleaned;
-      activeVideoCallSession.reactionBanner = turn.reactionAr;
-      activeVideoCallSession.turnRecords.push({
-        turnIndex: activeVideoCallSession.turnIndex,
-        characterAr: turn.characterAr,
+
+      st.isAdvancing = true;
+      st.isThinking = true;
+      st.liveTranscript = "";
+      st.micNote = "";
+      st.history.push({ speaker: "user", text: cleaned });
+      st.chatMessages = st.chatMessages.slice(-4).concat([{
+        id: `user-${turnIdx}-${Date.now()}`,
+        speaker: "user",
+        ar: cleaned,
+        wordCount: wc,
+        xpEarned: turnXp
+      }]);
+      st.turnRecords.push({
+        turnIndex: turnIdx,
+        characterAr: (st.activePrompt && st.activePrompt.ar) || "",
         userReplyAr: cleaned,
         wordCount: wc
       });
       renderVideoCallModal();
-      speakVideoCallLine(turn.reactionAr);
 
-      scheduleVcTimer(() => {
-        if (!activeVideoCallSession) return;
-        const nextIdx = activeVideoCallSession.turnIndex + 1;
-        if (nextIdx < sc.turns.length) {
-          activeVideoCallSession.turnIndex = nextIdx;
-          activeVideoCallSession.isAdvancing = false;
-          activeVideoCallSession.liveTranscript = "";
-          activeVideoCallSession.reactionBanner = "";
-          renderVideoCallModal();
-          const nextTurn = sc.turns[nextIdx];
-          if (nextTurn) scheduleVcTimer(() => speakVideoCallLine(nextTurn.characterAr), 200);
-        } else {
+      const dynamicReply = await requestDynamicVideoCallReply({
+        userSpokenText: cleaned,
+        scenario: sc,
+        turnIndex: turnIdx,
+        history: st.history
+      });
+
+      if (!activeVideoCallSession || activeVideoCallSession.sessionToken !== token) return;
+
+      st.history.push({ speaker: "character", text: dynamicReply.replyArabic });
+      st.activePrompt = {
+        ar: dynamicReply.replyArabic,
+        tr: dynamicReply.replyTransliteration,
+        ml: dynamicReply.replyMalayalam
+      };
+      st.activeHints = Array.isArray(dynamicReply.nextHints) ? dynamicReply.nextHints : [];
+      st.chatMessages = st.chatMessages.slice(-4).concat([{
+        id: `char-${turnIdx + 1}-${Date.now()}`,
+        speaker: "character",
+        ar: dynamicReply.replyArabic,
+        tr: dynamicReply.replyTransliteration,
+        ml: dynamicReply.replyMalayalam
+      }]);
+      st.isThinking = false;
+
+      if (!dynamicReply.isFinalTurn) {
+        st.turnIndex = Math.min(sc.turns.length - 1, turnIdx + 1);
+        st.isAdvancing = false;
+        renderVideoCallModal();
+        speakVideoCallLine(dynamicReply.replyArabic);
+      } else {
+        renderVideoCallModal();
+        speakVideoCallLine(dynamicReply.replyArabic);
+        scheduleVcTimer(() => {
+          if (!activeVideoCallSession || activeVideoCallSession.sessionToken !== token) return;
           playTone("complete");
           activeVideoCallSession.stage = "summary";
           activeVideoCallSession.isAdvancing = false;
           renderVideoCallModal();
-        }
-      }, 1450);
+        }, 2100);
+      }
     }
 
     function toggleVideoCallSpeak() {
@@ -7845,32 +8236,123 @@
       }
 
       if (st.stage === "active") {
-        const turn = sc.turns[st.turnIndex] || sc.turns[0];
         const pct = Math.max(12, Math.round(((st.turnIndex + (st.isAdvancing ? 1 : 0)) / Math.max(1, totalTurns)) * 100));
         document.getElementById("vc-progress-bar").style.width = `${pct}%`;
         document.getElementById("vc-turn-counter").textContent = `${st.turnIndex + 1} / ${totalTurns}`;
-        document.getElementById("vc-character-pill").innerHTML = `<span>${sc.characterAvatar}</span><span>${sc.characterNameMl}</span><span class="text-white/50">·</span><span class="font-arabic text-sm text-white">${sc.characterNameAr}</span>`;
+
+        const charPill = document.getElementById("vc-character-pill");
+        charPill.textContent = "";
+        const avSpan = document.createElement("span"); avSpan.textContent = sc.characterAvatar;
+        const mlSpan = document.createElement("span"); mlSpan.textContent = sc.characterNameMl;
+        const dotSpan = document.createElement("span"); dotSpan.className = "text-white/50"; dotSpan.textContent = "·";
+        const arSpan = document.createElement("span"); arSpan.className = "font-arabic text-sm text-white"; arSpan.textContent = sc.characterNameAr;
+        charPill.append(avSpan, mlSpan, dotSpan, arSpan);
+
         document.getElementById("vc-xp-pill").textContent = `✨ ${totalWords} words · +${xpStats.totalXp} XP`;
 
         const portraitBtn = document.getElementById("vc-portrait-btn");
         portraitBtn.textContent = sc.characterAvatar;
-        portraitBtn.className = `relative w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-b from-amber-50 via-amber-100 to-amber-300 border-4 shadow-2xl flex items-center justify-center text-7xl sm:text-8xl transition-transform duration-300 ${
+        portraitBtn.className = `relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-b from-amber-50 via-amber-100 to-amber-300 border-4 shadow-2xl flex items-center justify-center text-6xl sm:text-7xl transition-transform duration-300 ${
           st.isCharacterSpeaking ? "border-amber-300 scale-105" : st.isListening ? "border-sky-400 scale-100" : "border-white/90"
         }`;
         document.getElementById("vc-speak-ping").classList.toggle("hidden", !st.isCharacterSpeaking);
         document.getElementById("vc-listen-ring").classList.toggle("hidden", !st.isListening);
 
         const statusPill = document.getElementById("vc-status-pill");
-        if (st.isCharacterSpeaking) statusPill.textContent = `🔊 ${sc.characterNameMl} സംസാരിക്കുന്നു...`;
+        if (st.isThinking) statusPill.textContent = `✨ ${sc.characterNameMl} മറുപടി പറയുന്നു...`;
+        else if (st.isCharacterSpeaking) statusPill.textContent = `🔊 ${sc.characterNameMl} സംസാരിക്കുന്നു...`;
         else if (st.isListening) statusPill.textContent = "🎤 കേൾക്കുന്നു... അറബിയിൽ സംസാരിക്കൂ!";
-        else if (st.reactionBanner) statusPill.innerHTML = `<span class="text-[#58CC02]">✓</span> <span class="font-arabic text-base text-emerald-200">${st.reactionBanner}</span>`;
         else statusPill.textContent = "മറുപടി പറയാൻ 🎤 അമർത്തുക";
 
-        const subCard = document.getElementById("vc-subtitle-card");
-        subCard.classList.toggle("hidden", !st.showSubtitles);
-        document.getElementById("vc-sub-ar").textContent = turn.characterAr;
-        document.getElementById("vc-sub-tr").textContent = turn.characterTr;
-        document.getElementById("vc-sub-ml").textContent = turn.characterMl;
+        // Render Live Conversation Chat Bubbles safely via textContent (zero raw HTML interpolation)
+        const chatThread = document.getElementById("vc-chat-thread");
+        chatThread.textContent = "";
+        (st.chatMessages || []).slice(-2).forEach(msg => {
+          const row = document.createElement("div");
+          if (msg.speaker === "user") {
+            row.className = "flex justify-end animate-pop";
+            const bubble = document.createElement("div");
+            bubble.dataset.testid = "video-call-user-bubble";
+            bubble.className = "max-w-[88%] rounded-2xl rounded-br-md bg-[#0284C7]/90 backdrop-blur-md border border-sky-300/45 px-4 py-2.5 text-right shadow-lg";
+
+            const meta = document.createElement("div");
+            meta.className = "flex items-center justify-end gap-2 text-[10px] font-extrabold text-sky-100/90 mb-0.5";
+            const who = document.createElement("span");
+            who.textContent = "നിങ്ങൾ";
+            meta.appendChild(who);
+            if (typeof msg.wordCount === "number") {
+              const badge = document.createElement("span");
+              badge.className = "px-1.5 py-0.5 rounded-md bg-white/15 font-latin tabular-nums";
+              badge.textContent = `${msg.wordCount}w · +${msg.xpEarned || msg.wordCount * 2} XP`;
+              meta.appendChild(badge);
+            }
+
+            const arEl = document.createElement("div");
+            arEl.dir = "rtl";
+            arEl.lang = "ar";
+            arEl.className = "font-arabic text-lg sm:text-xl font-bold text-white leading-relaxed";
+            arEl.textContent = msg.ar;
+
+            bubble.append(meta, arEl);
+            row.appendChild(bubble);
+          } else {
+            row.className = "flex justify-start animate-pop";
+            const bubbleBtn = document.createElement("button");
+            bubbleBtn.type = "button";
+            bubbleBtn.dataset.testid = "video-call-character-bubble";
+            bubbleBtn.setAttribute("aria-label", "മറുപടി വീണ്ടും കേൾക്കുക");
+            bubbleBtn.className = "max-w-[92%] text-left rounded-2xl rounded-bl-md bg-slate-950/80 hover:bg-slate-950/90 backdrop-blur-md border border-amber-300/35 px-4 py-3 shadow-xl transition space-y-1";
+            bubbleBtn.addEventListener("click", () => speakVideoCallLine(msg.ar));
+
+            const head = document.createElement("div");
+            head.className = "flex items-center justify-between gap-2 text-[10px] font-extrabold text-amber-200/95";
+            const nameSpan = document.createElement("span");
+            nameSpan.textContent = `${sc.characterAvatar} ${sc.characterNameMl}`;
+            const spkSpan = document.createElement("span");
+            spkSpan.setAttribute("aria-hidden", "true");
+            spkSpan.textContent = "🔊";
+            head.append(nameSpan, spkSpan);
+
+            const arEl = document.createElement("div");
+            arEl.dir = "rtl";
+            arEl.lang = "ar";
+            arEl.className = "font-arabic text-xl sm:text-2xl font-bold text-white leading-relaxed text-right";
+            arEl.textContent = msg.ar;
+
+            bubbleBtn.append(head, arEl);
+
+            if (st.showSubtitles && (msg.tr || msg.ml)) {
+              const subWrap = document.createElement("div");
+              subWrap.dataset.testid = "video-call-subtitles";
+              subWrap.className = "pt-1.5 mt-1 border-t border-white/15 space-y-0.5";
+              if (msg.tr) {
+                const trEl = document.createElement("div");
+                trEl.className = "text-xs font-bold text-sky-300";
+                trEl.textContent = msg.tr;
+                subWrap.appendChild(trEl);
+              }
+              if (msg.ml) {
+                const mlEl = document.createElement("div");
+                mlEl.className = "text-xs sm:text-sm font-semibold text-amber-100/95";
+                mlEl.textContent = msg.ml;
+                subWrap.appendChild(mlEl);
+              }
+              bubbleBtn.appendChild(subWrap);
+            }
+            row.appendChild(bubbleBtn);
+          }
+          chatThread.appendChild(row);
+        });
+
+        if (st.isThinking) {
+          const thinkRow = document.createElement("div");
+          thinkRow.className = "flex justify-start animate-pulse";
+          const thinkBubble = document.createElement("div");
+          thinkBubble.className = "rounded-2xl rounded-bl-md bg-slate-950/75 border border-white/20 px-4 py-2.5 text-xs font-bold text-amber-200";
+          thinkBubble.textContent = `${sc.characterAvatar} ${sc.characterNameMl} ചിന്തിക്കുന്നു...`;
+          thinkRow.appendChild(thinkBubble);
+          chatThread.appendChild(thinkRow);
+        }
 
         const subBtn = document.getElementById("vc-subtitle-toggle-btn");
         subBtn.setAttribute("aria-pressed", String(st.showSubtitles));
@@ -7881,7 +8363,7 @@
         const liveBox = document.getElementById("vc-live-transcript-box");
         liveBox.classList.toggle("hidden", !st.liveTranscript);
         if (st.liveTranscript) {
-          document.getElementById("vc-live-transcript-meta").textContent = `നിങ്ങൾ പറഞ്ഞത് (${countSpokenArabicWords(st.liveTranscript)} വാക്കുകൾ)`;
+          document.getElementById("vc-live-transcript-meta").textContent = `കേൾക്കുന്നു (${countSpokenArabicWords(st.liveTranscript)} വാക്കുകൾ)`;
           document.getElementById("vc-live-transcript-text").textContent = st.liveTranscript;
         }
 
@@ -7894,31 +8376,52 @@
         speakBtn.className = st.isListening
           ? "btn-3d flex-1 h-16 px-5 rounded-2xl bg-rose-500 hover:bg-rose-600 border-b-[5px] border-rose-700 text-white ring-4 ring-rose-400/40 font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl whitespace-nowrap"
           : "btn-3d flex-1 h-16 px-5 rounded-2xl bg-[#1CB0F6] hover:bg-[#17A2E6] border-b-[5px] border-[#0284C7] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl whitespace-nowrap disabled:opacity-60";
-        speakBtn.innerHTML = st.isListening
-          ? `<span>⏹️ നിർത്തുക · STOP</span>`
-          : `<span>🎤 സംസാരിക്കുക</span><span class="hidden sm:inline text-xs font-bold opacity-90 font-latin">(TAP TO SPEAK)</span>`;
+        speakBtn.textContent = "";
+        if (st.isListening) {
+          const stopSp = document.createElement("span");
+          stopSp.textContent = "⏹️ നിർത്തുക · STOP";
+          speakBtn.appendChild(stopSp);
+        } else {
+          const sp1 = document.createElement("span"); sp1.textContent = "🎤 സംസാരിക്കുക";
+          const sp2 = document.createElement("span"); sp2.className = "hidden sm:inline text-xs font-bold opacity-90 font-latin"; sp2.textContent = "(TAP TO SPEAK)";
+          speakBtn.append(sp1, sp2);
+        }
 
         const ideasToggle = document.getElementById("vc-ideas-toggle-btn");
         ideasToggle.textContent = st.showSuggestions ? "💡 മറുപടി സൂചനകൾ മറയ്ക്കുക" : "💡 മറുപടി സൂചനകൾ കാണുക";
 
         const suggBox = document.getElementById("vc-suggestions-box");
-        const showSugg = st.showSuggestions && !st.isAdvancing;
+        const hints = Array.isArray(st.activeHints) ? st.activeHints : [];
+        const showSugg = st.showSuggestions && !st.isAdvancing && hints.length > 0;
         suggBox.classList.toggle("hidden", !showSugg);
         if (showSugg) {
           const list = document.getElementById("vc-suggestions-list");
-          list.innerHTML = "";
-          (turn.suggestedReplies || []).forEach((reply, idx) => {
+          list.textContent = "";
+          hints.forEach((reply, idx) => {
             const wc = countSpokenArabicWords(reply.ar);
             const rBtn = document.createElement("button");
             rBtn.type = "button";
             rBtn.dataset.testid = `video-call-quick-reply-${idx}`;
             rBtn.className = "w-full text-right bg-white/10 hover:bg-sky-500/25 border border-white/15 hover:border-sky-300/60 rounded-xl px-3.5 py-2.5 transition flex items-center justify-between gap-3";
-            rBtn.innerHTML = `
-              <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-200 text-[11px] font-extrabold font-latin tabular-nums">+${wc * 2} XP</span>
-              <div class="flex-1 min-w-0">
-                <div dir="rtl" lang="ar" class="font-arabic text-lg sm:text-xl font-bold text-white leading-snug">${reply.ar}</div>
-                <div dir="ltr" class="text-[11px] font-semibold text-white/75 truncate">${reply.ml}</div>
-              </div>`;
+
+            const xpChip = document.createElement("span");
+            xpChip.className = "shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-200 text-[11px] font-extrabold font-latin tabular-nums";
+            xpChip.textContent = `+${wc * 2} XP`;
+
+            const textWrap = document.createElement("div");
+            textWrap.className = "flex-1 min-w-0";
+            const arLine = document.createElement("div");
+            arLine.dir = "rtl";
+            arLine.lang = "ar";
+            arLine.className = "font-arabic text-lg sm:text-xl font-bold text-white leading-snug";
+            arLine.textContent = reply.ar;
+            const mlLine = document.createElement("div");
+            mlLine.dir = "ltr";
+            mlLine.className = "text-[11px] font-semibold text-white/75 truncate";
+            mlLine.textContent = reply.ml || "";
+            textWrap.append(arLine, mlLine);
+
+            rBtn.append(xpChip, textWrap);
             rBtn.addEventListener("click", () => {
               playTone("tap");
               submitVideoCallReply(reply.ar);
@@ -7939,11 +8442,19 @@
         document.getElementById("vc-finish-btn").textContent = `തുടരുക (+${xpStats.totalXp} XP)`;
 
         const recap = document.getElementById("vc-summary-recap");
-        recap.innerHTML = "";
+        recap.textContent = "";
         st.turnRecords.forEach((rec, idx) => {
           const row = document.createElement("div");
           row.className = "rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 flex items-center justify-between gap-2";
-          row.innerHTML = `<span class="text-[11px] font-extrabold text-[#0284C7] font-latin tabular-nums shrink-0">#${idx + 1} · ${rec.wordCount}w</span><span dir="rtl" lang="ar" class="font-arabic text-base font-bold text-slate-800 truncate">${rec.userReplyAr}</span>`;
+          const metaSpan = document.createElement("span");
+          metaSpan.className = "text-[11px] font-extrabold text-[#0284C7] font-latin tabular-nums shrink-0";
+          metaSpan.textContent = `#${idx + 1} · ${rec.wordCount}w`;
+          const replySpan = document.createElement("span");
+          replySpan.dir = "rtl";
+          replySpan.lang = "ar";
+          replySpan.className = "font-arabic text-base font-bold text-slate-800 truncate";
+          replySpan.textContent = rec.userReplyAr;
+          row.append(metaSpan, replySpan);
           recap.appendChild(row);
         });
       }
@@ -7953,15 +8464,13 @@
     document.getElementById("vc-active-end-btn").addEventListener("click", () => { playTone("tap"); closeVideoCallModal(); });
     document.getElementById("vc-ring-answer-btn").addEventListener("click", () => { playTone("tap"); enterActiveVideoCallStage(); });
     document.getElementById("vc-portrait-btn").addEventListener("click", () => {
-      if (!activeVideoCallSession) return;
-      const t = activeVideoCallSession.scenario.turns[activeVideoCallSession.turnIndex];
-      if (t) speakVideoCallLine(t.characterAr);
+      if (!activeVideoCallSession || !activeVideoCallSession.activePrompt) return;
+      speakVideoCallLine(activeVideoCallSession.activePrompt.ar);
     });
     document.getElementById("vc-replay-btn").addEventListener("click", () => {
-      if (!activeVideoCallSession) return;
+      if (!activeVideoCallSession || !activeVideoCallSession.activePrompt) return;
       playTone("tap");
-      const t = activeVideoCallSession.scenario.turns[activeVideoCallSession.turnIndex];
-      if (t) speakVideoCallLine(t.characterAr);
+      speakVideoCallLine(activeVideoCallSession.activePrompt.ar);
     });
     document.getElementById("vc-speak-btn").addEventListener("click", () => toggleVideoCallSpeak());
     document.getElementById("vc-subtitle-toggle-btn").addEventListener("click", () => {
