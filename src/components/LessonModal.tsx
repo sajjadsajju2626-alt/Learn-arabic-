@@ -2107,7 +2107,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               type="button"
               data-testid="speak-skip-btn"
               onClick={handleSkipSpeak}
-              className="btn-3d w-full sm:w-auto py-3 px-6 rounded-2xl border-2 border-b-4 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-extrabold text-xs sm:text-sm whitespace-nowrap transition"
+              className="btn-3d w-full sm:w-auto py-3 px-4 sm:px-6 rounded-2xl border-2 border-b-4 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-extrabold text-xs sm:text-sm leading-snug text-center transition"
             >
               ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല (CAN&apos;T SPEAK NOW)
             </button>

@@ -445,7 +445,7 @@
 
     <div id="speak-skip-area" class="hidden border-t border-slate-200 bg-white">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-center">
-        <button id="speak-skip-btn" data-testid="speak-skip-btn" type="button" class="btn-3d w-full sm:w-auto py-3 px-6 rounded-2xl border-2 border-b-4 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-extrabold text-xs sm:text-sm whitespace-nowrap transition">ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല (CAN'T SPEAK NOW)</button>
+        <button id="speak-skip-btn" data-testid="speak-skip-btn" type="button" class="btn-3d w-full sm:w-auto py-3 px-4 sm:px-6 rounded-2xl border-2 border-b-4 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-extrabold text-xs sm:text-sm leading-snug text-center transition">ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല (CAN'T SPEAK NOW)</button>
       </div>
     </div>
 
@@ -6676,7 +6676,7 @@
                   <button type="button" id="speak-play-slow" data-testid="speak-play-slow" aria-label="പതുക്കെ കേൾക്കുക (0.65x)" title="പതുക്കെ കേൾക്കുക (0.65x)" class="btn-3d w-10 h-11 rounded-2xl bg-white border-2 border-b-4 border-slate-200 text-slate-700 hover:bg-slate-50 text-base flex items-center justify-center transition">🐢</button>
                 </div>
                 <div id="speak-target-arabic" data-testid="speak-target-arabic" dir="rtl" lang="ar" class="flex-1 text-right font-arabic text-2xl sm:text-3xl font-bold leading-relaxed flex flex-wrap justify-start gap-x-2 gap-y-1">
-                  ${displayWords.map((w, idx) => `<span data-word-idx="${idx}" class="speak-target-word text-slate-900 transition-colors duration-200">${w}</span>`).join("")}
+                  ${displayWords.map((w, idx) => `<span data-word-idx="${idx}" class="speak-target-word text-slate-900 transition-colors duration-200">${w}</span>`).join(" ")}
                 </div>
               </div>
               <div class="pt-2 border-t border-slate-100 space-y-0.5 text-left">
