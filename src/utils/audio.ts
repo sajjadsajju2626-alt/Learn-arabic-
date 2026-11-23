@@ -10,7 +10,7 @@ export interface ArabicAudioState {
 export interface ArabicAudioSource {
   url: string;
   crossOrigin: boolean;
-  provider: 'letter-mp3' | 'hisnmuslim' | 'hamed-neural';
+  provider: 'letter-mp3' | 'hisnmuslim';
 }
 
 export interface SpeechVoiceLike {
@@ -282,9 +282,7 @@ export function formatForArabicTTS(rawText: string): string {
 
 export function buildHamedNeuralTtsUrl(arabicText: string): string {
   const ttsText = formatForArabicTTS(arabicText);
-  return `/api/tts?voice=${encodeURIComponent(PRIMARY_ARABIC_VOICE_ID)}&text=${encodeURIComponent(
-    ttsText
-  )}`;
+  return `speech://ar-SA-HamedNeural?text=${encodeURIComponent(ttsText)}`;
 }
 
 export function buildArabicTtsUrl(arabicText: string): string {
@@ -309,11 +307,6 @@ export function buildArabicAudioSources(arabicText: string): ArabicAudioSource[]
       sources.push({ url: duaUrl, crossOrigin: true, provider: 'hisnmuslim' });
     }
   }
-  sources.push({
-    url: buildHamedNeuralTtsUrl(cleaned),
-    crossOrigin: true,
-    provider: 'hamed-neural',
-  });
   return sources;
 }
 
@@ -322,7 +315,7 @@ export function isHamedNeuralVoice(voice: SpeechVoiceLike | null | undefined): b
   const lang = (voice.lang || '').toLowerCase();
   if (!lang.startsWith('ar')) return false;
   const name = (voice.name || '').toLowerCase();
-  return /hamed/.test(name);
+  return /hamed|ar-sa-hamed/.test(name);
 }
 
 export function scoreArabicVoice(voice: SpeechVoiceLike): number {
@@ -846,7 +839,7 @@ export function speakArabic(
     if (!alreadyBuffered) {
       const currentProvider = meta?.sources[meta.sourceIndex]?.provider;
       const timeoutMs =
-        currentProvider === 'hisnmuslim' || currentProvider === 'hamed-neural'
+        currentProvider === 'hisnmuslim'
           ? Math.max(BUFFER_TIMEOUT_MS, 2500)
           : BUFFER_TIMEOUT_MS;
       bufferTimeoutTimer = window.setTimeout(() => {

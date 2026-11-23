@@ -693,7 +693,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       </header>
 
       {/* Main Question Stage */}
-      <div className="flex-1 overflow-y-auto">
+      <div data-scroll-container="true" className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-h-full flex flex-col justify-between gap-6">
           <div className="space-y-5">
             <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-500 font-latin tabular-nums">

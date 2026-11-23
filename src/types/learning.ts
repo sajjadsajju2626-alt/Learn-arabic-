@@ -178,8 +178,42 @@ export type NodeKind =
   | 'story'
   | 'dialogue'
   | 'listening'
+  | 'video_call'
   | 'hard'
   | 'trophy';
+
+export interface VideoCallReplySuggestion {
+  ar: string;
+  tr: string;
+  ml: string;
+}
+
+export interface VideoCallTurn {
+  /** Contextual vocalized Arabic prompt spoken by Tariq or Layla */
+  characterAr: string;
+  /** Malayalam transliteration shown when subtitles are toggled on */
+  characterTr: string;
+  /** Malayalam meaning shown when subtitles are toggled on */
+  characterMl: string;
+  /** Warm vocalized Arabic reaction after the user responds */
+  reactionAr: string;
+  /** Suggested Arabic replies (from short to full sentence) for optional guidance / WebView fallback */
+  suggestedReplies: VideoCallReplySuggestion[];
+}
+
+export interface VideoCallScenario {
+  id: string;
+  unitNumber: number;
+  characterKey: 'tariq' | 'layla';
+  characterNameEn: string;
+  characterNameMl: string;
+  characterNameAr: string;
+  characterAvatar: '👳‍♂️' | '🧕';
+  sceneTitleMl: string;
+  sceneSettingMl: string;
+  backdropImage: string;
+  turns: VideoCallTurn[];
+}
 
 export interface StoryCharacter {
   nameAr: string;
@@ -243,6 +277,7 @@ export interface Lesson {
   heartReward?: number;
   questions: LessonQuestion[];
   story?: UnitStory;
+  videoCall?: VideoCallScenario;
 }
 
 export interface UnitTheme {
@@ -285,7 +320,7 @@ export interface UserState {
 }
 
 export type SessionMode = 'lesson' | 'placement' | 'jump';
-export type SessionVariant = 'standard' | 'review' | 'legendary' | 'story';
+export type SessionVariant = 'standard' | 'review' | 'legendary' | 'story' | 'video_call';
 
 export interface SessionConfig {
   mode: SessionMode;

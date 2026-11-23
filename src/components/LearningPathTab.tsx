@@ -25,8 +25,8 @@ interface LearningPathTabProps {
   onStartUnitJump: (unitIndex: number) => void;
 }
 
-// Smooth 8-node S-curve offsets matching Duolingo's winding path
-const S_CURVE_OFFSETS = [
+// Smooth 8-node & 9-node S-curve offsets matching Duolingo's winding path (Trophy always centered)
+const S_CURVE_OFFSETS_8 = [
   'translate-x-0',
   '-translate-x-8 sm:-translate-x-12',
   '-translate-x-12 sm:-translate-x-18',
@@ -34,6 +34,18 @@ const S_CURVE_OFFSETS = [
   'translate-x-5 sm:translate-x-7',
   'translate-x-12 sm:translate-x-18',
   'translate-x-7 sm:translate-x-11',
+  'translate-x-0',
+];
+
+const S_CURVE_OFFSETS_9 = [
+  'translate-x-0',
+  '-translate-x-8 sm:-translate-x-12',
+  '-translate-x-12 sm:-translate-x-18',
+  '-translate-x-6 sm:-translate-x-9',
+  'translate-x-4 sm:translate-x-6',
+  'translate-x-11 sm:translate-x-16',
+  'translate-x-12 sm:translate-x-18',
+  'translate-x-6 sm:translate-x-9',
   'translate-x-0',
 ];
 
@@ -303,14 +315,17 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                 const isChest = lesson.nodeType === 'chest';
                 const isTrophy = lesson.nodeType === 'trophy';
                 const isStory = lesson.nodeType === 'story';
+                const isVideoCall = lesson.nodeType === 'video_call';
                 const isPopoverOpen = activePopoverId === lesson.id;
-                const offsetClass = S_CURVE_OFFSETS[nIdx % S_CURVE_OFFSETS.length];
+                const curve = unit.lessons.length >= 9 ? S_CURVE_OFFSETS_9 : S_CURVE_OFFSETS_8;
+                const offsetClass = curve[nIdx % curve.length];
 
                 return (
                   <div
                     key={lesson.id}
                     ref={isScrollTarget ? activeNodeRef : undefined}
                     data-node-id={lesson.id}
+                    data-node-type={lesson.nodeType ?? 'lesson'}
                     data-active-node={isScrollTarget ? 'true' : undefined}
                     className={`relative flex flex-col items-center ${offsetClass} ${isPopoverOpen ? 'z-30' : 'z-10'}`}
                   >
@@ -318,10 +333,22 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                       <div
                         aria-hidden="true"
                         className={`animate-bounce-slow mb-2 bg-white font-extrabold text-xs px-3.5 py-1 rounded-xl border-2 border-slate-200 shadow-sm tracking-wide ${
-                          isChest ? 'text-amber-600' : isStory ? 'text-violet-700' : 'text-[#357A00]'
+                          isChest
+                            ? 'text-amber-600'
+                            : isVideoCall
+                              ? 'text-[#0284C7]'
+                              : isStory
+                                ? 'text-violet-700'
+                                : 'text-[#357A00]'
                         }`}
                       >
-                        {isChest ? 'തുറക്കുക!' : isStory ? '📖 കഥ വായിക്കാം' : 'തുടങ്ങുക'}
+                        {isChest
+                          ? 'തുറക്കുക!'
+                          : isVideoCall
+                            ? '📹 വീഡിയോ കോൾ'
+                            : isStory
+                              ? '📖 കഥ വായിക്കാം'
+                              : 'തുടങ്ങുക'}
                       </div>
                     )}
 
@@ -336,7 +363,9 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                             : isCurrent
                               ? isChest
                                 ? 'നിധിപ്പെട്ടി തുറക്കുക'
-                                : 'ഇപ്പോൾ തുടങ്ങുക'
+                                : isVideoCall
+                                  ? 'വീഡിയോ കോൾ തുടങ്ങുക'
+                                  : 'ഇപ്പോൾ തുടങ്ങുക'
                               : 'ലോക്ക് ചെയ്തിരിക്കുന്നു'
                       }`}
                       onClick={() => {
@@ -366,7 +395,9 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                             : isCompleted
                               ? 'bg-amber-400 border-amber-600 text-white hover:bg-amber-400/95'
                               : isCurrent
-                                ? `${unit.theme.bg} ${unit.theme.border} text-white ring-8 ${unit.theme.ring}`
+                                ? isVideoCall
+                                  ? 'bg-gradient-to-b from-[#0EA5E9] to-[#0284C7] border-[#0369A1] text-white ring-8 ring-sky-200/85'
+                                  : `${unit.theme.bg} ${unit.theme.border} text-white ring-8 ${unit.theme.ring}`
                                 : 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed'
                       }`}
                     >
@@ -377,6 +408,8 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                       ) : isCompleted ? (
                         isTrophy ? (
                           <span aria-hidden="true">🏆</span>
+                        ) : isVideoCall ? (
+                          <span aria-hidden="true">📹</span>
                         ) : isStory ? (
                           <span aria-hidden="true">📖</span>
                         ) : (
@@ -384,6 +417,8 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                         )
                       ) : isUnlocked ? (
                         <span aria-hidden="true">{lesson.icon}</span>
+                      ) : isVideoCall ? (
+                        <span aria-hidden="true" className="opacity-55 text-2xl">📹</span>
                       ) : (
                         <Lock className="w-7 h-7 text-slate-400" aria-hidden="true" />
                       )}
@@ -442,35 +477,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                           </button>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            playTone('tap', soundEnabled);
-                            setActivePopoverId(null);
-                            if (onStartReview) onStartReview(lesson);
-                            else onStartLesson(lesson);
-                          }}
-                          className="btn-3d w-full py-2.5 px-4 rounded-xl bg-[#0284C7] border-b-4 border-[#0369A1] text-white font-extrabold text-xs sm:text-sm flex items-center justify-between gap-2"
-                        >
-                          <span className="whitespace-nowrap">REVIEW +5 XP</span>
-                          <span className="text-[11px] font-bold opacity-90 whitespace-nowrap shrink-0">5 ചോദ്യങ്ങൾ</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            playTone('tap', soundEnabled);
-                            setActivePopoverId(null);
-                            if (onStartLegendary) onStartLegendary(lesson);
-                            else onStartLesson(lesson);
-                          }}
-                          className="btn-3d w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-violet-600 to-amber-500 border-b-4 border-purple-900 text-white font-extrabold text-xs sm:text-sm flex items-center justify-between gap-2"
-                        >
-                          <span className="whitespace-nowrap">👑 LEGENDARY +40 XP</span>
-                          <span className="text-[11px] font-bold opacity-95 whitespace-nowrap shrink-0">3 ❤️ · സൂചനകളില്ല</span>
-                        </button>
-
-                        {isStory && lesson.story && (
+                        {isVideoCall && lesson.videoCall ? (
                           <button
                             type="button"
                             onClick={() => {
@@ -478,10 +485,57 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                               setActivePopoverId(null);
                               onStartLesson(lesson);
                             }}
-                            className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs"
+                            className="btn-3d w-full py-2.5 px-4 rounded-xl bg-[#0284C7] border-b-4 border-[#0369A1] text-white font-extrabold text-xs sm:text-sm flex items-center justify-between gap-2"
                           >
-                            📖 കഥ വീണ്ടും വായിക്കാം
+                            <span className="whitespace-nowrap">📹 വീണ്ടും വിളിക്കുക</span>
+                            <span className="text-[11px] font-bold opacity-90 whitespace-nowrap shrink-0">
+                              {lesson.videoCall.characterNameMl} · +15–50 XP
+                            </span>
                           </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                playTone('tap', soundEnabled);
+                                setActivePopoverId(null);
+                                if (onStartReview) onStartReview(lesson);
+                                else onStartLesson(lesson);
+                              }}
+                              className="btn-3d w-full py-2.5 px-4 rounded-xl bg-[#0284C7] border-b-4 border-[#0369A1] text-white font-extrabold text-xs sm:text-sm flex items-center justify-between gap-2"
+                            >
+                              <span className="whitespace-nowrap">REVIEW +5 XP</span>
+                              <span className="text-[11px] font-bold opacity-90 whitespace-nowrap shrink-0">5 ചോദ്യങ്ങൾ</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                playTone('tap', soundEnabled);
+                                setActivePopoverId(null);
+                                if (onStartLegendary) onStartLegendary(lesson);
+                                else onStartLesson(lesson);
+                              }}
+                              className="btn-3d w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-violet-600 to-amber-500 border-b-4 border-purple-900 text-white font-extrabold text-xs sm:text-sm flex items-center justify-between gap-2"
+                            >
+                              <span className="whitespace-nowrap">👑 LEGENDARY +40 XP</span>
+                              <span className="text-[11px] font-bold opacity-95 whitespace-nowrap shrink-0">3 ❤️ · സൂചനകളില്ല</span>
+                            </button>
+
+                            {isStory && lesson.story && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  playTone('tap', soundEnabled);
+                                  setActivePopoverId(null);
+                                  onStartLesson(lesson);
+                                }}
+                                className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs"
+                              >
+                                📖 കഥ വീണ്ടും വായിക്കാം
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     )}

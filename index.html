@@ -11,12 +11,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      overscroll-behavior-y: none;
+      touch-action: pan-y;
+    }
     body {
       font-family: 'Noto Sans Malayalam', 'Plus Jakarta Sans', sans-serif;
       background-color: #F8FAFC;
       color: #1E293B;
       overflow-x: hidden;
       user-select: none;
+    }
+    main, #onboarding-screen, #story-scroll-area, #video-call-scroll-area, [data-scroll-container="true"] {
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
     }
     .font-arabic { font-family: 'Amiri', 'Cairo', serif; direction: rtl; line-height: 1.85; }
     .font-arabic-ui { font-family: 'Cairo', 'Amiri', sans-serif; direction: rtl; }
@@ -48,7 +56,7 @@
       100% { transform: scale(1.22); opacity: 0; }
     }
     .animate-mic-ring { animation: micPulseRing 1.35s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
-    /* Smooth 8-node Duolingo S-curve offsets (mobile-safe, expanded on sm+) */
+    /* Smooth 8-node & 9-node Duolingo S-curve offsets (Trophy always centered) */
     .path-node-0 { transform: translateX(0px); }
     .path-node-1 { transform: translateX(-32px); }
     .path-node-2 { transform: translateX(-50px); }
@@ -57,6 +65,15 @@
     .path-node-5 { transform: translateX(50px); }
     .path-node-6 { transform: translateX(28px); }
     .path-node-7 { transform: translateX(0px); }
+    .path-node-9-0 { transform: translateX(0px); }
+    .path-node-9-1 { transform: translateX(-32px); }
+    .path-node-9-2 { transform: translateX(-50px); }
+    .path-node-9-3 { transform: translateX(-24px); }
+    .path-node-9-4 { transform: translateX(16px); }
+    .path-node-9-5 { transform: translateX(46px); }
+    .path-node-9-6 { transform: translateX(50px); }
+    .path-node-9-7 { transform: translateX(24px); }
+    .path-node-9-8 { transform: translateX(0px); }
     @media (min-width: 640px) {
       .path-node-0 { transform: translateX(0px); }
       .path-node-1 { transform: translateX(-48px); }
@@ -66,6 +83,15 @@
       .path-node-5 { transform: translateX(76px); }
       .path-node-6 { transform: translateX(44px); }
       .path-node-7 { transform: translateX(0px); }
+      .path-node-9-0 { transform: translateX(0px); }
+      .path-node-9-1 { transform: translateX(-48px); }
+      .path-node-9-2 { transform: translateX(-76px); }
+      .path-node-9-3 { transform: translateX(-34px); }
+      .path-node-9-4 { transform: translateX(24px); }
+      .path-node-9-5 { transform: translateX(64px); }
+      .path-node-9-6 { transform: translateX(72px); }
+      .path-node-9-7 { transform: translateX(36px); }
+      .path-node-9-8 { transform: translateX(0px); }
     }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -489,6 +515,140 @@
     <div class="border-t border-slate-200 bg-white">
       <div class="max-w-3xl mx-auto px-4 py-4 flex justify-end">
         <button id="story-continue-btn" data-testid="story-continue-btn" type="button" class="btn-3d w-full sm:w-auto sm:min-w-[220px] py-3.5 px-8 rounded-2xl font-extrabold text-base bg-[#58CC02] text-white border-b-4 border-[#46A302] cursor-pointer">തുടരുക (Continue)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FULL-SCREEN VIDEO CALL ROLEPLAY MODAL (UNITS 15-35) ================= -->
+  <div id="video-call-modal" data-testid="video-call-modal" role="dialog" aria-modal="true" aria-label="വീഡിയോ കോൾ സംഭാഷണം" class="hidden fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#1C1410] text-white select-none">
+    <!-- Warm Outdoor Arabian Café / Courtyard Backdrop + Measured Contrast Scrims -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+      <div id="vc-fallback-gradient" class="absolute inset-0" style="background: radial-gradient(circle at 50% 25%, #D97706 0%, #7C2D12 52%, #1C1410 100%);"></div>
+      <img id="vc-backdrop-img" src="" alt="" aria-hidden="true" class="w-full h-full object-cover opacity-90 transition-transform duration-700" onerror="this.style.display='none'" />
+      <div id="vc-scrim" class="absolute inset-0" style="background: linear-gradient(180deg, rgba(15,12,10,0.72) 0%, rgba(15,12,10,0.20) 40%, rgba(15,12,10,0.84) 78%, rgba(15,12,10,0.95) 100%);"></div>
+    </div>
+
+    <!-- Stage 1: Realistic Calling Tariq / Layla Screen -->
+    <div id="vc-stage-ringing" data-testid="video-call-ringing" class="relative z-10 flex-1 flex flex-col items-center justify-between px-6 py-10 max-w-lg mx-auto w-full text-center">
+      <div class="space-y-1.5 pt-4">
+        <div id="vc-ring-unit-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-extrabold tracking-wide text-amber-200 border border-white/20">📹 VIDEO CALL</div>
+        <h2 id="vc-ring-title" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight pt-2">Calling Tariq...</h2>
+        <p id="vc-ring-subtitle" class="text-sm font-bold text-amber-100/90">താരിഖ് വിളിക്കുന്നു...</p>
+        <p id="vc-ring-setting" class="text-xs font-medium text-white/75 pt-0.5"></p>
+      </div>
+
+      <div class="relative flex items-center justify-center my-6">
+        <span aria-hidden="true" class="absolute w-44 h-44 rounded-full bg-amber-400/20 animate-ping" style="animation-duration:1.8s;"></span>
+        <span aria-hidden="true" class="absolute w-36 h-36 rounded-full border-2 border-amber-300/45 animate-pulse"></span>
+        <div id="vc-ring-avatar" class="relative w-32 h-32 rounded-full bg-gradient-to-b from-amber-100 to-amber-300 border-4 border-white shadow-2xl flex items-center justify-center text-7xl">👳‍♂️</div>
+      </div>
+
+      <div class="w-full space-y-5 pb-2">
+        <div class="bg-slate-950/65 backdrop-blur-md border border-white/15 rounded-2xl px-4 py-3.5 text-center space-y-1">
+          <div class="text-sm font-extrabold text-amber-300">✨ കൂടുതൽ അറബി വാക്കുകൾ ഉപയോഗിക്കൂ, കൂടുതൽ XP നേടൂ!</div>
+          <div class="text-xs font-semibold text-white/80 font-latin">Use more Arabic words, get more XP!</div>
+        </div>
+        <div class="flex items-center justify-center gap-6">
+          <button id="vc-ring-end-btn" data-testid="video-call-end-btn" type="button" aria-label="കോൾ അവസാനിപ്പിക്കുക" class="btn-3d w-16 h-16 rounded-full bg-rose-600 hover:bg-rose-500 border-b-4 border-rose-800 text-white shadow-xl flex items-center justify-center text-2xl">📵</button>
+          <button id="vc-ring-answer-btn" data-testid="video-call-answer-now-btn" type="button" class="btn-3d h-14 px-6 rounded-full bg-[#58CC02] hover:bg-[#4EB802] border-b-4 border-[#3E9400] text-white font-extrabold text-sm shadow-xl flex items-center gap-2 whitespace-nowrap">ഇപ്പോൾ തുടങ്ങുക</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 2: Interactive Video Call Conversation Screen -->
+    <div id="vc-stage-active" data-testid="video-call-active" class="hidden relative z-10 flex-1 flex flex-col justify-between max-w-2xl mx-auto w-full h-full">
+      <header class="px-4 sm:px-6 pt-4 pb-2 space-y-2.5 shrink-0">
+        <div class="flex items-center gap-3">
+          <button id="vc-active-end-btn" type="button" aria-label="കോൾ അവസാനിപ്പിക്കുക" class="w-10 h-10 rounded-full bg-slate-950/60 hover:bg-slate-950/80 border border-white/15 text-rose-400 flex items-center justify-center shrink-0 text-lg font-bold">✕</button>
+          <div class="flex-1 h-3 rounded-full bg-white/20 overflow-hidden">
+            <div id="vc-progress-bar" class="h-full bg-gradient-to-r from-[#58CC02] to-[#38BDF8] rounded-full transition-all duration-500" style="width:20%;"></div>
+          </div>
+          <span id="vc-turn-counter" class="text-xs font-extrabold text-white/95 font-latin tabular-nums shrink-0 bg-slate-950/55 px-2.5 py-1 rounded-full border border-white/15">1 / 5</span>
+        </div>
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <div id="vc-character-pill" class="inline-flex items-center gap-1.5 bg-slate-950/55 backdrop-blur-md px-3 py-1 rounded-full border border-white/15 font-bold text-amber-100"></div>
+          <div id="vc-xp-pill" data-testid="video-call-xp-pill" class="inline-flex items-center gap-1.5 bg-amber-500/25 backdrop-blur-md px-3 py-1 rounded-full border border-amber-300/40 font-extrabold text-amber-200 font-latin tabular-nums">✨ 0 words · +15 XP</div>
+        </div>
+      </header>
+
+      <div id="video-call-scroll-area" data-scroll-container="true" class="flex-1 overflow-y-auto px-4 sm:px-6 py-2 flex flex-col items-center justify-center gap-4">
+        <div class="relative flex flex-col items-center">
+          <div class="relative flex items-center justify-center">
+            <span id="vc-speak-ping" aria-hidden="true" class="hidden absolute w-44 h-44 sm:w-48 sm:h-48 rounded-full bg-amber-400/25 animate-ping" style="animation-duration:1.4s;"></span>
+            <span id="vc-listen-ring" aria-hidden="true" class="hidden absolute w-44 h-44 sm:w-48 sm:h-48 rounded-full border-4 border-sky-400/75 animate-pulse"></span>
+            <button id="vc-portrait-btn" type="button" aria-label="ചോദ്യം വീണ്ടും കേൾക്കുക" class="relative w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-b from-amber-50 via-amber-100 to-amber-300 border-4 border-white/90 shadow-2xl flex items-center justify-center text-7xl sm:text-8xl transition-transform duration-300">👳‍♂️</button>
+          </div>
+          <div id="vc-status-pill" class="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-950/65 backdrop-blur-md border border-white/15 text-xs font-bold text-white/95">മറുപടി പറയാൻ 🎤 അമർത്തുക</div>
+        </div>
+
+        <div id="vc-subtitle-card" data-testid="video-call-subtitles" class="hidden w-full max-w-lg bg-slate-950/80 backdrop-blur-md border border-white/20 rounded-2xl p-4 text-center space-y-1.5 shadow-xl animate-pop">
+          <div id="vc-sub-ar" dir="rtl" lang="ar" class="font-arabic text-2xl sm:text-3xl font-bold text-white leading-relaxed"></div>
+          <div id="vc-sub-tr" class="text-xs font-bold text-sky-300"></div>
+          <div id="vc-sub-ml" class="text-xs sm:text-sm font-semibold text-amber-100/95"></div>
+        </div>
+
+        <div id="vc-live-transcript-box" data-testid="video-call-live-transcript" class="hidden w-full max-w-lg bg-sky-950/80 backdrop-blur-md border border-sky-400/45 rounded-2xl px-4 py-3 text-center space-y-1 shadow-lg animate-pop">
+          <div id="vc-live-transcript-meta" class="text-[11px] font-extrabold text-sky-300 uppercase tracking-wide">നിങ്ങൾ പറഞ്ഞത്</div>
+          <div id="vc-live-transcript-text" dir="rtl" lang="ar" class="font-arabic text-xl sm:text-2xl font-bold text-white"></div>
+        </div>
+
+        <div id="vc-mic-note" class="hidden w-full max-w-lg bg-amber-950/80 border border-amber-400/40 rounded-xl px-3.5 py-2 text-xs font-bold text-amber-100 text-center"></div>
+
+        <div id="vc-suggestions-box" data-testid="video-call-suggestions" class="hidden w-full max-w-lg bg-slate-950/80 backdrop-blur-md border border-white/15 rounded-2xl p-3 space-y-2 shadow-xl">
+          <div class="text-[11px] font-extrabold text-amber-200 px-1">💡 പറയാവുന്ന അറബി മറുപടികൾ (കൂടുതൽ വാക്കുകൾ = കൂടുതൽ XP)</div>
+          <div id="vc-suggestions-list" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <footer class="px-4 sm:px-6 pt-3 pb-5 sm:pb-6 shrink-0">
+        <div class="max-w-lg mx-auto space-y-3">
+          <div class="flex justify-center">
+            <button id="vc-ideas-toggle-btn" data-testid="video-call-ideas-toggle" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold border bg-slate-950/60 border-white/20 text-white/85 hover:bg-slate-900/80 whitespace-nowrap">💡 മറുപടി സൂചനകൾ കാണുക</button>
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <button id="vc-replay-btn" data-testid="video-call-replay-btn" type="button" aria-label="ചോദ്യം വീണ്ടും കേൾക്കുക" class="btn-3d w-14 h-14 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-white/20 border-b-4 border-b-slate-950 text-white flex flex-col items-center justify-center gap-0.5 shrink-0">
+              <span class="text-xl leading-none" aria-hidden="true">↺</span>
+              <span class="text-[10px] font-extrabold text-white/80">വീണ്ടും</span>
+            </button>
+            <button id="vc-speak-btn" data-testid="video-call-speak-btn" type="button" class="btn-3d flex-1 h-16 px-5 rounded-2xl bg-[#1CB0F6] hover:bg-[#17A2E6] border-b-[5px] border-[#0284C7] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl whitespace-nowrap">
+              <span>🎤 സംസാരിക്കുക</span>
+              <span class="hidden sm:inline text-xs font-bold opacity-90 font-latin">(TAP TO SPEAK)</span>
+            </button>
+            <button id="vc-subtitle-toggle-btn" data-testid="video-call-subtitle-toggle" type="button" aria-pressed="false" aria-label="സബ്ടൈറ്റിൽ കാണിക്കുക അല്ലെങ്കിൽ മറയ്ക്കുക" class="btn-3d w-14 h-14 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-white/20 border-b-4 border-b-slate-950 text-white flex flex-col items-center justify-center gap-0.5 shrink-0">
+              <span class="text-sm font-extrabold leading-none font-latin">CC</span>
+              <span class="text-[10px] font-extrabold text-white/80">സബ്</span>
+            </button>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Stage 3: Call Complete Summary & Proportional Word Bonus XP -->
+    <div id="vc-stage-summary" data-testid="video-call-summary" data-scroll-container="true" class="hidden relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 py-8 flex items-center justify-center">
+      <div class="w-full max-w-md bg-white text-slate-900 rounded-3xl border-2 border-b-4 border-slate-200 p-6 sm:p-7 shadow-2xl space-y-5 animate-pop">
+        <div class="text-center space-y-2">
+          <div id="vc-summary-avatar" class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-amber-100 to-sky-100 border-4 border-amber-300 flex items-center justify-center text-5xl shadow-md">👳‍♂️</div>
+          <div class="text-xs font-extrabold uppercase tracking-wide text-[#0284C7]">📹 വീഡിയോ കോൾ പൂർത്തിയായി</div>
+          <h3 class="text-2xl font-extrabold text-slate-900">ഗംഭീര സംഭാഷണം!</h3>
+          <p id="vc-summary-subtitle" class="text-xs sm:text-sm font-medium text-slate-600"></p>
+        </div>
+        <div class="grid grid-cols-3 gap-2.5 text-center">
+          <div class="rounded-2xl bg-sky-50 border border-sky-200 p-3">
+            <div class="text-[11px] font-extrabold text-[#0369A1]">അറബി വാക്കുകൾ</div>
+            <div id="vc-summary-words" data-testid="video-call-summary-words" class="text-2xl font-extrabold text-slate-900 font-latin tabular-nums mt-0.5">0</div>
+          </div>
+          <div class="rounded-2xl bg-amber-50 border border-amber-200 p-3">
+            <div class="text-[11px] font-extrabold text-amber-700">വേഡ് ബോണസ്</div>
+            <div id="vc-summary-bonus" class="text-2xl font-extrabold text-amber-600 font-latin tabular-nums mt-0.5">+0</div>
+          </div>
+          <div class="rounded-2xl bg-emerald-50 border border-emerald-200 p-3">
+            <div class="text-[11px] font-extrabold text-[#357A00]">ആകെ XP</div>
+            <div id="vc-summary-xp" data-testid="video-call-summary-xp" class="text-2xl font-extrabold text-[#357A00] font-latin tabular-nums mt-0.5">+15</div>
+          </div>
+        </div>
+        <div id="vc-summary-formula" class="text-center text-xs font-bold text-slate-500 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200"></div>
+        <div id="vc-summary-recap" class="max-h-40 overflow-y-auto space-y-2 pr-1"></div>
+        <button id="vc-finish-btn" data-testid="video-call-finish-btn" type="button" class="btn-3d w-full py-3.5 px-5 rounded-2xl bg-[#58CC02] hover:bg-[#4EB802] border-b-4 border-[#3E9400] text-white font-extrabold text-base shadow-md">തുടരുക</button>
       </div>
     </div>
   </div>
@@ -3375,12 +3535,15 @@
       return [radioTf, radioSelect3, radioMcq];
     }
 
+    const UNIT_VIDEO_CALLS = {"u15":{"id":"u15_vc_scenario","unitNumber":15,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: ഗൾഫ് വിമാനത്താവളത്തിൽ","sceneSettingMl":"ദുബായ് കഫേയിൽ നിന്ന് താരിഖ് നിങ്ങളെ വിളിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا بِكَ فِي دُبَي! هَلْ وَصَلْتَ إِلَى الْمَطَارِ بِسَلَامٍ؟","characterTr":"അഹ്‌ലൻ ബിക ഫീ ദുബൈ! ഹൽ വസൽത ഇലൽ മത്വാരി ബിസലാം?","characterMl":"ദുബായിലേക്ക് സ്വാഗതം! നിങ്ങൾ സുരക്ഷിതമായി വിമാനത്താവളത്തിൽ എത്തിയോ?","reactionAr":"الْحَمْدُ لِلّٰهِ عَلَى السَّلَامَةِ!","suggestedReplies":[{"ar":"نَعَمْ وَصَلْتُ","tr":"നഅം വസൽതു","ml":"അതെ, ഞാൻ എത്തി"},{"ar":"نَعَمْ وَصَلْتُ إِلَى الْمَطَارِ بِخَيْرٍ","tr":"നഅം വസൽതു ഇലൽ മത്വാരി ബിഖൈർ","ml":"അതെ, സുഖമായി വിമാനത്താവളത്തിൽ എത്തി"},{"ar":"الْحَمْدُ لِلّٰهِ وَصَلْتُ إِلَى مَطَارِ دُبَي بِسَلَامٍ الْيَوْمَ","tr":"അൽഹംദുലില്ലാഹ് വസൽതു ഇലാ മത്വാരി ദുബൈ ബിസലാമിൻ അൽയൗം","ml":"അൽഹംദുലില്ലാഹ്, ഇന്ന് സുരക്ഷിതമായി ദുബായ് വിമാനത്താവളത്തിൽ എത്തി"}]},{"characterAr":"مُمْتَازٌ! هَلْ أَخَذْتَ حَقِيبَتَكَ وَجَوَازَ السَّفَرِ؟","characterTr":"മുംതാസ്! ഹൽ അഖദ്ത ഹഖീബതക വ ജവാസസ്സഫർ?","characterMl":"കൊള്ളാം! നിങ്ങളുടെ ബാഗും പാസ്‌പോർട്ടും എടുത്തോ?","reactionAr":"جَيِّدٌ جِدًّا! هٰذَا مُهِمٌّ.","suggestedReplies":[{"ar":"نَعَمْ مَعِي","tr":"നഅം മഈ","ml":"അതെ, എന്റെ കൂടെയുണ്ട്"},{"ar":"نَعَمْ أَخَذْتُ الْحَقِيبَةَ وَالْجَوَازَ","tr":"നഅം അഖദ്തുൽ ഹഖീബത വൽജവാസ്","ml":"അതെ, ബാഗും പാസ്‌പോർട്ടും എടുത്തു"},{"ar":"نَعَمْ أَخَذْتُ حَقِيبَتِي الْكَبِيرَةَ وَجَوَازُ السَّفَرِ فِي يَدِي","tr":"നഅം അഖദ്തു ഹഖീബതിൽ കബീറത വ ജവാസുസ്സഫരി ഫീ യദീ","ml":"അതെ, എന്റെ വലിയ ബാഗ് എടുത്തു, പാസ്‌പോർട്ട് കയ്യിലുണ്ട്"}]},{"characterAr":"أَيْنَ تَنْتَظِرُ الْآنَ؟ أَنَا قَرِيبٌ مِنَ الْبَوَّابَةِ الثَّالِثَةِ.","characterTr":"അയ്ന തന്തളിറുൽ ആൻ? അനാ ഖരീബുൻ മിനൽ ബവ്വാബത്തിഥ്-ഥാലിഥ.","characterMl":"നിങ്ങൾ ഇപ്പോൾ എവിടെയാണ് കാത്തുനിൽക്കുന്നത്? ഞാൻ മൂന്നാം ഗേറ്റിന് അടുത്താണ്.","reactionAr":"أَرَاكَ قَرِيبًا إِنْ شَاءَ اللّٰهُ!","suggestedReplies":[{"ar":"عِنْدَ الْبَوَّابَةِ","tr":"ഇന്ദൽ ബവ്വാബ","ml":"ഗേറ്റിന് അടുത്ത്"},{"ar":"أَنَا أَنْتَظِرُ أَمَامَ الْبَوَّابَةِ الثَّالِثَةِ","tr":"അനാ അന്തളിറു അമാമൽ ബവ്വാബത്തിഥ്-ഥാലിഥ","ml":"ഞാൻ മൂന്നാം ഗേറ്റിന് മുന്നിൽ കാത്തുനിൽക്കുന്നു"},{"ar":"أَنَا وَاقِفٌ أَمَامَ الْبَوَّابَةِ الثَّالِثَةِ قُرْبَ الْمَقْهَى الْكَبِيرِ","tr":"അനാ വാഖിഫുൻ അമാമൽ ബവ്വാബത്തിഥ്-ഥാലിഥതി ഖുർബൽ മഖ്ഹൽ കബീർ","ml":"ഞാൻ വലിയ കഫേയ്ക്ക് അടുത്തുള്ള മൂന്നാം ഗേറ്റിന് മുന്നിൽ നിൽക്കുകയാണ്"}]},{"characterAr":"هَلْ تُرِيدُ أَنْ نَشْرَبَ قَهْوَةً عَرَبِيَّةً قَبْلَ الذَّهَابِ إِلَى الْفُنْدُقِ؟","characterTr":"ഹൽ തുരീദു അൻ നശ്റബ ഖഹ്‌വതൻ അറബിയ്യതൻ ഖബ്ലദ്ദഹാബി ഇലൽ ഫുന്ദുഖ്?","characterMl":"ഹോട്ടലിലേക്ക് പോകുന്നതിന് മുമ്പ് നമുക്ക് അറബിക് കാപ്പി കുടിക്കണോ?","reactionAr":"فِكْرَةٌ رَائِعَةٌ! أُحِبُّ الْقَهْوَةَ.","suggestedReplies":[{"ar":"نَعَمْ شُكْرًا","tr":"നഅം ശുക്റൻ","ml":"അതെ, നന്ദി"},{"ar":"نَعَمْ أُرِيدُ قَهْوَةً عَرَبِيَّةً سَاخِنَةً","tr":"നഅം ഉരീദു ഖഹ്‌വതൻ അറബിയ്യതൻ സാഖിന","ml":"അതെ, എനിക്ക് ചൂടുള്ള അറബിക് കാപ്പി വേണം"},{"ar":"بِالتَّأْكِيدِ أُحِبُّ الْقَهْوَةَ الْعَرَبِيَّةَ مَعَ التَّمْرِ قَبْلَ الْفُنْدُقِ","tr":"ബിത്തഅ്കീദി ഉഹിബ്ബുൽ ഖഹ്‌വതൽ അറബിയ്യത മഅത്തംരി ഖബ്ലൽ ഫുന്ദുഖ്","ml":"തീർച്ചയായും, ഹോട്ടലിലേക്ക് പോകും മുമ്പ് ഈന്തപ്പഴത്തോടൊപ്പം അറബിക് കാപ്പി എനിക്കിഷ്ടമാണ്"}]},{"characterAr":"أَنَا قَادِمٌ بِالسَّيَّارَةِ الْآنَ! مَاذَا سَتَقُولُ قَبْلَ أَنْ نَلْتَقِيَ؟","characterTr":"അനാ ഖാദിമുൻ ബിസ്സയ്യാറത്തിൽ ആൻ! മാദാ സതഖൂലു ഖബ്ല അൻ നൽതഖിയ?","characterMl":"ഞാൻ ഇപ്പോൾ കാറുമായി വരികയാണ്! നമുക്ക് കാണും മുമ്പ് എന്താണ് പറയാനുള്ളത്?","reactionAr":"إِلَى اللِّقَاءِ يَا صَدِيقِي!","suggestedReplies":[{"ar":"شُكْرًا جَزِيلًا","tr":"ശുക്റൻ ജസീലൻ","ml":"വളരെ നന്ദി"},{"ar":"شُكْرًا يَا طَارِقُ أَرَاكَ قَرِيبًا","tr":"ശുക്റൻ യാ ത്വാരിഖു അറാക ഖരീബൻ","ml":"നന്ദി താരിഖ്, ഉടൻ കാണാം"},{"ar":"شُكْرًا جَزِيلًا يَا صَدِيقِي طَارِقُ أَنَا سَعِيدٌ جِدًّا بِرُؤْيَتِكَ","tr":"ശുക്റൻ ജസീലൻ യാ സ്വദീഖീ ത്വാരിഖു അനാ സഈദുൻ ജിദ്ദൻ ബിറുഅ്യതിക","ml":"വളരെ നന്ദി സുഹൃത്തേ താരിഖ്, നിങ്ങളെ കാണുന്നതിൽ എനിക്ക് വലിയ സന്തോഷമുണ്ട്"}]}]},"u16":{"id":"u16_vc_scenario","unitNumber":16,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: പുല്ലിംഗവും സ്ത്രീലിംഗവും","sceneSettingMl":"അറേബ്യൻ പൂന്തോട്ടത്തിൽ നിന്ന് ലൈല സംസാരിക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"السَّلَامُ عَلَيْكُمْ! أَنَا لَيْلَى، أَنَا مُعَلِّمَةٌ جَدِيدَةٌ. وَأَنْتَ؟","characterTr":"അസ്സലാമു അലൈക്കും! അനാ ലൈല, അനാ മുഅല്ലിമത്തുൻ ജദീദ. വ അൻത?","characterMl":"അസ്സലാമു അലൈക്കും! ഞാൻ ലൈല, ഒരു പുതിയ അധ്യാപികയാണ്. നിങ്ങളോ?","reactionAr":"تَشَرَّفْنَا كَثِيرًا!","suggestedReplies":[{"ar":"أَنَا طَالِبٌ","tr":"അനാ ത്വാലിബുൻ","ml":"ഞാൻ വിദ്യാർത്ഥിയാണ്"},{"ar":"وَعَلَيْكُمُ السَّلَامُ أَنَا طَالِبٌ مُجْتَهِدٌ","tr":"വ അലൈക്കുമുസ്സലാം അനാ ത്വാലിബുൻ മുജ്തഹിദ്","ml":"വ അലൈക്കുമുസ്സലാം, ഞാൻ പരിശ്രമശാലിയായ വിദ്യാർത്ഥിയാണ്"},{"ar":"وَعَلَيْكُمُ السَّلَامُ أَنَا طَالِبٌ جَدِيدٌ أَدْرُسُ اللُّغَةَ الْعَرَبِيَّةَ","tr":"വ അലൈക്കുമുസ്സലാം അനാ ത്വാലിബുൻ ജദീദുൻ അദ്റുസുൽ ലുഗതൽ അറബിയ്യ","ml":"വ അലൈക്കുമുസ്സലാം, ഞാൻ അറബി ഭാഷ പഠിക്കുന്ന പുതിയ വിദ്യാർത്ഥിയാണ്"}]},{"characterAr":"هٰذِهِ الْحَدِيقَةُ جَمِيلَةٌ جِدًّا! هَلْ عِنْدَكَ مَدْرَسَةٌ كَبِيرَةٌ؟","characterTr":"ഹാദിഹിൽ ഹദീഖത്തു ജമീലത്തുൻ ജിദ്ദൻ! ഹൽ ഇന്ദക മദ്റസത്തുൻ കബീറ?","characterMl":"ഈ പൂന്തോട്ടം വളരെ മനോഹരമാണ്! നിങ്ങൾക്ക് വലിയൊരു സ്കൂൾ ഉണ്ടോ?","reactionAr":"مَا شَاءَ اللّٰهُ! رَائِعٌ.","suggestedReplies":[{"ar":"نَعَمْ كَبِيرَةٌ","tr":"നഅം കബീറത്തുൻ","ml":"അതെ, വലുതാണ്"},{"ar":"نَعَمْ مَدْرَسَتِي كَبِيرَةٌ وَجَمِيلَةٌ","tr":"നഅം മദ്റസതീ കബീറത്തുൻ വ ജമീല","ml":"അതെ, എന്റെ സ്കൂൾ വലുതും മനോഹരവുമാണ്"},{"ar":"نَعَمْ هٰذِهِ مَدْرَسَةٌ كَبِيرَةٌ وَنَظِيفَةٌ قُرْبَ بَيْتِي","tr":"നഅം ഹാദിഹി മദ്റസത്തുൻ കബീറത്തുൻ വ നളീഫത്തുൻ ഖുർബ ബയ്തീ","ml":"അതെ, എന്റെ വീടിനടുത്ത് വലുതും വൃത്തിയുള്ളതുമായ സ്കൂളുണ്ട്"}]},{"characterAr":"انْظُرْ إِلَى هٰذَا الْكِتَابِ الْجَدِيدِ! مَاذَا تَقْرَأُ الْيَوْمَ؟","characterTr":"ഉൻളുർ ഇലാ ഹാദൽ കിതാബിൽ ജദീദ്! മാദാ തഖ്റഉൽ യൗം?","characterMl":"ഈ പുതിയ പുസ്തകം നോക്കൂ! നിങ്ങൾ ഇന്ന് എന്താണ് വായിക്കുന്നത്?","reactionAr":"قِرَاءَةٌ مُفِيدَةٌ جِدًّا!","suggestedReplies":[{"ar":"كِتَابًا جَدِيدًا","tr":"കിതാബൻ ജദീദൻ","ml":"പുതിയ പുസ്തകം"},{"ar":"أَقْرَأُ قِصَّةً عَرَبِيَّةً جَمِيلَةً","tr":"അഖ്റഉ ഖിസ്സതൻ അറബിയ്യതൻ ജമീല","ml":"ഞാൻ മനോഹരമായ ഒരു അറബി കഥ വായിക്കുന്നു"},{"ar":"أَنَا أَقْرَأُ كِتَابًا مُفِيدًا وَقِصَّةً قَصِيرَةً كُلَّ يَوْمٍ","tr":"അനാ അഖ്റഉ കിതാബൻ മുഫീദൻ വ ഖിസ്സതൻ ഖസീറതൻ കുല്ല യൗം","ml":"ഞാൻ ദിവസവും ഉപകാരപ്രദമായ പുസ്തകവും ചെറുകഥയും വായിക്കുന്നു"}]},{"characterAr":"أُخْتِي طَبِيبَةٌ مَاهِرَةٌ. مَاذَا يَعْمَلُ أَخُوكَ أَوْ صَدِيقُكَ؟","characterTr":"ഉഖ്തീ ത്വബീബത്തുൻ മാഹിറ. മാദാ യഅ്മലു അഖൂക ഔ സ്വദീഖുക?","characterMl":"എന്റെ സഹോദരി വിദഗ്ധയായ ഡോക്ടറാണ്. നിങ്ങളുടെ സഹോദരനോ സുഹൃത്തോ എന്തു ചെയ്യുന്നു?","reactionAr":"بَارَكَ اللّٰهُ فِيهِ!","suggestedReplies":[{"ar":"هُوَ مُهَنْدِسٌ","tr":"ഹുവ മുഹന്ദിസുൻ","ml":"അവൻ എൻജിനീയറാണ്"},{"ar":"صَدِيقِي طَبِيبٌ مَاهِرٌ وَطَيِّبٌ","tr":"സ്വദീഖീ ത്വബീബുൻ മാഹിറുൻ വ ത്വയ്യിബ്","ml":"എന്റെ സുഹൃത്ത് നല്ലൊരു ഡോക്ടറാണ്"},{"ar":"أَخِي مُهَنْدِسٌ نَاجِحٌ وَأُخْتِي مُعَلِّمَةٌ مَاهِرَةٌ فِي الْمَدْرَسَةِ","tr":"അഖീ മുഹന്ദിസുൻ നാജിഹുൻ വ ഉഖ്തീ മുഅല്ലിമത്തുൻ മാഹിറത്തുൻ ഫിൽ മദ്റസ","ml":"എന്റെ സഹോദരൻ വിജയിച്ച എൻജിനീയറും സഹോദരി സ്കൂളിലെ മിടുക്കിയായ അധ്യാപികയുമാണ്"}]},{"characterAr":"أَحْسَنْتَ فِي التَّمْرِينِ! هَلْ أَعْجَبَتْكَ الْمُحَادَثَةُ الْيَوْمَ؟","characterTr":"അഹ്സൻത ഫിത്തംരീൻ! ഹൽ അഅ്ജബത്കൽ മുഹാദഥത്തുൽ യൗം?","characterMl":"പരിശീലനത്തിൽ മികച്ച പ്രകടനം! ഇന്നത്തെ സംഭാഷണം ഇഷ്ടമായോ?","reactionAr":"شُكْرًا لَكَ! نَلْتَقِي قَرِيبًا.","suggestedReplies":[{"ar":"نَعَمْ كَثِيرًا","tr":"നഅം കഥീറൻ","ml":"അതെ, ഒരുപാട്"},{"ar":"نَعَمْ الْمُحَادَثَةُ جَمِيلَةٌ وَمُفِيدَةٌ","tr":"നഅം അൽമുഹാദഥത്തു ജമീലത്തുൻ വ മുഫീദ","ml":"അതെ, സംഭാഷണം മനോഹരവും ഉപകാരപ്രദവുമാണ്"},{"ar":"نَعَمْ أَعْجَبَتْنِي الْمُحَادَثَةُ كَثِيرًا شُكْرًا يَا لَيْلَى","tr":"നഅം അഅ്ജബത്നിൽ മുഹാദഥത്തു കഥീറൻ ശുക്റൻ യാ ലൈല","ml":"അതെ, സംഭാഷണം എനിക്ക് ഒരുപാട് ഇഷ്ടമായി, നന്ദി ലൈല"}]}]},"u17":{"id":"u17_vc_scenario","unitNumber":17,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: ഏകവചനവും ബഹുവചനവും","sceneSettingMl":"പുസ്തകക്കടയ്ക്ക് മുന്നിൽ നിന്ന് താരിഖ് വിളിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"مَرْحَبًا! أَنَا فِي الْمَكْتَبَةِ الْآنَ. كَمْ كِتَابًا تُرِيدُ؟","characterTr":"മർഹബൻ! അനാ ഫിൽ മക്തബത്തിൽ ആൻ. കം കിതാബൻ തുരീദ്?","characterMl":"ഹലോ! ഞാൻ ഇപ്പോൾ പുസ്തകക്കടയിലാണ്. നിങ്ങൾക്ക് എത്ര പുസ്തകം വേണം?","reactionAr":"اختِيَارٌ مُمْتَازٌ!","suggestedReplies":[{"ar":"كِتَابَيْنِ","tr":"കിതാബയ്നി","ml":"രണ്ട് പുസ്തകങ്ങൾ"},{"ar":"أُرِيدُ كِتَابَيْنِ وَقَلَمَيْنِ مِنْ فَضْلِكَ","tr":"ഉരീദു കിതാബയ്നി വ ഖലമയ്നി മിൻ ഫള്‌ലിക","ml":"ദയവായി രണ്ട് പുസ്തകങ്ങളും രണ്ട് പേനകളും വേണം"},{"ar":"أُرِيدُ ثَلَاثَةَ كُتُبٍ عَرَبِيَّةٍ وَدَفْتَرَيْنِ جَدِيدَيْنِ لِلدِّرَاسَةِ","tr":"ഉരീദു ഥലാഥത കുതുബിൻ അറബിയ്യതിൻ വ ദഫ്തറയ്നി ജദീദയ്നി ലിദ്ദിറാസ","ml":"പഠനത്തിനായി മൂന്ന് അറബി പുസ്തകങ്ങളും രണ്ട് പുതിയ നോട്ടുബുക്കുകളും വേണം"}]},{"characterAr":"هَلْ فِي الصَّفِّ طُلَّابٌ كَثِيرُونَ أَمْ طَالِبَانِ فَقَطْ؟","characterTr":"ഹൽ ഫിസ്സഫ്ഫി തുല്ലാബുൻ കഥീറൂന അം ത്വാലിബാനി ഫഖത്വ്?","characterMl":"ക്ലാസ്സിൽ ധാരാളം വിദ്യാർത്ഥികളുണ്ടോ അതോ രണ്ടുപേർ മാത്രമോ?","reactionAr":"مَا شَاءَ اللّٰهُ! صَفٌّ نَشِيطٌ.","suggestedReplies":[{"ar":"طُلَّابٌ كَثِيرُونَ","tr":"തുല്ലാബുൻ കഥീറൂൻ","ml":"ധാരാളം വിദ്യാർത്ഥികൾ"},{"ar":"فِي الصَّفِّ طُلَّابٌ وَطَالِبَاتٌ مُجْتَهِدُونَ","tr":"ഫിസ്സഫ്ഫി തുല്ലാബുൻ വ ത്വാലിബാത്തുൻ മുജ്തഹിദൂൻ","ml":"ക്ലാസ്സിൽ പരിശ്രമികളായ വിദ്യാർത്ഥികളും വിദ്യാർത്ഥിനികളുമുണ്ട്"},{"ar":"فِي صَفِّنَا طُلَّابٌ كَثِيرُونَ وَمُعَلِّمَانِ مَاهِرَانِ يُعَلِّمَانِنَا الْعَرَبِيَّةَ","tr":"ഫീ സ്വഫ്ഫിനാ തുല്ലാബുൻ കഥീറൂന വ മുഅല്ലിമാനി മാഹിറാനി യുഅല്ലിമാനനൽ അറബിയ്യ","ml":"ഞങ്ങളുടെ ക്ലാസ്സിൽ ധാരാളം വിദ്യാർത്ഥികളും അറബി പഠിപ്പിക്കുന്ന രണ്ട് വിദഗ്ധ അധ്യാപകരുമുണ്ട്"}]},{"characterAr":"عِنْدِي صَدِيقَانِ مِنْ كِيرَالَا. كَمْ صَدِيقًا عِنْدَكَ هُنَا؟","characterTr":"ഇന്ദീ സ്വദീഖാനി മിൻ കേരള. കം സ്വദീഖൻ ഇന്ദക ഹുനാ?","characterMl":"എനിക്ക് കേരളത്തിൽ നിന്നുള്ള രണ്ട് സുഹൃത്തുക്കളുണ്ട്. നിങ്ങൾക്ക് ഇവിടെ എത്ര സുഹൃത്തുക്കളുണ്ട്?","reactionAr":"الصَّدَاقَةُ نِعْمَةٌ جَمِيلَةٌ!","suggestedReplies":[{"ar":"أَصْدِقَاءُ كَثِيرُونَ","tr":"അസ്വ്ദിഖാഉ കഥീറൂൻ","ml":"ധാരാളം സുഹൃത്തുക്കൾ"},{"ar":"عِنْدِي أَصْدِقَاءُ طَيِّبُونَ فِي الْعَمَلِ","tr":"ഇന്ദീ അസ്വ്ദിഖാഉ ത്വയ്യിബൂന ഫിൽ അമൽ","ml":"എനിക്ക് ജോലിസ്ഥലത്ത് നല്ല സുഹൃത്തുക്കളുണ്ട്"},{"ar":"عِنْدِي صَدِيقَانِ قَرِيبَانِ وَأَصْدِقَاءُ كَثِيرُونَ نَلْتَقِي فِي الْمَقْهَى","tr":"ഇന്ദീ സ്വദീഖാനി ഖരീബാനി വ അസ്വ്ദിഖാഉ കഥീറൂന നൽതഖീ ഫിൽ മഖ്ഹാ","ml":"എനിക്ക് രണ്ട് അടുത്ത സുഹൃത്തുക്കളും കഫേയിൽ കാണുന്ന ധാരാളം സുഹൃത്തുക്കളുമുണ്ട്"}]},{"characterAr":"سَأَشْتَرِي فِنْجَانَيْنِ مِنَ الشَّايِ. هَلْ تُحِبُّ الشَّايَ أَمِ الْقَهْوَةَ؟","characterTr":"സഅശ്തരീ ഫിൻജാനയ്നി മിനശ്ശായ്. ഹൽ തുഹിബ്ബുശ്ശായ അമിൽ ഖഹ്‌വ?","characterMl":"ഞാൻ രണ്ട് കപ്പ് ചായ വാങ്ങാം. നിങ്ങൾക്ക് ചായയാണോ കാപ്പിയാണോ ഇഷ്ടം?","reactionAr":"بِالْهَنَاءِ وَالشِّفَاءِ!","suggestedReplies":[{"ar":"أُحِبُّ الشَّايَ","tr":"ഉഹിബ്ബുശ്ശായ","ml":"എനിക്ക് ചായ ഇഷ്ടമാണ്"},{"ar":"أُحِبُّ الشَّايَ بِالنَّعْنَاعِ مَعَ الْكَعْكِ","tr":"ഉഹിബ്ബുശ്ശായ ബിന്നഅ്നാഇ മഅൽ കഅ്ക്","ml":"എനിക്ക് പുതിനയിട്ട ചായയും കേക്കും ഇഷ്ടമാണ്"},{"ar":"أُحِبُّ فِنْجَانَيْنِ مِنَ الشَّايِ السَّاخِنِ فِي الْمَسَاءِ مَعَ أَصْدِقَائِي","tr":"ഉഹിബ്ബു ഫിൻജാനയ്നി മിനശ്ശായിസ്സാഖിനി ഫിൽ മസാഇ മഅ അസ്വ്ദിഖാഈ","ml":"വൈകുന്നേരം സുഹൃത്തുക്കളോടൊപ്പം രണ്ട് കപ്പ് ചൂട് ചായ കുടിക്കാൻ എനിക്കിഷ്ടമാണ്"}]},{"characterAr":"رَائِعٌ! أَتْقَنْتَ الْمُفْرَدَ وَالْمُثَنَّى وَالْجَمْعَ. مَعَ السَّلَامَةِ!","characterTr":"റാഇഅ്! അത്ഖൻതൽ മുഫ്റദ വൽമുഥന്നാ വൽജംഅ്. മഅസ്സലാമ!","characterMl":"മികച്ചത്! ഏകവചനവും ദ്വിവചനവും ബഹുവചനവും നന്നായി പഠിച്ചു. വിട!","reactionAr":"فِي أَمَانِ اللّٰهِ!","suggestedReplies":[{"ar":"مَعَ السَّلَامَةِ","tr":"മഅസ്സലാമ","ml":"വിട പറയുന്നു"},{"ar":"شُكْرًا يَا طَارِقُ مَعَ السَّلَامَةِ","tr":"ശുക്റൻ യാ ത്വാരിഖ് മഅസ്സലാമ","ml":"നന്ദി താരിഖ്, വിട"},{"ar":"شُكْرًا جَزِيلًا يَا طَارِقُ نَلْتَقِي غَدًا مَعَ الْأَصْدِقَاءِ","tr":"ശുക്റൻ ജസീലൻ യാ ത്വാരിഖു നൽതഖീ ഗദൻ മഅൽ അസ്വ്ദിഖാഅ്","ml":"വളരെ നന്ദി താരിഖ്, നാളെ സുഹൃത്തുക്കളോടൊപ്പം കാണാം"}]}]},"u18":{"id":"u18_vc_scenario","unitNumber":18,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: ഇന്നലെയും ഇന്നും","sceneSettingMl":"ഉച്ചഭക്ഷണത്തിന് ശേഷം ലൈല വീഡിയോ കോൾ ചെയ്യുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"مَسَاءَ الْخَيْرِ! مَاذَا فَعَلْتَ أَمْسِ فِي الْمَسَاءِ؟","characterTr":"മസാഅൽ ഖൈർ! മാദാ ഫഅൽത അംസി ഫിൽ മസാഅ്?","characterMl":"ശുഭസായാഹ്നം! ഇന്നലെ വൈകുന്നേരം നിങ്ങൾ എന്താണ് ചെയ്തത്?","reactionAr":"وَقْتٌ مُمْتِعٌ جِدًّا!","suggestedReplies":[{"ar":"دَرَسْتُ الْعَرَبِيَّةَ","tr":"ദറസ്തുൽ അറബിയ്യ","ml":"ഞാൻ അറബി പഠിച്ചു"},{"ar":"ذَهَبْتُ إِلَى السُّوقِ مَعَ عَائِلَتِي","tr":"ദഹബ്തു ഇലസ്സൂഖി മഅ ആഇലതീ","ml":"ഞാൻ കുടുംബത്തോടൊപ്പം മാർക്കറ്റിൽ പോയി"},{"ar":"أَمْسِ قَرَأْتُ دَرْسًا جَدِيدًا ثُمَّ كَتَبْتُ الْوَاجِبَ فِي الْمَنْزِلِ","tr":"അംസി ഖറഅ്തു ദർസൻ ജദീദൻ ഥുമ്മ കതബ്തുൽ വാജിബ ഫിൽ മൻസിൽ","ml":"ഇന്നലെ ഞാൻ പുതിയ പാഠം വായിച്ചു, പിന്നെ വീട്ടിൽ ഹോംവർക്ക് എഴുതി"}]},{"characterAr":"جَمِيلٌ! وَمَاذَا تَفْعَلُ الْآنَ فِي هٰذَا الْوَقْتِ؟","characterTr":"ജമീൽ! വ മാദാ തഫ്അലുൽ ആന ഫീ ഹാദൽ വഖ്ത്?","characterMl":"കൊള്ളാം! ഈ സമയത്ത് ഇപ്പോൾ എന്താണ് ചെയ്യുന്നത്?","reactionAr":"نَشَاطٌ رَائِعٌ!","suggestedReplies":[{"ar":"أَتَعَلَّمُ الْعَرَبِيَّةَ","tr":"അതഅല്ലമുൽ അറബിയ്യ","ml":"ഞാൻ അറബി പഠിക്കുന്നു"},{"ar":"أَنَا أَتَحَدَّثُ مَعَكِ بِاللُّغَةِ الْعَرَبِيَّةِ","tr":"അനാ അതഹദ്ദഥു മഅകി ബില്ലുഗത്തിൽ അറബിയ്യ","ml":"ഞാൻ നിന്നോട് അറബിയിൽ സംസാരിക്കുന്നു"},{"ar":"الْآنَ أَجْلِسُ فِي الْغُرْفَةِ وَأَتَدَرَّبُ عَلَى الْمُحَادَثَةِ الْعَرَبِيَّةِ","tr":"അൽആന അജ്‌ലിസു ഫിൽ ഗുർഫതി വ അതദർറബു അലൽ മുഹാദഥത്തിൽ അറബിയ്യ","ml":"ഇപ്പോൾ ഞാൻ മുറിയിൽ ഇരുന്ന് അറബി സംഭാഷണം പരിശീലിക്കുകയാണ്"}]},{"characterAr":"هَلْ أَكَلْتَ الْغَدَاءَ الْيَوْمَ؟ مَاذَا أَكَلْتَ؟","characterTr":"ഹൽ അകൽതൽ ഗദാഅൽ യൗം? മാദാ അകൽത?","characterMl":"ഇന്ന് ഉച്ചഭക്ഷണം കഴിച്ചോ? എന്താണ് കഴിച്ചത്?","reactionAr":"صِحَّةٌ وَعَافِيَةٌ!","suggestedReplies":[{"ar":"نَعَمْ أَكَلْتُ","tr":"നഅം അകൽതു","ml":"അതെ, കഴിച്ചു"},{"ar":"نَعَمْ أَكَلْتُ الْأَرُزَّ وَالسَّمَكَ اللَّذِيذَ","tr":"നഅം അകൽതുൽ അറുസ്സ വസ്സമകല്ലദീദ്","ml":"അതെ, ചോറും രുചികരമായ മീനും കഴിച്ചു"},{"ar":"نَعَمْ تَنَاوَلْتُ الْغَدَاءَ مَعَ أُسْرَتِي وَشَرِبْتُ عَصِيرًا طَازَجًا","tr":"നഅം തനാവൽതുൽ ഗദാഅ മഅ ഉസ്റതീ വ ശരിബ്തു അസീറൻ ത്വാസജൻ","ml":"അതെ, കുടുംബത്തോടൊപ്പം ഉച്ചഭക്ഷണം കഴിക്കുകയും ഫ്രഷ് ജ്യൂസ് കുടിക്കുകയും ചെയ്തു"}]},{"characterAr":"أَنَا أَشْرَبُ الشَّايَ كُلَّ مَسَاءٍ. مَتَى تَخْرُجُ لِلْمَشْيِ؟","characterTr":"അനാ അശ്റബുശ്ശായ കുല്ല മസാഅ്. മതാ തഖ്റുജു ലിൽമശ്‌യ്?","characterMl":"ഞാൻ എന്നും വൈകുന്നേരം ചായ കുടിക്കും. നിങ്ങൾ എപ്പോഴാണ് നടക്കാൻ ഇറങ്ങുന്നത്?","reactionAr":"الْمَشْيُ مُفِيدٌ لِلصِّحَّةِ!","suggestedReplies":[{"ar":"فِي الْمَسَاءِ","tr":"ഫിൽ മസാഅ്","ml":"വൈകുന്നേരം"},{"ar":"أَخْرُجُ لِلْمَشْيِ بَعْدَ الْعَصْرِ","tr":"അഖ്റുജു ലിൽമശ്‌യി ബഅ്ദൽ അസ്വ്ർ","ml":"അസ്റിന് ശേഷം ഞാൻ നടക്കാൻ ഇറങ്ങും"},{"ar":"أَخْرُجُ كُلَّ يَوْمٍ فِي الصَّبَاحِ الْبَاكِرِ وَأَمْشِي فِي الْحَدِيقَةِ","tr":"അഖ്റുജു കുല്ല യൗമിൻ ഫിസ്സബാഹിൽ ബാകിരി വ അംശീ ഫിൽ ഹദീഖ","ml":"ഞാൻ ദിവസവും അതിരാവിലെ ഇറങ്ങി പൂന്തോട്ടത്തിൽ നടക്കും"}]},{"characterAr":"أَحْسَنْتَ فِي الْمَاضِي وَالْمُضَارِعِ! تُصْبِحُ عَلَى خَيْرٍ.","characterTr":"അഹ്സൻത ഫിൽ മാളീ വൽമുളാരിഅ്! തുസ്ബിഹു അലാ ഖൈർ.","characterMl":"ഭൂതകാലത്തിലും വർത്തമാനകാലത്തിലും മികച്ച പ്രകടനം! ശുഭരാത്രി.","reactionAr":"وَأَنْتَ مِنْ أَهْلِ الْخَيْرِ!","suggestedReplies":[{"ar":"شُكْرًا لَكِ","tr":"ശുക്റൻ ലകി","ml":"നിങ്ങൾക്ക് നന്ദി"},{"ar":"وَأَنْتِ مِنْ أَهْلِ الْخَيْرِ يَا لَيْلَى","tr":"വ അൻതി മിൻ അഹ്‌ലിൽ ഖൈറി യാ ലൈല","ml":"നിങ്ങൾക്കും ശുഭരാത്രി ലൈല"},{"ar":"شُكْرًا يَا لَيْلَى تَعَلَّمْتُ الْكَثِيرَ الْيَوْمَ إِلَى اللِّقَاءِ","tr":"ശുക്റൻ യാ ലൈല തഅല്ലംതുൽ കഥീറൽ യൗമ ഇലല്ലിഖാഅ്","ml":"നന്ദി ലൈല, ഇന്ന് ഞാൻ ഒരുപാട് കാര്യങ്ങൾ പഠിച്ചു, വീണ്ടും കാണാം"}]}]},"u19":{"id":"u19_vc_scenario","unitNumber":19,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: എന്റെ വീടും സാധനങ്ങളും","sceneSettingMl":"തന്റെ പുതിയ മുറിയിൽ നിന്ന് താരിഖ് സംസാരിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا! أَيْنَ وَضَعْتَ هَاتِفَكَ وَمِفْتَاحَكَ الْيَوْمَ؟","characterTr":"അഹ്‌ലൻ! അയ്ന വളഅ്ത ഹാതിഫക വ മിഫ്താഹകൽ യൗം?","characterMl":"സ്വാഗതം! ഇന്ന് നിങ്ങളുടെ ഫോണും താക്കോലും എവിടെയാണ് വെച്ചത്?","reactionAr":"تَرْتِيبٌ جَيِّدٌ جِدًّا!","suggestedReplies":[{"ar":"عَلَى الطَّاوِلَةِ","tr":"അലത്ത്വാവില","ml":"മേശയുടെ മുകളിൽ"},{"ar":"هَاتِفِي وَمِفْتَاحِي عَلَى الْمَكْتَبِ","tr":"ഹാതിഫീ വ മിഫ്താഹീ അലൽ മക്തബ്","ml":"എന്റെ ഫോണും താക്കോലും ഡെസ്കിന് മുകളിലാണ്"},{"ar":"وَضَعْتُ هَاتِفِي عَلَى الطَّاوِلَةِ وَمِفْتَاحِي فِي حَقِيبَتِي","tr":"വളഅ്തു ഹാതിഫീ അലത്ത്വാവിലതി വ മിഫ്താഹീ ഫീ ഹഖീബതീ","ml":"ഞാൻ ഫോൺ മേശപ്പുറത്തും താക്കോൽ എന്റെ ബാഗിലും വെച്ചു"}]},{"characterAr":"بَيْتُكَ قَرِيبٌ مِنَ الْمَسْجِدِ أَمْ بَعِيدٌ عَنْهُ؟","characterTr":"ബയ്തുക ഖരീബുൻ മിനൽ മസ്ജിദി അം ബഈദുൻ അൻഹു?","characterMl":"നിങ്ങളുടെ വീട് പള്ളിക്ക് അടുത്താണോ അതോ ദൂരെയാണോ?","reactionAr":"مَوْقِعٌ مُمْتَازٌ مَا شَاءَ اللّٰهُ!","suggestedReplies":[{"ar":"قَرِيبٌ مِنَ الْمَسْجِدِ","tr":"ഖരീബുൻ മിനൽ മസ്ജിദ്","ml":"പള്ളിക്ക് അടുത്താണ്"},{"ar":"بَيْتِي قَرِيبٌ جِدًّا مِنَ الْمَسْجِدِ وَالسُّوقِ","tr":"ബയ്തീ ഖരീബുൻ ജിദ്ദൻ മിനൽ മസ്ജിദി വസ്സൂഖ്","ml":"എന്റെ വീട് പള്ളിക്കും മാർക്കറ്റിനും വളരെ അടുത്താണ്"},{"ar":"بَيْتِي قَرِيبٌ مِنَ الْمَسْجِدِ وَأَذْهَبُ إِلَيْهِ مَشْيًا كُلَّ يَوْمٍ","tr":"ബയ്തീ ഖരീബുൻ മിനൽ മസ്ജിദി വ അദ്ഹബു ഇലയ്ഹി മശ്‌യൻ കുല്ല യൗം","ml":"എന്റെ വീട് പള്ളിക്ക് അടുത്താണ്, ദിവസവും നടന്നാണ് അവിടേക്ക് പോകുന്നത്"}]},{"characterAr":"بِمَاذَا تَكْتُبُ دُرُوسَكَ الْعَرَبِيَّةَ عَادَةً؟","characterTr":"ബിമാദാ തക്തുബു ദുറൂസകൽ അറബിയ്യത ആദതൻ?","characterMl":"സാധാരണയായി നിങ്ങൾ എന്തിലാണ് അറബി പാഠങ്ങൾ എഴുതുന്നത്?","reactionAr":"أَسْلُوبٌ رَائِعٌ لِلتَّعَلُّمِ!","suggestedReplies":[{"ar":"بِالْقَلَمِ","tr":"ബിൽഖലമ്","ml":"പേന കൊണ്ട്"},{"ar":"أَكْتُبُ دُرُوسِي بِالْقَلَمِ فِي دَفْتَرِي","tr":"അക്തുബു ദുറൂസീ ബിൽഖലമി ഫീ ദഫ്തരീ","ml":"ഞാൻ പേന കൊണ്ട് എന്റെ നോട്ടുബുക്കിൽ പാഠങ്ങൾ എഴുതുന്നു"},{"ar":"أَكْتُبُ الْكَلِمَاتِ الْجَدِيدَةَ بِقَلَمٍ أَزْرَقَ فِي دَفْتَرِي الْخَاصِّ","tr":"അക്തുബുൽ കലിമാത്തിൽ ജദീദത ബിഖലമിൻ അസ്റഖ ഫീ ദഫ്തരിൽ ഖാസ്സ്വ്","ml":"ഞാൻ പുതിയ വാക്കുകൾ നീല പേന കൊണ്ട് എന്റെ പ്രത്യേക നോട്ടുബുക്കിൽ എഴുതുന്നു"}]},{"characterAr":"لِمَنْ هٰذِهِ الْهَدِيَّةُ الْجَمِيلَةُ؟ هَلْ تُحِبُّ تَقْدِيمَ الْهَدَايَا؟","characterTr":"ലിമൻ ഹാദിഹിൽ ഹദിയ്യത്തുൽ ജമീല? ഹൽ തുഹിബ്ബു തഖ്ദീമൽ ഹദായാ?","characterMl":"ഈ മനോഹരമായ സമ്മാനം ആർക്കുള്ളതാണ്? സമ്മാനങ്ങൾ നൽകാൻ നിങ്ങൾക്ക് ഇഷ്ടമാണോ?","reactionAr":"كَرَمٌ جَمِيلٌ جِدًّا!","suggestedReplies":[{"ar":"لِأُمِّي وَأَبِي","tr":"ലിഉമ്മീ വ അബീ","ml":"ഉമ്മയ്ക്കും ഉപ്പയ്ക്കും"},{"ar":"نَعَمْ أُحِبُّ تَقْدِيمَ الْهَدَايَا لِعَائِلَتِي","tr":"നഅം ഉഹിബ്ബു തഖ്ദീമൽ ഹദായാ ലിആഇലതീ","ml":"അതെ, കുടുംബത്തിന് സമ്മാനങ്ങൾ നൽകാൻ എനിക്കിഷ്ടമാണ്"},{"ar":"هٰذِهِ الْهَدِيَّةُ لِوَالِدَتِي لِأَنَّهَا تُسَاعِدُنِي فِي كُلِّ وَقْتٍ","tr":"ഹാദിഹിൽ ഹദിയ്യത്തു ലിവാലിദതീ ലിഅന്നഹാ തുസാഇദുനീ ഫീ കുല്ലി വഖ്ത്","ml":"എപ്പോഴും എന്നെ സഹായിക്കുന്നതിനാൽ ഈ സമ്മാനം എന്റെ മാതാവിനുള്ളതാണ്"}]},{"characterAr":"مُمْتَازٌ! اسْتَعْمَلْتَ حُرُوفَ الْجَرِّ بِدِقَّةٍ. شُكْرًا لِلِاتِّصَالِ!","characterTr":"മുംതാസ്! ഇസ്തഅ്മൽത ഹുറൂഫൽ ജർരി ബിദിഖ്ഖ. ശുക്റൻ ലിൽഇത്തിസ്വാൽ!","characterMl":"മികച്ചത്! അവ്യയങ്ങൾ കൃത്യമായി ഉപയോഗിച്ചു. കോൾ ചെയ്തതിന് നന്ദി!","reactionAr":"بَارَكَ اللّٰهُ فِيكَ!","suggestedReplies":[{"ar":"عَفْوًا يَا طَارِقُ","tr":"അഫ്‌വൻ യാ ത്വാരിഖ്","ml":"സാരമില്ല താരിഖ്"},{"ar":"شُكْرًا لَكَ عَلَى هٰذِهِ الْمُكَالَمَةِ الْجَمِيلَةِ","tr":"ശുക്റൻ ലക അലാ ഹാദിഹിൽ മുകാലമത്തിൽ ജമീല","ml":"ഈ മനോഹരമായ കോളിന് നിങ്ങൾക്ക് നന്ദി"},{"ar":"شُكْرًا يَا صَدِيقِي تَعَلَّمْتُ حُرُوفَ الْجَرِّ مَعَكَ بِسُهُولَةٍ","tr":"ശുക്റൻ യാ സ്വദീഖീ തഅല്ലംതു ഹുറൂഫൽ ജർരി മഅക ബിസുഹൂല","ml":"നന്ദി സുഹൃത്തേ, നിങ്ങളോടൊപ്പം അവ്യയങ്ങൾ എളുപ്പത്തിൽ പഠിച്ചു"}]}]},"u20":{"id":"u20_vc_scenario","unitNumber":20,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: വലിയ വാക്യങ്ങളും സംഭാഷണവും","sceneSettingMl":"അറേബ്യൻ ചായക്കടയിൽ നിന്ന് ലൈല സംസാരിക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"مَرْحَبًا! أَخْبِرْنِي بِجُمْلَةٍ كَامِلَةٍ: كَيْفَ كَانَ يَوْمُكَ الْيَوْمَ؟","characterTr":"മർഹബൻ! അഖ്ബിർനീ ബിജുംലത്തിൻ കാമില: കൈഫ കാന യൗമുകൽ യൗം?","characterMl":"ഹലോ! ഒരു പൂർണ്ണ വാക്യത്തിൽ പറയൂ: നിങ്ങളുടെ ഇന്നത്തെ ദിവസം എങ്ങനെയായിരുന്നു?","reactionAr":"الْحَمْدُ لِلّٰهِ! يَوْمٌ رَائِعٌ.","suggestedReplies":[{"ar":"كَانَ يَوْمًا جَمِيلًا","tr":"കാന യൗമൻ ജമീലൻ","ml":"മനോഹരമായ ദിവസമായിരുന്നു"},{"ar":"كَانَ يَوْمِي مُمْتِعًا وَمَلِيئًا بِالنَّشَاطِ","tr":"കാന യൗമീ മുംതിഅൻ വ മലീകൻ ബിന്നശാത്വ്","ml":"എന്റെ ദിവസം സന്തോഷകരവും ഉന്മേഷദായകവുമായിരുന്നു"},{"ar":"الْحَمْدُ لِلّٰهِ كَانَ يَوْمِي جَمِيلًا جِدًّا لِأَنَّنِي تَعَلَّمْتُ أَشْيَاءَ جَدِيدَةً","tr":"അൽഹംദുലില്ലാഹ് കാന യൗമീ ജമീലൻ ജിദ്ദൻ ലിഅന്നനീ തഅല്ലംതു അശ്‌യാഅ ജദീദ","ml":"അൽഹംദുലില്ലാഹ്, പുതിയ കാര്യങ്ങൾ പഠിച്ചതിനാൽ ഇന്ന് വളരെ നല്ല ദിവസമായിരുന്നു"}]},{"characterAr":"لِمَاذَا تَتَعَلَّمُ اللُّغَةَ الْعَرَبِيَّةَ؟ مَا هَدَفُكَ؟","characterTr":"ലിമാദാ തതഅല്ലമുൽ ലുഗതൽ അറബിയ്യ? മാ ഹദഫുക?","characterMl":"നിങ്ങൾ എന്തിനാണ് അറബി ഭാഷ പഠിക്കുന്നത്? നിങ്ങളുടെ ലക്ഷ്യം എന്താണ്?","reactionAr":"هَدَفٌ نَبِيلٌ وَرَائِعٌ!","suggestedReplies":[{"ar":"لِلسَّفَرِ وَالْعَمَلِ","tr":"ലിസ്സഫരി വൽഅമൽ","ml":"യാത്രയ്ക്കും ജോലിക്കും"},{"ar":"أَتَعَلَّمُ الْعَرَبِيَّةَ لِأَنَّهَا لُغَةٌ جَمِيلَةٌ وَمُهِمَّةٌ","tr":"അതഅല്ലമുൽ അറബിയ്യത ലിഅന്നഹാ ലുഗത്തുൻ ജമീലത്തുൻ വ മുഹിമ്മ","ml":"മനോഹരവും പ്രധാനപ്പെട്ടതുമായ ഭാഷയായതിനാൽ ഞാൻ അറബി പഠിക്കുന്നു"},{"ar":"أُرِيدُ أَنْ أَتَحَدَّثَ الْعَرَبِيَّةَ بِطَلَاقَةٍ مَعَ أَصْدِقَائِي وَفِي عَمَلِي","tr":"ഉരീദു അൻ അതഹദ്ദഥൽ അറബിയ്യത ബിത്വലാഖതിൻ മഅ അസ്വ്ദിഖാഈ വ ഫീ അമലീ","ml":"സുഹൃത്തുക്കളോടും ജോലിസ്ഥലത്തും ഒഴുക്കോടെ അറബി സംസാരിക്കാൻ ഞാൻ ആഗ്രഹിക്കുന്നു"}]},{"characterAr":"كَيْفَ تَقْضِي وَقْتَ الْفَرَاغِ فِي عُطْلَةِ نِهَايَةِ الْأُسْبُوعِ؟","characterTr":"കൈഫ തഖ്ളീ വഖ്തൽ ഫറാഗി ഫീ ഉത്വ്‌ലത്തി നിഹായത്തിൽ ഉസ്ബൂഅ്?","characterMl":"വാരാന്ത്യ അവധി ദിവസങ്ങളിൽ ഒഴിവുസമയം എങ്ങനെയാണ് ചെലവഴിക്കുന്നത്?","reactionAr":"هٰذَا رَائِعٌ جِدًّا!","suggestedReplies":[{"ar":"أَزُورُ عَائِلَتِي","tr":"അസൂറു ആഇലതീ","ml":"കുടുംബത്തെ സന്ദർശിക്കുന്നു"},{"ar":"أَقْرَأُ الْكُتُبَ وَأَلْتَقِي بِأَصْدِقَائِي فِي الْمَسَاءِ","tr":"അഖ്റഉൽ കുതുബ വ അൽതഖീ ബിഅസ്വ്ദിഖാഈ ഫിൽ മസാഅ്","ml":"പുസ്തകങ്ങൾ വായിക്കുകയും വൈകുന്നേരം സുഹൃത്തുക്കളെ കാണുകയും ചെയ്യുന്നു"},{"ar":"فِي الْعُطْلَةِ أَذْهَبُ إِلَى الشَّاطِئِ مَعَ أُسْرَتِي وَنَشْرَبُ الشَّايَ مَعًا","tr":"ഫിൽ ഉത്വ്‌ലത്തി അദ്ഹബു ഇലശ്ശാത്വിഇ മഅ ഉസ്റതീ വ നശ്റബുശ്ശായ മഅൻ","ml":"അവധി ദിവസങ്ങളിൽ കുടുംബത്തോടൊപ്പം കടൽത്തീരത്ത് പോയി ഒരുമിച്ച് ചായ കുടിക്കും"}]},{"characterAr":"هَلْ تُفَضِّلُ الْعَيْشَ فِي الْمَدِينَةِ أَمْ فِي الْقَرْيَةِ الْهَادِئَةِ؟","characterTr":"ഹൽ തുഫള്വ്‌ളിലുൽ അയ്ശ ഫിൽ മദീനതി അം ഫിൽ ഖർയത്തിൽ ഹാദിഅ?","characterMl":"നഗരത്തിൽ താമസിക്കാനാണോ ശാന്തമായ ഗ്രാമത്തിൽ താമസിക്കാനാണോ ഇഷ്ടം?","reactionAr":"أُوَافِقُكَ الرَّأْيَ تَمَامًا!","suggestedReplies":[{"ar":"أُفَضِّلُ الْقَرْيَةَ","tr":"ഉഫള്വ്‌ളിലുൽ ഖർയ","ml":"എനിക്ക് ഗ്രാമമാണ് ഇഷ്ടം"},{"ar":"أُحِبُّ الْقَرْيَةَ لِأَنَّ الْهَوَاءَ نَقِيٌّ وَهَادِئٌ","tr":"ഉഹിബ്ബുൽ ഖർയത ലിഅന്നൽ ഹവാഅ നഖിയ്യുൻ വ ഹാദിഅ്","ml":"വായു ശുദ്ധവും ശാന്തവുമായതിനാൽ എനിക്ക് ഗ്രാമം ഇഷ്ടമാണ്"},{"ar":"أُفَضِّلُ الْقَرْيَةَ الْخَضْرَاءَ لِأَنَّ الطَّبِيعَةَ جَمِيلَةٌ وَالْحَيَاةَ هَادِئَةٌ هُنَاكَ","tr":"ഉഫള്വ്‌ളിലുൽ ഖർയതൽ ഖള്റാഅ ലിഅന്നത്ത്വബീഅത ജമീലത്തുൻ വൽഹയാത ഹാദിഅത്തുൻ ഹുനാക്","ml":"പ്രകൃതി മനോഹരവും ജീവിതം ശാന്തവുമായതിനാൽ പച്ചപ്പുള്ള ഗ്രാമമാണ് എനിക്കിഷ്ടം"}]},{"characterAr":"مَا شَاءَ اللّٰهُ! جُمَلُكَ طَوِيلَةٌ وَوَاضِحَةٌ. نَرَاكَ فِي الْمُكَالَمَةِ الْقَادِمَةِ!","characterTr":"മാഷാ അല്ലാഹ്! ജുമലുക ത്വവീലത്തുൻ വ വാളിഹ. നറാക ഫിൽ മുകാലമത്തിൽ ഖാദിമ!","characterMl":"മാഷാ അല്ലാഹ്! നിങ്ങളുടെ വാക്യങ്ങൾ വലുതും വ്യക്തവുമാണ്. അടുത്ത കോളിൽ കാണാം!","reactionAr":"بِالتَّوْفِيقِ دَائِمًا!","suggestedReplies":[{"ar":"شُكْرًا يَا لَيْلَى","tr":"ശുക്റൻ യാ ലൈല","ml":"നന്ദി ലൈല"},{"ar":"شُكْرًا عَلَى التَّشْجِيعِ إِلَى اللِّقَاءِ قَرِيبًا","tr":"ശുക്റൻ അലത്തശ്ജീഇ ഇലല്ലിഖാഇ ഖരീബൻ","ml":"പ്രോത്സാഹനത്തിന് നന്ദി, ഉടൻ കാണാം"},{"ar":"شُكْرًا جَزِيلًا يَا لَيْلَى اسْتَمْتَعْتُ بِهٰذَا الْحِوَارِ الْجَمِيلِ كَثِيرًا","tr":"ശുക്റൻ ജസീലൻ യാ ലൈല ഇസ്തംതഅ്തു ബിഹാദൽ ഹിവാരിൽ ജമീലി കഥീറൻ","ml":"വളരെ നന്ദി ലൈല, ഈ മനോഹരമായ സംഭാഷണം ഞാൻ വളരെയധികം ആസ്വദിച്ചു"}]}]},"u21":{"id":"u21_vc_scenario","unitNumber":21,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: നാളത്തെ പദ്ധതികൾ","sceneSettingMl":"ഭാവി പദ്ധതികൾ ചർച്ച ചെയ്യാൻ താരിഖ് വിളിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا! مَاذَا سَتَفْعَلُ غَدًا فِي الصَّبَاحِ؟","characterTr":"അഹ്‌ലൻ! മാദാ സതഫ്അലു ഗദൻ ഫിസ്സബാഹ്?","characterMl":"ഹലോ! നാളെ രാവിലെ നിങ്ങൾ എന്താണ് ചെയ്യാൻ പോകുന്നത്?","reactionAr":"خُطَّةٌ مُمْتَازَةٌ!","suggestedReplies":[{"ar":"سَأَذْهَبُ لِلْعَمَلِ","tr":"സഅദ്ഹബു ലിൽഅമൽ","ml":"ഞാൻ ജോലിക്ക് പോകും"},{"ar":"غَدًا سَأَسْتَيْقِظُ مُبَكِّرًا وَأَقْرَأُ دَرْسِي","tr":"ഗദൻ സഅസ്തയ്ഖിളു മുബക്കിറൻ വ അഖ്റഉ ദർസീ","ml":"നാളെ ഞാൻ നേരത്തെ എഴുന്നേറ്റ് പാഠം വായിക്കും"},{"ar":"سَأَشْرَبُ الْقَهْوَةَ فِي الصَّبَاحِ ثُمَّ سَأَذْهَبُ إِلَى الْمَكْتَبِ مُبَكِّرًا","tr":"സഅശ്റബുൽ ഖഹ്‌വത ഫിസ്സബാഹി ഥുമ്മ സഅദ്ഹബു ഇലൽ മക്തബി മുബക്കിറൻ","ml":"രാവിലെ കാപ്പി കുടിച്ച ശേഷം ഞാൻ നേരത്തെ ഓഫീസിലേക്ക് പോകും"}]},{"characterAr":"إِلَى أَيْنَ سَوْفَ تُسَافِرُ فِي الْإِجَازَةِ الْقَادِمَةِ؟","characterTr":"ഇലാ അയ്ന സൗഫ തുസാഫിറു ഫിൽ ഇജാസത്തിൽ ഖാദിമ?","characterMl":"അടുത്ത അവധിക്കാലത്ത് നിങ്ങൾ എവിടേക്കാണ് യാത്ര ചെയ്യാൻ പോകുന്നത്?","reactionAr":"رِحْلَةٌ سَعِيدَةٌ مُقَدَّمًا!","suggestedReplies":[{"ar":"سَأُسَافِرُ إِلَى كِيرَالَا","tr":"സഉസാഫിറു ഇലാ കേരള","ml":"കേരളത്തിലേക്ക് യാത്ര ചെയ്യും"},{"ar":"سَوْفَ أُسَافِرُ إِلَى مَكَّةَ وَالْمَدِينَةِ إِنْ شَاءَ اللّٰهُ","tr":"സൗഫ ഉസാഫിറു ഇലാ മക്കത്ത വൽമദീനതി ഇൻഷാ അല്ലാഹ്","ml":"ഇൻഷാ അല്ലാഹ് ഞാൻ മക്കയിലേക്കും മദീനയിലേക്കും യാത്ര ചെയ്യും"},{"ar":"فِي الْإِجَازَةِ الْقَادِمَةِ سَوْفَ أُسَافِرُ مَعَ أُسْرَتِي إِلَى بَلَدِي الْجَمِيلِ","tr":"ഫിൽ ഇജാസത്തിൽ ഖാദിമത്തി സൗഫ ഉസാഫിറു മഅ ഉസ്റതീ ഇലാ ബലദിൽ ജമീൽ","ml":"അടുത്ത അവധിക്ക് കുടുംബത്തോടൊപ്പം എന്റെ സുന്ദരമായ നാട്ടിലേക്ക് യാത്ര ചെയ്യും"}]},{"characterAr":"هَلْ سَتَتَعَلَّمُ مَهَارَةً جَدِيدَةً هٰذَا الشَّهْرَ؟","characterTr":"ഹൽ സതതഅല്ലമു മഹാറതൻ ജദീദതൻ ഹാദശ്ശഹ്ർ?","characterMl":"ഈ മാസം നിങ്ങൾ പുതിയ ഏതെങ്കിലും കഴിവ് പഠിക്കുമോ?","reactionAr":"طُمُوحٌ عَالٍ جِدًّا!","suggestedReplies":[{"ar":"نَعَمْ بِإِذْنِ اللّٰهِ","tr":"നഅം ബിഇദ്നില്ലാഹ്","ml":"അതെ, അല്ലാഹുവിന്റെ അനുഗ്രഹത്താൽ"},{"ar":"سَأَتَعَلَّمُ التَّحَدُّثَ بِالْعَرَبِيَّةِ كُلَّ يَوْمٍ","tr":"സഅതഅല്ലമുത്തഹദ്ദുഥ ബിൽഅറബിയ്യത്തി കുല്ല യൗം","ml":"ഞാൻ ദിവസവും അറബി സംസാരിക്കാൻ പഠിക്കും"},{"ar":"نَعَمْ سَوْفَ أُطَوِّرُ لُغَتِي الْعَرَبِيَّةَ وَأَقْرَأُ كِتَابَيْنِ هٰذَا الشَّهْرَ","tr":"നഅം സൗഫ ഉത്വവ്വിറു ലുഗതിൽ അറബിയ്യത വ അഖ്റഉ കിതാബയ്നി ഹാദശ്ശഹ്ർ","ml":"അതെ, ഞാൻ എന്റെ അറബി ഭാഷ മെച്ചപ്പെടുത്തുകയും ഈ മാസം രണ്ട് പുസ്തകം വായിക്കുകയും ചെയ്യും"}]},{"characterAr":"مَتَى سَنَلْتَقِي فِي الْمَقْهَى لِشُرْبِ الشَّايِ؟","characterTr":"മതാ സനൽതഖീ ഫിൽ മഖ്ഹാ ലിശുർബിശ്ശായ്?","characterMl":"ചായ കുടിക്കാൻ നമ്മൾ എപ്പോഴാണ് കഫേയിൽ കാണുക?","reactionAr":"اتَّفَقْنَا! سَأَنْتَظِرُكَ.","suggestedReplies":[{"ar":"غَدًا مَسَاءً","tr":"ഗദൻ മസാഅൻ","ml":"നാളെ വൈകുന്നേരം"},{"ar":"سَنَلْتَقِي يَوْمَ الْجُمُعَةِ السَّاعَةَ الْخَامِسَةَ","tr":"സനൽതഖീ യൗമൽ ജുമുഅത്തി അസ്സാഅതൽ ഖാമിസ","ml":"വെള്ളിയാഴ്ച അഞ്ച് മണിക്ക് നമ്മൾ കാണും"},{"ar":"سَنَلْتَقِي غَدًا مَسَاءً فِي الْمَقْهَى الْقَرِيبِ بَعْدَ صَلَاةِ الْمَغْرِبِ","tr":"സനൽതഖീ ഗദൻ മസാഅൻ ഫിൽ മഖ്ഹൽ ഖരീബി ബഅ്ദ സ്വലാത്തിൽ മഗ്‌രിബ്","ml":"നാളെ വൈകുന്നേരം മഗ്‌രിബ് നിസ്കാരത്തിന് ശേഷം അടുത്തുള്ള കഫേയിൽ കാണാം"}]},{"characterAr":"إِنْ شَاءَ اللّٰهُ تَتَحَقَّقُ كُلُّ خُطَطِكَ! إِلَى اللِّقَاءِ.","characterTr":"ഇൻഷാ അല്ലാഹ് തതഹഖ്ഖഖു കുല്ലു ഖുത്വത്വിക! ഇലല്ലിഖാഅ്.","characterMl":"നിങ്ങളുടെ എല്ലാ പദ്ധതികളും സഫലമാകട്ടെ! വീണ്ടും കാണാം.","reactionAr":"آمِينَ! فِي أَمَانِ اللّٰهِ.","suggestedReplies":[{"ar":"آمِينَ شُكْرًا","tr":"ആമീൻ ശുക്റൻ","ml":"ആമീൻ, നന്ദി"},{"ar":"شُكْرًا يَا طَارِقُ سَأَتَّصِلُ بِكَ غَدًا","tr":"ശുക്റൻ യാ ത്വാരിഖു സഅത്തസ്വിലു ബിക ഗദൻ","ml":"നന്ദി താരിഖ്, നാളെ ഞാൻ നിങ്ങളെ വിളിക്കാം"},{"ar":"شُكْرًا جَزِيلًا يَا صَدِيقِي سَأَكُونُ جَاهِزًا فِي الْمَوْعِدِ بِإِذْنِ اللّٰهِ","tr":"ശുക്റൻ ജസീലൻ യാ സ്വദീഖീ സഅകൂനു ജാഹിസൻ ഫിൽ മൗഇദി ബിഇദ്നില്ലാഹ്","ml":"വളരെ നന്ദി സുഹൃത്തേ, അല്ലാഹു അനുഗ്രഹിച്ചാൽ ഞാൻ കൃത്യസമയത്ത് തയ്യാറായിരിക്കും"}]}]},"u22":{"id":"u22_vc_scenario","unitNumber":22,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: മാന്യമായ അഭ്യർത്ഥനകളും നിർദ്ദേശങ്ങളും","sceneSettingMl":"സൂഖിലെ കഫേയിൽ നിന്ന് ലൈല വിളിക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"أَهْلًا! مِنْ فَضْلِكَ سَاعِدْنِي: كَيْفَ تَطْلُبُ الْمَاءَ بِأَدَبٍ فِي الْمَطْعَمِ؟","characterTr":"അഹ്‌ലൻ! മിൻ ഫള്‌ലിക സാഇദ്നീ: കൈഫ തത്വ്‌ലുബുൽ മാഅ ബിഅദബിൻ ഫിൽ മത്വ്അം?","characterMl":"സ്വാഗതം! ദയവായി സഹായിക്കൂ: റെസ്റ്റോറന്റിൽ മാന്യമായി വെള്ളം എങ്ങനെ ചോദിക്കും?","reactionAr":"مَا أَجْمَلَ هٰذَا الْأَدَبَ!","suggestedReplies":[{"ar":"مَاءً مِنْ فَضْلِكَ","tr":"മാഅൻ മിൻ ഫള്‌ലിക","ml":"ദയവായി വെള്ളം"},{"ar":"أَعْطِنِي كُوبَ مَاءٍ بَارِدٍ مِنْ فَضْلِكَ","tr":"അഅ്ത്വിനീ കൂബ മാഇൻ ബാരിദിൻ മിൻ ഫള്‌ലിക","ml":"ദയവായി ഒരു ഗ്ലാസ് തണുത്ത വെള്ളം തരൂ"},{"ar":"لَوْ سَمَحْتَ أَحْضِرْ لِي كُوبَ مَاءٍ بَارِدٍ وَقَائِمَةَ الطَّعَامِ","tr":"ലൗ സമഹ്ത അഹ്ളിർ ലീ കൂബ മാഇൻ ബാരിദിൻ വ ഖാഇമത്തത്ത്വആം","ml":"ദയവായി എനിക്ക് ഒരു ഗ്ലാസ് തണുത്ത വെള്ളവും മെനു കാർഡും കൊണ്ടുവരൂ"}]},{"characterAr":"تَخَيَّلْ أَنَّ صَدِيقَكَ يَتَعَلَّمُ الْعَرَبِيَّةَ. بِمَاذَا تَنْصَحُهُ؟","characterTr":"തഖയ്യൽ അന്ന സ്വദീഖക യതഅല്ലമുൽ അറബിയ്യ. ബിമാദാ തൻസഹുഹു?","characterMl":"നിങ്ങളുടെ സുഹൃത്ത് അറബി പഠിക്കുകയാണെന്ന് കരുതൂ. എന്താണ് നിങ്ങൾ ഉപദേശിക്കുക?","reactionAr":"نَصِيحَةٌ ذَهَبِيَّةٌ!","suggestedReplies":[{"ar":"اقْرَأْ كُلَّ يَوْمٍ","tr":"ഇഖ്റഅ് കുല്ല യൗം","ml":"ദിവസവും വായിക്കൂ"},{"ar":"اسْتَمِعْ إِلَى الْعَرَبِيَّةِ وَتَكَلَّمْ كَثِيرًا","tr":"ഇസ്തമിഅ് ഇലൽ അറബിയ്യത്തി വ തകല്ലം കഥീറൻ","ml":"അറബി ശ്രദ്ധിച്ചു കേൾക്കുകയും ധാരാളം സംസാരിക്കുകയും ചെയ്യൂ"},{"ar":"تَدَرَّبْ كُلَّ يَوْمٍ وَلَا تَخَفْ مِنَ الْخَطَإِ أَبَدًا يَا صَدِيقِي","tr":"തദർറബ് കുല്ല യൗമിൻ വ ലാ തഖഫ് മിനൽ ഖത്വഇ അബദൻ യാ സ്വദീഖീ","ml":"ദിവസവും പരിശീലിക്കൂ, തെറ്റ് പറ്റുന്നതിനെ ഒരിക്കലും ഭയപ്പെടരുത് സുഹൃത്തേ"}]},{"characterAr":"إِذَا تَكَلَّمَ شَخْصٌ بِسُرْعَةٍ، مَاذَا تَقُولُ لَهُ؟","characterTr":"ഇദാ തകല്ലമ ശഖ്സുൻ ബിസുർഅത്തിൻ, മാദാ തഖൂലു ലഹു?","characterMl":"ഒരാൾ വേഗത്തിൽ സംസാരിക്കുമ്പോൾ നിങ്ങൾ അയാളോട് എന്ത് പറയും?","reactionAr":"عِبَارَةٌ مُفِيدَةٌ جِدًّا!","suggestedReplies":[{"ar":"تَكَلَّمْ بِبُطْءٍ","tr":"തകല്ലം ബിബുത്വ്ഇൻ","ml":"പതുക്കെ സംസാരിക്കൂ"},{"ar":"مِنْ فَضْلِكَ أَعِدِ الْجُمْلَةَ بِبُطْءٍ","tr":"മിൻ ഫള്‌ലിക അഇദിൽ ജുംലത ബിബുത്വ്ഇൻ","ml":"ദയവായി ആ വാക്യം പതുക്കെ ആവർത്തിക്കൂ"},{"ar":"لَوْ سَمَحْتَ تَكَلَّمْ بِبُطْءٍ قَلِيلًا لِأَنَّنِي أَتَعَلَّمُ اللُّغَةَ الْعَرَبِيَّةَ","tr":"ലൗ സമഹ്ത തകല്ലം ബിബുത്വ്ഇൻ ഖലീലൻ ലിഅന്നനീ അതഅല്ലമുൽ ലുഗതൽ അറബിയ്യ","ml":"ദയവായി അല്പം പതുക്കെ സംസാരിക്കൂ, ഞാൻ അറബി പഠിച്ചു വരികയാണ്"}]},{"characterAr":"أَعْطِنِي أَمْرًا لَطِيفًا لِضَيْفٍ يَزُورُ بَيْتَكَ!","characterTr":"അഅ്ത്വിനീ അംറൻ ലത്വീഫൻ ലിളയ്ഫിൻ യസൂറു ബയ്തക!","characterMl":"വീട്ടിൽ വരുന്ന അതിഥിയോട് പറയുന്ന ഒരു ഹൃദ്യമായ ആതിഥ്യ വാക്യം പറയൂ!","reactionAr":"كَرَمُ الضِّيَافَةِ الْعَرَبِيَّةِ!","suggestedReplies":[{"ar":"تَفَضَّلْ اجْلِسْ","tr":"തഫള്ള്വൽ ഇജ്‌ലിസ്","ml":"ദയവായി ഇരിക്കൂ"},{"ar":"تَفَضَّلْ ادْخُلْ وَاشْرَبْ قَهْوَةً سَاخِنَةً","tr":"തഫള്ള്വൽ ഉദ്ഖുൽ വശ്റബ് ഖഹ്‌വതൻ സാഖിന","ml":"ദയവായി അകത്തേക്ക് വരൂ, ചൂട് കാപ്പി കുടിക്കൂ"},{"ar":"أَهْلًا وَسَهْلًا تَفَضَّلْ اجْلِسْ هُنَا الْبَيْتُ بَيْتُكَ يَا أَخِي","tr":"അഹ്‌ലൻ വ സഹ്‌ലൻ തഫള്ള്വൽ ഇജ്‌ലിസ് ഹുനാ അൽബയ്തു ബയ്തുക യാ അഖീ","ml":"ഹൃദ്യമായ സ്വാഗതം! ദയവായി ഇവിടെ ഇരിക്കൂ, ഇത് നിങ്ങളുടെ സ്വന്തം വീട് പോലെയാണ്"}]},{"characterAr":"أَبْدَعْتَ فِي صِيغَةِ الْأَمْرِ وَالنَّهْيِ! اسْتَمِرَّ فِي التَّقَدُّمِ.","characterTr":"അബ്ദഅ്ത ഫീ സീഗത്തിൽ അംരി വന്നഹ്‌യ്! ഇസ്തമിർറ ഫിത്തഖദ്ദും.","characterMl":"ആജ്ഞകളും അഭ്യർത്ഥനകളും ഗംഭീരമായി! മുന്നേറ്റം തുടരൂ.","reactionAr":"مَعَ أَطْيَبِ التَّمَنِّيَاتِ!","suggestedReplies":[{"ar":"شُكْرًا جَزِيلًا","tr":"ശുക്റൻ ജസീലൻ","ml":"വളരെ നന്ദി"},{"ar":"سَأَسْتَمِرُّ فِي التَّعَلُّمِ كُلَّ يَوْمٍ شُكْرًا لَكِ","tr":"സഅസ്തമിർറു ഫിത്തഅല്ലുമി കുല്ല യൗമിൻ ശുക്റൻ ലകി","ml":"ഞാൻ ദിവസവും പഠനം തുടരും, നന്ദി"},{"ar":"شُكْرًا يَا لَيْلَى نَصَائِحُكِ مُفِيدَةٌ جِدًّا لَا تَنْسَيْ الِاتِّصَالَ قَرِيبًا","tr":"ശുക്റൻ യാ ലൈല നസ്വാഇഹുകി മുഫീദത്തുൻ ജിദ്ദൻ ലാ തൻസയിൽ ഇത്തിസ്വാല ഖരീബൻ","ml":"നന്ദി ലൈല, നിങ്ങളുടെ ഉപദേശങ്ങൾ വളരെ ഉപകാരപ്രദമാണ്, ഉടൻ വീണ്ടും വിളിക്കാൻ മറക്കല്ലേ"}]}]},"u23":{"id":"u23_vc_scenario","unitNumber":23,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: താരതമ്യങ്ങളും അഭിപ്രായങ്ങളും","sceneSettingMl":"പഴയ സൂഖിന്റെ ടെറസിൽ നിന്ന് താരിഖ് വിളിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا! أَيُّهُمَا أَجْمَلُ فِي رَأْيِكَ: الصَّبَاحُ أَمِ الْمَسَاءُ؟","characterTr":"അഹ്‌ലൻ! അയ്യുഹുമാ അജ്മലു ഫീ റഅ്‌യിക: അസ്സബാഹു അമിൽ മസാഅ്?","characterMl":"സ്വാഗതം! നിങ്ങളുടെ അഭിപ്രായത്തിൽ ഏതാണ് കൂടുതൽ മനോഹരം: രാവിലെയോ വൈകുന്നേരമോ?","reactionAr":"رَأْيٌ جَمِيلٌ جِدًّا!","suggestedReplies":[{"ar":"الصَّبَاحُ أَجْمَلُ","tr":"അസ്സബാഹു അജ്മലു","ml":"രാവിലെയാണ് കൂടുതൽ മനോഹരം"},{"ar":"فِي رَأْيِي الصَّبَاحُ أَهْدَأُ وَأَجْمَلُ مِنَ الْمَسَاءِ","tr":"ഫീ റഅ്‌യീ അസ്സബാഹു അഹ്ദഉ വ അജ്മലു മിനൽ മസാഅ്","ml":"എന്റെ അഭിപ്രായത്തിൽ രാവിലെയാണ് വൈകുന്നേരത്തേക്കാൾ ശാന്തവും മനോഹരവും"},{"ar":"أَعْتَقِدُ أَنَّ الصَّبَاحَ أَجْمَلُ لِأَنَّ الْجَوَّ أَلْطَفُ وَالشَّمْسَ مُشْرِقَةٌ","tr":"അഅ്തഖിദു അന്നസ്സബാഹ അജ്മലു ലിഅന്നൽ ജവ്വ അൽത്വഫു വശ്ശംസ മുശ്‌രിഖ","ml":"കാലാവസ്ഥ കൂടുതൽ സുഖകരവും സൂര്യൻ പ്രകാശമാനവുമായതിനാൽ രാവിലെയാണ് മനോഹരമെന്ന് ഞാൻ കരുതുന്നു"}]},{"characterAr":"هَلِ السَّفَرُ بِالطَّائِرَةِ أَسْرَعُ مِنَ الْقِطَارِ؟ مَاذَا تُفَضِّلُ؟","characterTr":"ഹലിസ്സഫറു ബിത്ത്വാഇറത്തി അസ്റഉ മിനൽ ഖിത്വാർ? മാദാ തുഫള്വ്‌ളിൽ?","characterMl":"വിമാനയാത്ര ട്രെയിനിനേക്കാൾ വേഗമേറിയതാണോ? നിങ്ങൾക്ക് ഏതാണ് കൂടുതൽ ഇഷ്ടം?","reactionAr":"صَحِيحٌ مِائَةً فِي الْمِائَةِ!","suggestedReplies":[{"ar":"الطَّائِرَةُ أَسْرَعُ","tr":"അത്ത്വാഇറത്തു അസ്റഉ","ml":"വിമാനമാണ് വേഗമേറിയത്"},{"ar":"نَعَمْ الطَّائِرَةُ أَسْرَعُ لٰكِنَّ الْقِطَارَ أَمْتَعُ","tr":"നഅം അത്ത്വാഇറത്തു അസ്റഉ ലാകിന്നൽ ഖിത്വാറ അംതഉ","ml":"അതെ, വിമാനം വേഗമേറിയതാണ്, പക്ഷേ ട്രെയിൻ കൂടുതൽ ആസ്വാദ്യകരമാണ്"},{"ar":"الطَّائِرَةُ أَسْرَعُ بِكَثِيرٍ لِلسَّفَرِ الطَّوِيلِ وَلٰكِنَّ الْقِطَارَ أَرْخَصُ وَأَجْمَلُ","tr":"അത്ത്വാഇറത്തു അസ്റഉ ബികഥീറിൻ ലിസ്സഫരിത്ത്വവീലി വ ലാകിന്നൽ ഖിത്വാറ അർഖസു വ അജ്മൽ","ml":"ദീർഘയാത്രയ്ക്ക് വിമാനമാണ് വളരെ വേഗതയുള്ളത്, എന്നാൽ ട്രെയിൻ ചെലവ് കുറഞ്ഞതും മനോഹരവുമാണ്"}]},{"characterAr":"مَا هُوَ أَلَذُّ طَعَامٍ تَذَوَّقْتَهُ فِي حَيَاتِكَ؟","characterTr":"മാ ഹുവ അലദ്ദു ത്വആമിൻ തദവ്വഖ്തഹു ഫീ ഹയാതിക?","characterMl":"ജീവിതത്തിൽ നിങ്ങൾ കഴിച്ചതിൽ വെച്ച് ഏറ്റവും രുചികരമായ ഭക്ഷണം ഏതാണ്?","reactionAr":"أَشْعُرُ بِالْجُوعِ الْآنَ!","suggestedReplies":[{"ar":"الْبِرْيَانِي أَلَذُّ","tr":"അൽബിരിയാണീ അലദ്ദു","ml":"ബിരിയാണിയാണ് ഏറ്റവും രുചികരം"},{"ar":"الْكَبْسَةُ وَالْبِرْيَانِي مِنْ أَلَذِّ الْأَطْعِمَةِ","tr":"അൽകബ്സത്തു വൽബിരിയാണീ മിൻ അലദ്ദിൽ അത്വ്ഇമ","ml":"കബ്സയും ബിരിയാണിയും ഏറ്റവും രുചികരമായ ഭക്ഷണങ്ങളാണ്"},{"ar":"أَلَذُّ طَعَامٍ عِنْدِي هُوَ طَعَامُ أُمِّي فِي الْمَنْزِلِ وَالْكَبْسَةُ الْعَرَبِيَّةُ","tr":"അലദ്ദു ത്വആമിൻ ഇന്ദീ ഹുവ ത്വആമു ഉമ്മീ ഫിൽ മൻസിലി വൽകബ്സത്തുൽ അറബിയ്യ","ml":"വീട്ടിലെ ഉമ്മയുടെ ഭക്ഷണവും അറബിക് കബ്സയുമാണ് എനിക്ക് ഏറ്റവും രുചികരമായ ഭക്ഷണം"}]},{"characterAr":"هَلْ تَعَلُّمُ الْعَرَبِيَّةِ أَسْهَلُ الْآنَ مِمَّا كَانَ فِي الْبِدَايَةِ؟","characterTr":"ഹൽ തഅല്ലുമുൽ അറബിയ്യത്തി അസ്ഹലുൽ ആന മിമ്മാ കാന ഫിൽ ബിദായ?","characterMl":"തുടക്കത്തിലേതിനേക്കാൾ ഇപ്പോൾ അറബി പഠനം കൂടുതൽ എളുപ്പമാണോ?","reactionAr":"هٰذَا دَلِيلٌ عَلَى نَجَاحِكَ!","suggestedReplies":[{"ar":"نَعَمْ أَسْهَلُ بِكَثِيرٍ","tr":"നഅം അസ്ഹലു ബികഥീർ","ml":"അതെ, വളരെ എളുപ്പമാണ്"},{"ar":"نَعَمْ أَصْبَحَتِ الْعَرَبِيَّةُ أَسْهَلَ وَأَمْتَعَ الْآنَ","tr":"നഅം അസ്വ്ബഹത്തിൽ അറബിയ്യത്തു അസ്ഹല വ അംതഅൽ ആൻ","ml":"അതെ, ഇപ്പോൾ അറബി കൂടുതൽ എളുപ്പവും രസകരവുമായി"},{"ar":"بِالتَّأْكِيدِ الْعَرَبِيَّةُ الْآنَ أَسْهَلُ بِكَثِيرٍ لِأَنَّنِي أَتَدَرَّبُ كُلَّ يَوْمٍ","tr":"ബിത്തഅ്കീദി അൽഅറബിയ്യത്തുൽ ആന അസ്ഹലു ബികഥീറിൻ ലിഅന്നനീ അതദർറബു കുല്ല യൗം","ml":"തീർച്ചയായും, ദിവസവും പരിശീലിക്കുന്നതിനാൽ ഇപ്പോൾ അറബി വളരെ എളുപ്പമാണ്"}]},{"characterAr":"أَنْتَ أَفْضَلُ طَالِبٍ! أَحْسَنْتَ وَإِلَى اللِّقَاءِ.","characterTr":"അൻത അഫ്ളലു ത്വാലിബിൻ! അഹ്സൻത വ ഇലല്ലിഖാഅ്.","characterMl":"നിങ്ങൾ ഏറ്റവും മികച്ച വിദ്യാർത്ഥിയാണ്! കൊള്ളാം, വീണ്ടും കാണാം.","reactionAr":"شُكْرًا يَا بَطَلُ!","suggestedReplies":[{"ar":"شُكْرًا يَا طَارِقُ","tr":"ശുക്റൻ യാ ത്വാരിഖ്","ml":"നന്ദി താരിഖ്"},{"ar":"أَنْتَ أَلْطَفُ صَدِيقٍ شُكْرًا جَزِيلًا","tr":"അൻത അൽത്വഫു സ്വദീഖിൻ ശുക്റൻ ജസീലൻ","ml":"നിങ്ങൾ ഏറ്റവും നല്ല സുഹൃത്താണ്, വളരെ നന്ദി"},{"ar":"شُكْرًا يَا طَارِقُ هٰذِهِ الْمُكَالَمَةُ أَفْضَلُ طَرِيقَةٍ لِتَعَلُّمِ الْعَرَبِيَّةِ","tr":"ശുക്റൻ യാ ത്വാരിഖു ഹാദിഹിൽ മുകാലമത്തു അഫ്ളലു ത്വരീഖത്തിൻ ലിതഅല്ലുമിൽ അറബിയ്യ","ml":"നന്ദി താരിഖ്, അറബി പഠിക്കാനുള്ള ഏറ്റവും മികച്ച വഴിയാണ് ഈ വീഡിയോ കോൾ"}]}]},"u24":{"id":"u24_vc_scenario","unitNumber":24,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: ഗൾഫ് സംസാര ശൈലികൾ","sceneSettingMl":"ഖത്തർ സൂഖിൽ നിന്ന് ലൈല സ്നേഹപൂർവ്വം വിളിക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"هَلَا وَاللّٰهِ! شْلُونَكْ الْيَوْمَ؟ كُلُّ شَيْءٍ تَمَام؟","characterTr":"ഹലാ വല്ലാഹ്! ശ്‌ലൂനക് അൽയൗം? കുല്ലു ശൈഇൻ തമാം?","characterMl":"ഹലോ! ഇന്ന് എങ്ങനെയുണ്ട് വിശേഷം? എല്ലാം സുഖമല്ലേ?","reactionAr":"دُوم يَا رَبّ تَكُون بِخَيْر!","suggestedReplies":[{"ar":"تَمَام الْحَمْدُ لِلّٰهِ","tr":"തമാം അൽഹംദുലില്ലാഹ്","ml":"എല്ലാം സുഖം, അൽഹംദുലില്ലാഹ്"},{"ar":"أَهْلًا بِكِ أَنَا بِخَيْرٍ وَكُلُّ شَيْءٍ تَمَام","tr":"അഹ്‌ലൻ ബികി അനാ ബിഖൈറിൻ വ കുല്ലു ശൈഇൻ തമാം","ml":"സ്വാഗതം, എനിക്ക് സുഖമാണ്, എല്ലാം നന്നായി പോകുന്നു"},{"ar":"هَلَا فِيكِ يَا لَيْلَى أَنَا بِخَيْرٍ وَنِعْمَةٍ الْحَمْدُ لِلّٰهِ كَيْفَ حَالُكِ أَنْتِ؟","tr":"ഹലാ ഫീകി യാ ലൈല അനാ ബിഖൈറിൻ വ നിഅ്മത്തിൻ അൽഹംദുലില്ലാഹ് കൈഫ ഹാലുകി അൻതി?","ml":"സ്വാഗതം ലൈല, അൽഹംദുലില്ലാഹ് എനിക്ക് വളരെ സുഖമാണ്, നിങ്ങൾക്ക് എങ്ങനെയുണ്ട്?"}]},{"characterAr":"يَلَّا نَرُوح السُّوقِ الْيَوْمَ! وَيْن تُحِبُّ تَتَسَوَّق؟","characterTr":"യല്ലാ നറൂഹ് അസ്സൂഖ് അൽയൗം! വയ്ൻ തുഹിബ്ബു തതസവ്വഖ്?","characterMl":"നമുക്കിന്ന് മാർക്കറ്റിൽ പോകാം! എവിടെ നിന്ന് ഷോപ്പിംഗ് ചെയ്യാനാണ് ഇഷ്ടം?","reactionAr":"اخْتِيَارٌ رَائِعٌ يَلَّا!","suggestedReplies":[{"ar":"فِي السُّوقِ الْقَدِيمِ","tr":"ഫിസ്സൂഖിൽ ഖദീം","ml":"പഴയ സൂഖിൽ"},{"ar":"أُحِبُّ التَّسَوُّقَ فِي السُّوقِ التَّقْلِيدِيِّ الْجَمِيلِ","tr":"ഉഹിബ്ബുത്തസവ്വുഖ ഫിസ്സൂഖിത്തഖ്‌ലീദിയ്യിൽ ജമീൽ","ml":"പരമ്പരാഗത സൂഖിൽ ഷോപ്പിംഗ് ചെയ്യാൻ എനിക്കിഷ്ടമാണ്"},{"ar":"يَلَّا نَذْهَبْ إِلَى سُوقِ وَاقِفٍ لِنَشْتَرِيَ الْعُطُورَ وَالتَّمْرَ الطَّازَجَ","tr":"യല്ലാ നദ്ഹബ് ഇലാ സൂഖി വാഖിഫിൻ ലിനശ്തരിയൽ ഉത്വൂറ വത്തംറത്ത്വാസജ്","ml":"നമുക്ക് സൂഖ് വാഖിഫിൽ പോയി അത്തറും നല്ല ഈന്തപ്പഴവും വാങ്ങാം"}]},{"characterAr":"مَا فِيهِ مُشْكِلَة، عِنْدَنَا وَقْتٌ كَافٍ. هَلْ تُحِبُّ الْكَرَك؟","characterTr":"മാ ഫീഹി മുശ്കില, ഇന്ദനാ വഖ്തുൻ കാഫ്. ഹൽ തുഹിബ്ബുൽ കറക്?","characterMl":"ഒരു പ്രശ്നവുമില്ല, നമുക്ക് ധാരാളം സമയമുണ്ട്. നിങ്ങൾക്ക് കറക് ചായ ഇഷ്ടമാണോ?","reactionAr":"الْكَرَك مَعَ الْهَيْلِ مَا يُتَفَوَّت!","suggestedReplies":[{"ar":"نَعَمْ أُحِبُّ الْكَرَك","tr":"നഅം ഉഹിബ്ബുൽ കറക്","ml":"അതെ, എനിക്ക് കറക് ഇഷ്ടമാണ്"},{"ar":"أُحِبُّ شَايَ الْكَرَك السَّاخِنَ مَعَ الْهَيْلِ","tr":"ഉഹിബ്ബു ശായൽ കറക് അസ്സാഖിന മഅൽ ഹയ്ൽ","ml":"ഏലക്കയിട്ട ചൂട് കറക് ചായ എനിക്ക് വളരെ ഇഷ്ടമാണ്"},{"ar":"طَبْعًا أُحِبُّ الْكَرَك كَثِيرًا خَاصَّةً فِي الْمَسَاءِ مَعَ أَصْدِقَائِي","tr":"ത്വബ്അൻ ഉഹിബ്ബുൽ കറക് കഥീറൻ ഖാസ്സ്വതൻ ഫിൽ മസാഇ മഅ അസ്വ്ദിഖാഈ","ml":"തീർച്ചയായും, പ്രത്യേകിച്ച് വൈകുന്നേരം സുഹൃത്തുക്കളോടൊപ്പം കറക് കുടിക്കാൻ എനിക്കേറെ ഇഷ്ടമാണ്"}]},{"characterAr":"يَعْطِيكَ الْعَافِيَة عَلَى اجْتِهَادِكَ! كَيْفَ تَرُدُّ عَلَى هٰذِهِ الْعِبَارَةِ؟","characterTr":"യഅ്ത്വീകൽ ആഫിയ അലാ ഇജ്തിഹാദിക! കൈഫ തറുദ്ദു അലാ ഹാദിഹിൽ ഇബാറ?","characterMl":"നിങ്ങളുടെ പരിശ്രമത്തിന് ആരോഗ്യവും അനുഗ്രഹവും ഉണ്ടാകട്ടെ! ഇതിന് എങ്ങനെ മറുപടി പറയും?","reactionAr":"رَدٌّ خَلِيجِيٌّ أَصِيلٌ!","suggestedReplies":[{"ar":"اللّٰهُ يُعَافِيكِ","tr":"അല്ലാഹു യുആഫീകി","ml":"അല്ലാഹു നിങ്ങൾക്കും ആരോഗ്യം നൽകട്ടെ"},{"ar":"اللّٰهُ يُعَافِيكِ وَيُبَارِكُ فِيكِ يَا لَيْلَى","tr":"അല്ലാഹു യുആഫീകി വ യുബാരികു ഫീകി യാ ലൈല","ml":"അല്ലാഹു നിങ്ങൾക്കും ആരോഗ്യവും അനുഗ്രഹവും നൽകട്ടെ ലൈല"},{"ar":"اللّٰهُ يُعَافِيكِ يَا أُخْتِي تَسْلَمِينَ عَلَى كَلَامِكِ الطَّيِّبِ وَالْجَمِيلِ","tr":"അല്ലാഹു യുആഫീകി യാ ഉഖ്തീ തസ്‌ലമീന അലാ കലാമികിത്ത്വയ്യിബി വൽജമീൽ","ml":"അല്ലാഹു നിങ്ങൾക്കും സൗഖ്യം നൽകട്ടെ സഹോദരീ, നിങ്ങളുടെ നല്ല വാക്കുകൾക്ക് നന്ദി"}]},{"characterAr":"مَا قَصَّرْت! صِرْتَ تَتَكَلَّمُ مِثْلَ أَهْلِ الْخَلِيجِ. فَمَانِ اللّٰهِ!","characterTr":"മാ ഖസ്സ്വർത്! സ്വിർത തതകല്ലമു മിഥ്‌ല അഹ്‌ലിൽ ഖലീജ്. ഫമാനില്ലാഹ്!","characterMl":"അസ്സലായി! ഇപ്പോൾ ഗൾഫുകാരെ പോലെ തന്നെ സംസാരിക്കുന്നു. ദൈവം കാക്കട്ടെ!","reactionAr":"فِي حِفْظِ اللّٰهِ!","suggestedReplies":[{"ar":"فِي أَمَانِ اللّٰهِ","tr":"ഫീ അമാനില്ലാഹ്","ml":"ദൈവത്തിന്റെ സംരക്ഷണത്തിൽ"},{"ar":"تَسْلَمِينَ يَا لَيْلَى مَعَ السَّلَامَةِ","tr":"തസ്‌ലമീന യാ ലൈല മഅസ്സലാമ","ml":"നന്ദി ലൈല, വിട പറയുന്നു"},{"ar":"مَا تَقَصِّرِينَ يَا لَيْلَى أَشُوفُكِ قَرِيبًا إِنْ شَاءَ اللّٰهُ","tr":"മാ തഖസ്സ്വിരീന യാ ലൈല അശൂഫുകി ഖരീബൻ ഇൻഷാ അല്ലാഹ്","ml":"വളരെ നന്ദി ലൈല, ഇൻഷാ അല്ലാഹ് ഉടൻ വീണ്ടും കാണാം"}]}]},"u25":{"id":"u25_vc_scenario","unitNumber":25,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: പ്രൊഫഷണൽ അറബിക് ഇന്റർവ്യൂ","sceneSettingMl":"റിയാദ് ഓഫീസിൽ നിന്ന് താരിഖ് നിങ്ങളോട് സംസാരിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا وَسَهْلًا! عَرِّفْنِي بِنَفْسِكَ وَخِبْرَتِكَ بِإِيجَازٍ.","characterTr":"അഹ്‌ലൻ വ സഹ്‌ലൻ! അർരിഫ്നീ ബിനഫ്സിക വ ഖിബ്റതിക ബിഈജാസ്.","characterMl":"സ്വാഗതം! നിങ്ങളെക്കുറിച്ചും അനുഭവപരിചയത്തെക്കുറിച്ചും ചുരുക്കത്തിൽ പരിചയപ്പെടുത്തൂ.","reactionAr":"تَقْدِيمٌ احْتِرَافِيٌّ مُمْتَازٌ!","suggestedReplies":[{"ar":"أَنَا مِنَ الْهِنْدِ","tr":"അനാ മിനൽ ഹിന്ദ്","ml":"ഞാൻ ഇന്ത്യയിൽ നിന്നാണ്"},{"ar":"أَنَا مُحْتَرِفٌ أُتْقِنُ الْعَرَبِيَّةَ وَالْإِنْجِلِيزِيَّةَ","tr":"അനാ മുഹ്തരിഫുൻ ഉത്ഖിനുൽ അറബിയ്യത വൽഇൻജിലീസിയ്യ","ml":"ഞാൻ അറബിയും ഇംഗ്ലീഷും നന്നായി അറിയുന്ന പ്രൊഫഷണലാണ്"},{"ar":"أَنَا مِنْ كِيرَالَا وَعِنْدِي خِبْرَةٌ جَيِّدَةٌ فِي الْعَمَلِ الْجَمَاعِيِّ وَالتَّوَاصُلِ","tr":"അനാ മിൻ കേരള വ ഇന്ദീ ഖിബ്റത്തുൻ ജയ്യിദത്തുൻ ഫിൽ അമലിൽ ജമാഇയ്യി വത്തവാസുൽ","ml":"ഞാൻ കേരളത്തിൽ നിന്നാണ്, ടീം വർക്കിലും ആശയവിനിമയത്തിലും എനിക്ക് നല്ല പരിചയമുണ്ട്"}]},{"characterAr":"مَا هِيَ أَقْوَى مَهَارَةٍ تَمْتَلِكُهَا فِي عَمَلِكَ؟","characterTr":"മാ ഹിയ അഖ്വാ മഹാറത്തിൻ തംതലികുഹാ ഫീ അമലിക?","characterMl":"ജോലിയിൽ നിങ്ങളുടെ ഏറ്റവും ശക്തമായ കഴിവ് എന്താണ്?","reactionAr":"مَهَارَةٌ مَطْلُوبَةٌ جِدًّا!","suggestedReplies":[{"ar":"الْعَمَلُ الْجَمَاعِيُّ","tr":"അൽഅമലുൽ ജമാഇയ്യ്","ml":"ടീം വർക്ക്"},{"ar":"أُجِيدُ تَنْظِيمَ الْوَقْتِ وَحَلَّ الْمُشْكِلَاتِ","tr":"ഉജീദു തൻളീമൽ വഖ്തി വ ഹല്ലൽ മുശ്കിലാത്ത്","ml":"സമയക്രമീകരണവും പ്രശ്നപരിഹാരവും എനിക്ക് നന്നായി അറിയാം"},{"ar":"أَقْوَى مَهَارَةٍ عِنْدِي هِيَ التَّوَاصُلُ الْفَعَّالُ وَالِالْتِزَامُ بِالْمَوَاعِيدِ","tr":"അഖ്വാ മഹാറത്തിൻ ഇന്ദീ ഹിയത്തവാസുലുൽ ഫഅ്ആലു വൽഇൽതിസാമു ബിൽമവാഈദ്","ml":"ഫലപ്രദമായ ആശയവിനിമയവും കൃത്യനിഷ്ഠയുമാണ് എന്റെ ഏറ്റവും വലിയ കഴിവുകൾ"}]},{"characterAr":"كَيْفَ تَتَعَامَلُ مَعَ ضَغْطِ الْعَمَلِ فِي الْأَوْقَاتِ الصَّعْبَةِ؟","characterTr":"കൈഫ തതആമലു മഅ ളഗ്ത്വിൽ അമലി ഫിൽ ഔഖാതിസ്സഅ്ബ?","characterMl":"ബുദ്ധിമുട്ടുള്ള സമയങ്ങളിൽ ജോലിസമ്മർദ്ദം എങ്ങനെയാണ് കൈകാര്യം ചെയ്യുന്നത്?","reactionAr":"إِجَابَةٌ حَكِيمَةٌ وَهَادِئَةٌ!","suggestedReplies":[{"ar":"أَبْقَى هَادِئًا","tr":"അബ്ഖാ ഹാദിഅൻ","ml":"ഞാൻ ശാന്തനായിരിക്കും"},{"ar":"أُرَتِّبُ الْأَوْلَوِيَّاتِ وَأَعْمَلُ بِهُدُوءٍ وَتَرْكِيزٍ","tr":"ഉറത്തിബുൽ ഔലവിയ്യാത്തി വ അഅ്മലു ബിഹുദൂഇൻ വ തർകീസ്","ml":"മുൻഗണനകൾ ക്രമീകരിച്ച് ശാന്തതയോടെയും ശ്രദ്ധയോടെയും പ്രവർത്തിക്കും"},{"ar":"أُقَسِّمُ الْمَهَامَّ إِلَى خُطُوَاتٍ صَغِيرَةٍ وَأَتَعَاوَنُ مَعَ فَرِيقِي بِإِيجَابِيَّةٍ","tr":"ഉഖസ്സിമുൽ മഹാമ ഇലാ ഖുത്വുവാത്തിൻ സ്വഗീറത്തിൻ വ അതആവനു മഅ ഫരീഖീ ബിഈജാബിയ്യ","ml":"ജോലികൾ ചെറിയ ഘട്ടങ്ങളായി തിരിച്ച് ടീമുമായി പോസിറ്റീവായി സഹകരിച്ച് പ്രവർത്തിക്കും"}]},{"characterAr":"أَيْنَ تَرَى نَفْسَكَ بَعْدَ خَمْسِ سَنَوَاتٍ إِنْ شَاءَ اللّٰهُ؟","characterTr":"അയ്ന തറാ നഫ്സക ബഅ്ദ ഖംസി സനവാത്തിൻ ഇൻഷാ അല്ലാഹ്?","characterMl":"അഞ്ച് വർഷത്തിന് ശേഷം നിങ്ങൾ നിങ്ങളെ എവിടെ കാണുന്നു?","reactionAr":"رُؤْيَةٌ وَاضِحَةٌ وَمُشْرِقَةٌ!","suggestedReplies":[{"ar":"فِي مَنْصِبٍ قِيَادِيٍّ","tr":"ഫീ മൻസ്വിബിൻ ഖിയാദിയ്യ്","ml":"നേതൃപദവിയിൽ"},{"ar":"أَرَى نَفْسِي خَبِيرًا نَاجِحًا فِي مَجَالِي","tr":"അറാ നഫ്സീ ഖബീറൻ നാജിഹൻ ഫീ മജാലീ","ml":"എന്റെ മേഖലയിൽ വിജയിച്ച ഒരു വിദഗ്ധനായി എന്നെ കാണുന്നു"},{"ar":"أَطْمَحُ أَنْ أَقُودَ فَرِيقًا نَاجِحًا وَأُسَاهِمَ فِي تَطْوِيرِ الْمُجْتَمَعِ","tr":"അത്വ്‌മഹു അൻ അഖൂദ ഫരീഖൻ നാജിഹൻ വ ഉസാഹിമ ഫീ തത്വ്‌വീരിൽ മുജ്തമഅ്","ml":"വിജയിച്ച ഒരു ടീമിനെ നയിക്കാനും സമൂഹത്തിന്റെ പുരോഗതിയിൽ പങ്കാളിയാകാനും ഞാൻ ആഗ്രഹിക്കുന്നു"}]},{"characterAr":"تَهَانِينَا! لُغَتُكَ الْعَرَبِيَّةُ رَاقِيَةٌ جِدًّا. أَتَمَنَّى لَكَ كُلَّ التَّوْفِيقِ!","characterTr":"തഹാനീനാ! ലുഗതുകൽ അറബിയ്യത്തു റാഖിയത്തുൻ ജിദ്ദൻ. അതമന്നാ ലക കുല്ലത്തൗഫീഖ്!","characterMl":"അഭിനന്ദനങ്ങൾ! നിങ്ങളുടെ അറബി നിലവാരം വളരെ ഉയർന്നതാണ്. എല്ലാ വിജയങ്ങളും ആശംസിക്കുന്നു!","reactionAr":"نَجَاحٌ بَاهِرٌ بِإِذْنِ اللّٰهِ!","suggestedReplies":[{"ar":"شُكْرًا جَزِيلًا","tr":"ശുക്റൻ ജസീലൻ","ml":"വളരെ നന്ദി"},{"ar":"أَشْكُرُكَ عَلَى هٰذِهِ الْفُرْصَةِ الرَّائِعَةِ يَا أُسْتَاذُ","tr":"അശ്കുറുക അലാ ഹാദിഹിൽ ഫുർസ്വത്തിർറാഇഅത്തി യാ ഉസ്താദ്","ml":"ഈ മികച്ച അവസരത്തിന് നന്ദി സാർ"},{"ar":"شُكْرًا جَزِيلًا يَا طَارِقُ أَنَا مُسْتَعِدٌّ لِلْبَدْءِ وَتَحْقِيقِ أَفْضَلِ النَّتَائِجِ","tr":"ശുക്റൻ ജസീലൻ യാ ത്വാരിഖു അനാ മുസ്തഇദ്ദുൻ ലിൽബദ്ഇ വ തഹ്ഖീഖി അഫ്ളലിന്നതാഇജ്","ml":"വളരെ നന്ദി താരിഖ്, തുടങ്ങാനും മികച്ച ഫലങ്ങൾ നേടാനും ഞാൻ തയ്യാറാണ്"}]}]},"u26":{"id":"u26_vc_scenario","unitNumber":26,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: كَانَ وَأَخَوَاتُهَا (ഓർമ്മകളും മാറ്റങ്ങളും)","sceneSettingMl":"മഴ പെയ്ത വൈകുന്നേരം ലൈല വിളിക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"أَهْلًا! كَيْفَ كَانَ الْجَوُّ عِنْدَكُمْ أَمْسِ؟","characterTr":"അഹ്‌ലൻ! കൈഫ കാനൽ ജവ്വു ഇന്ദക്കും അംസ്?","characterMl":"ഹലോ! ഇന്നലെ നിങ്ങളുടെ നാട്ടിൽ കാലാവസ്ഥ എങ്ങനെയായിരുന്നു?","reactionAr":"مَا أَجْمَلَ هٰذَا الْجَوَّ!","suggestedReplies":[{"ar":"كَانَ الْجَوُّ جَمِيلًا","tr":"കാനൽ ജവ്വു ജമീലൻ","ml":"കാലാവസ്ഥ മനോഹരമായിരുന്നു"},{"ar":"كَانَ الْجَوُّ مُمْطِرًا وَلَطِيفًا جِدًّا أَمْسِ","tr":"കാനൽ ജവ്വു മുംത്വിറൻ വ ലത്വീഫൻ ജിദ്ദൻ അംസ്","ml":"ഇന്നലെ കാലാവസ്ഥ മഴയുള്ളതും വളരെ സുഖകരവുമായിരുന്നു"},{"ar":"كَانَ الْجَوُّ بَارِدًا فِي الصَّبَاحِ ثُمَّ أَصْبَحَ مُشْمِسًا وَدَافِئًا","tr":"കാനൽ ജവ്വു ബാരിദൻ ഫിസ്സബാഹി ഥുമ്മ അസ്വ്ബഹ മുശ്‌മിസൻ വ ദാഫിഅൻ","ml":"രാവിലെ തണുപ്പുള്ളതായിരുന്നു, പിന്നീട് വെയിലും ഇളംചൂടുമുള്ളതായി മാറി"}]},{"characterAr":"هَلْ أَصْبَحَ قِرَاءَةُ الْعَرَبِيَّةِ سَهْلًا بِالنِّسْبَةِ لَكَ؟","characterTr":"ഹൽ അസ്വ്ബഹ ഖിറാഅത്തുൽ അറബിയ്യത്തി സഹ്‌ലൻ ബിന്നിസ്ബത്തി ലക?","characterMl":"അറബി വായിക്കുന്നത് നിങ്ങൾക്ക് ഇപ്പോൾ എളുപ്പമായി മാറിയോ?","reactionAr":"الْحَمْدُ لِلّٰهِ! تَقَدُّمٌ وَاضِحٌ.","suggestedReplies":[{"ar":"أَصْبَحَ سَهْلًا","tr":"അസ്വ്ബഹ സഹ്‌ലൻ","ml":"എളുപ്പമായി മാറി"},{"ar":"نَعَمْ أَصْبَحَ الدَّرْسُ وَاضِحًا وَمُمْتِعًا جِدًّا","tr":"നഅം അസ്വ്ബഹദ്ദർസു വാളിഹൻ വ മുംതിഅൻ ജിദ്ദൻ","ml":"അതെ, പാഠം വളരെ വ്യക്തവും ആസ്വാദ്യകരവുമായി മാറി"},{"ar":"نَعَمْ أَصْبَحَتِ الْقِرَاءَةُ سَهْلَةً وَأَصْبَحْتُ أَفْهَمُ الْجُمَلَ الْعَرَبِيَّةَ بِسُرْعَةٍ","tr":"നഅം അസ്വ്ബഹത്തിൽ ഖിറാഅത്തു സഹ്‌ലതൻ വ അസ്വ്ബഹ്തു അഫ്ഹമുൽ ജുമലൽ അറബിയ്യത ബിസുർഅ","ml":"അതെ, വായന എളുപ്പമായി, അറബി വാക്യങ്ങൾ വേഗത്തിൽ മനസ്സിലാക്കാൻ കഴിയുന്നുണ്ട്"}]},{"characterAr":"هَلْ لَيْسَ الِامْتِحَانُ صَعْبًا إِذَا دَرَسْنَا جَيِّدًا؟","characterTr":"ഹൽ ലയ്സൽ ഇംതിഹാനു സ്വഅ്ബൻ ഇദാ ദറസ്നാ ജയ്യിദൻ?","characterMl":"നന്നായി പഠിച്ചാൽ പരീക്ഷ ബുദ്ധിമുട്ടുള്ളതല്ലല്ലോ, അല്ലേ?","reactionAr":"كَلَامٌ صَحِيحٌ مِائَةً بِالْمِائَةِ!","suggestedReplies":[{"ar":"لَيْسَ صَعْبًا","tr":"ലയ്സ സ്വഅ്ബൻ","ml":"ബുദ്ധിമുട്ടുള്ളതല്ല"},{"ar":"لَيْسَ الِامْتِحَانُ صَعْبًا عَلَى الطَّالِبِ الْمُجْتَهِدِ","tr":"ലയ്സൽ ഇംതിഹാനു സ്വഅ്ബൻ അലത്ത്വാലിബിൽ മുജ്തഹിദ്","ml":"പരിശ്രമിക്കുന്ന വിദ്യാർത്ഥിക്ക് പരീക്ഷ പ്രയാസമുള്ളതല്ല"},{"ar":"نَعَمْ لَيْسَ التَّعَلُّمُ مُسْتَحِيلًا إِذَا صَارَ الِاجْتِهَادُ عَادَةً يَوْمِيَّةً","tr":"നഅം ലയ്സത്തഅല്ലുമു മുസ്തഹീലൻ ഇദാ സ്വാറൽ ഇജ്തിഹാദു ആദതൻ യൗമിയ്യ","ml":"അതെ, പരിശ്രമം ദിനചര്യയാക്കിയാൽ പഠനം ഒരിക്കലും അസാധ്യമല്ല"}]},{"characterAr":"مَاذَا صِرْتَ تُحِبُّ أَكْثَرَ بَعْدَ كُلِّ هٰذِهِ الدُّرُوسِ؟","characterTr":"മാദാ സ്വിർത തുഹിബ്ബു അക്ഥറ ബഅ്ദ കുല്ലി ഹാദിഹിദ്ദുറൂസ്?","characterMl":"ഈ പാഠങ്ങളെല്ലാം പഠിച്ച ശേഷം നിങ്ങൾക്ക് ഏറ്റവും ഇഷ്ടമായി മാറിയത് എന്താണ്?","reactionAr":"أَسْعَدَنِي جَوَابُكَ كَثِيرًا!","suggestedReplies":[{"ar":"الْمُحَادَثَةَ الْعَرَبِيَّةَ","tr":"അൽമുഹാദഥതൽ അറബിയ്യ","ml":"അറബി സംഭാഷണം"},{"ar":"صِرْتُ أُحِبُّ الْقَصَصَ وَالْمُكَالَمَاتِ بِالْعَرَبِيَّةِ","tr":"സ്വിർതു ഉഹിബ്ബുൽ ഖിസ്വസ്വ വൽമുകാലമാത്തി ബിൽഅറബിയ്യ","ml":"അറബി കഥകളും വീഡിയോ കോളുകളും എനിക്ക് ഏറെ ഇഷ്ടമായി മാറി"},{"ar":"صَارَتِ الْعَرَبِيَّةُ قَرِيبَةً مِنْ قَلْبِي وَأَصْبَحْتُ أَسْتَمْتِعُ بِقِرَاءَةِ النُّصُوصِ","tr":"സ്വാറത്തിൽ അറബിയ്യത്തു ഖരീബതൻ മിൻ ഖൽബീ വ അസ്വ്ബഹ്തു അസ്തംതിഉ ബിഖിറാഅത്തിന്നുസൂസ്വ്","ml":"അറബി എന്റെ ഹൃദയത്തോട് അടുത്തു, അറബി പാഠഭാഗങ്ങൾ വായിക്കുന്നത് ഞാൻ ആസ്വദിക്കുന്നു"}]},{"characterAr":"أَحْسَنْتَ فِي نَصْبِ خَبَرِ كَانَ وَأَخَوَاتِهَا! نَلْتَقِي قَرِيبًا.","characterTr":"അഹ്സൻത ഫീ നസ്വ്ബി ഖബരി കാന വ അഖവാത്തിഹാ! നൽതഖീ ഖരീബൻ.","characterMl":"കാനയുടെയും സഹോദരികളുടെയും ഖബർ നസ്ബ് കൃത്യമായി ഉപയോഗിച്ചു! ഉടൻ കാണാം.","reactionAr":"مَعَ السَّلَامَةِ يَا مُبْدِعُ!","suggestedReplies":[{"ar":"شُكْرًا يَا لَيْلَى","tr":"ശുക്റൻ യാ ലൈല","ml":"നന്ദി ലൈല"},{"ar":"كَانَتِ الْمُكَالَمَةُ مُفِيدَةً جِدًّا شُكْرًا لَكِ","tr":"കാനത്തിൽ മുകാലമത്തു മുഫീദതൻ ജിദ്ദൻ ശുക്റൻ ലകി","ml":"കോൾ വളരെ ഉപകാരപ്രദമായിരുന്നു, നന്ദി"},{"ar":"شُكْرًا يَا لَيْلَى كَانَ الدَّرْسُ مُمْتِعًا وَأَصْبَحَتِ الْقَوَاعِدُ وَاضِحَةً لِي","tr":"ശുക്റൻ യാ ലൈല കാനദ്ദർസു മുംതിഅൻ വ അസ്വ്ബഹത്തിൽ ഖവാഇദു വാളിഹതൻ ലീ","ml":"നന്ദി ലൈല, പാഠം രസകരമായിരുന്നു, വ്യാകരണ നിയമങ്ങൾ എനിക്ക് വ്യക്തമായി"}]}]},"u27":{"id":"u27_vc_scenario","unitNumber":27,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: إِنَّ وَأَخَوَاتُهَا (ഉറപ്പും പ്രതീക്ഷയും)","sceneSettingMl":"സായാഹ്ന കഫേയിൽ നിന്ന് താരിഖ് സംസാരിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا! أَخْبِرْنِي حَقِيقَةً مُؤَكَّدَةً مُسْتَعْمِلًا كَلِمَةَ إِنَّ!","characterTr":"അഹ്‌ലൻ! അഖ്ബിർനീ ഹഖീഖതൻ മുഅക്കദതൻ മുസ്തഅ്മിലൻ കലിമത്ത ഇന്ന!","characterMl":"സ്വാഗതം! إِنَّ (തീർച്ചയായും) ഉപയോഗിച്ച് ഉറപ്പായ ഒരു സത്യം പറയൂ!","reactionAr":"صَدَقْتَ! إِنَّهَا حَقِيقَةٌ عَظِيمَةٌ.","suggestedReplies":[{"ar":"إِنَّ الْعِلْمَ نُورٌ","tr":"ഇന്നൽ ഇൽമ നൂറുൻ","ml":"തീർച്ചയായും അറിവ് പ്രകാശമാണ്"},{"ar":"إِنَّ اللُّغَةَ الْعَرَبِيَّةَ جَمِيلَةٌ وَغَنِيَّةٌ","tr":"ഇന്നല്ലുഗതൽ അറബിയ്യത ജമീലത്തുൻ വ ഗനിയ്യ","ml":"തീർച്ചയായും അറബി ഭാഷ സുന്ദരവും സമ്പന്നവുമാണ്"},{"ar":"إِنَّ الصَّبْرَ وَالِاجْتِهَادَ مِفْتَاحُ النَّجَاحِ فِي كُلِّ مَجَالٍ","tr":"ഇന്നസ്സബ്റ വൽഇജ്തിഹാദ മിഫ്താഹുന്നജാഹി ഫീ കുല്ലി മജാൽ","ml":"തീർച്ചയായും ക്ഷമയും പരിശ്രമവുമാണ് എല്ലാ മേഖലയിലെയും വിജയത്തിന്റെ താക്കോൽ"}]},{"characterAr":"هَلِ الْوَقْتُ قَصِيرٌ لٰكِنَّ الْفَائِدَةَ كَبِيرَةٌ؟ عَبِّرْ بِكَلِمَةِ لٰكِنَّ!","characterTr":"ഹലിൽ വഖ്തു ഖസീറുൻ ലാകിന്നൽ ഫാഇദത കബീറ? അബ്ബിർ ബികലിമത്തി ലാകിന്ന!","characterMl":"സമയം കുറവാണെങ്കിലും പ്രയോജനം വലുതാണോ? لٰكِنَّ ഉപയോഗിച്ച് പറയൂ!","reactionAr":"تَعْبِيرٌ بَلِيغٌ جِدًّا!","suggestedReplies":[{"ar":"لٰكِنَّ النَّتِيجَةَ رَائِعَةٌ","tr":"ലാകിന്നന്നതീജത റാഇഅ","ml":"പക്ഷേ ഫലം ഗംഭീരമാണ്"},{"ar":"الدَّرْسُ طَوِيلٌ لٰكِنَّ الشَّرْحَ سَهْلٌ وَوَاضِحٌ","tr":"അദ്ദർസു ത്വവീലുൻ ലാകിന്നശ്ശർഹ സഹ്‌ലുൻ വ വാളിഹ്","ml":"പാഠം വലുതാണ്, പക്ഷേ വിശദീകരണം എളുപ്പവും വ്യക്തവുമാണ്"},{"ar":"الْيَوْمُ مُتْعِبٌ قَلِيلًا لٰكِنَّ تَعَلُّمَ الْعَرَبِيَّةِ يُسْعِدُنِي كَثِيرًا","tr":"അൽയൗമു മുത്ഇബുൻ ഖലീലൻ ലാകിന്ന തഅല്ലുമൽ അറബിയ്യത്തി യുസ്ഇദുനീ കഥീറൻ","ml":"ഇന്ന് അല്പം ക്ഷീണമുണ്ടെങ്കിലും അറബി പഠിക്കുന്നത് എന്നെ ഏറെ സന്തോഷിപ്പിക്കുന്നു"}]},{"characterAr":"تَمَنَّ شَيْئًا جَمِيلًا أَوْ تَرَجَّ خَيْرًا مُسْتَعْمِلًا لَعَلَّ!","characterTr":"തമന്ന ശയ്അൻ ജമീലൻ ഔ തറജ്ജ ഖയ്റൻ മുസ്തഅ്മിലൻ ലഅല്ല!","characterMl":"لَعَلَّ (ഒരുപക്ഷേ / പ്രതീക്ഷിക്കാം) ഉപയോഗിച്ച് നല്ലൊരു ആശംസ പറയൂ!","reactionAr":"آمِينَ! لَعَلَّ الْخَيْرَ قَرِيبٌ.","suggestedReplies":[{"ar":"لَعَلَّ الْخَيْرَ قَرِيبٌ","tr":"ലഅല്ലൽ ഖയ്റ ഖരീബുൻ","ml":"ഒരുപക്ഷേ നന്മ അടുത്തായിരിക്കാം"},{"ar":"لَعَلَّ السَّفَرَ إِلَى مَكَّةَ قَرِيبٌ إِنْ شَاءَ اللّٰهُ","tr":"ലഅല്ലസ്സഫറ ഇലാ മക്കത്ത ഖരീബുൻ ഇൻഷാ അല്ലാഹ്","ml":"മക്കയിലേക്കുള്ള യാത്ര അടുത്തായിരിക്കാം എന്ന് പ്രതീക്ഷിക്കുന്നു"},{"ar":"لَعَلَّ النَّجَاحَ وَالسَّعَادَةَ يُرَافِقَانِنَا فِي هٰذِهِ السَّنَةِ الْجَدِيدَةِ","tr":"ലഅല്ലന്നജാഹ വസ്സആദത യുറാഫിഖാനിനാ ഫീ ഹാദിഹിസ്സനത്തിൽ ജദീദ","ml":"ഈ പുതിയ വർഷത്തിൽ വിജയവും സന്തോഷവും നമ്മെ അനുഗമിക്കട്ടെ എന്ന് പ്രതീക്ഷിക്കുന്നു"}]},{"characterAr":"كَأَنَّكَ تَتَكَلَّمُ كَأَهْلِ اللُّغَةِ! هَلْ تُحِبُّ هٰذَا الْأُسْلُوبَ؟","characterTr":"കഅന്നക തതകല്ലമു കഅഹ്‌ലില്ലുഗ! ഹൽ തുഹിബ്ബു ഹാദൽ ഉസ്‌ലൂബ്?","characterMl":"അറബി മാതൃഭാഷയായവരെ പോലെയാണ് നിങ്ങൾ സംസാരിക്കുന്നത്! ഈ ശൈലി ഇഷ്ടമാണോ?","reactionAr":"مَا شَاءَ اللّٰهُ تَبَارَكَ اللّٰهُ!","suggestedReplies":[{"ar":"نَعَمْ أُحِبُّهُ","tr":"നഅം ഉഹിബ്ബുഹു","ml":"അതെ, എനിക്കിഷ്ടമാണ്"},{"ar":"إِنَّ هٰذَا الْأُسْلُوبَ رَائِعٌ وَكَأَنَّنَا فِي مَقْهًى حَقِيقِيٍّ","tr":"ഇന്ന ഹാദൽ ഉസ്‌ലൂബ റാഇഉൻ വ കഅന്നനാ ഫീ മഖ്ഹൻ ഹഖീഖിയ്യ്","ml":"തീർച്ചയായും ഈ ശൈലി ഗംഭീരമാണ്, ശരിക്കും ഒരു കഫേയിലിരിക്കുന്നതുപോലെ"},{"ar":"إِنَّ التَّدْرِيبَ الْعَمَلِيَّ أَفْضَلُ طَرِيقَةٍ وَكَأَنَّ الصُّعُوبَةَ اخْتَفَتْ تَمَامًا","tr":"ഇന്നത്തദ്‌രീബൽ അമലിയ്യ അഫ്ളലു ത്വരീഖത്തിൻ വ കഅന്നസ്സുഊബത്ത ഇഖ്തഫത് തമാമൻ","ml":"പ്രായോഗിക പരിശീലനമാണ് ഏറ്റവും മികച്ച വഴി, ബുദ്ധിമുട്ട് പൂർണ്ണമായും മാഞ്ഞതുപോലെ തോന്നുന്നു"}]},{"characterAr":"أَحْسَنْتَ! إِنَّ الْمُجْتَهِدَ نَاجِحٌ دَائِمًا. إِلَى اللِّقَاءِ!","characterTr":"അഹ്സൻത! ഇന്നൽ മുജ്തഹിദ നാജിഹുൻ ദാഇമൻ. ഇലല്ലിഖാഅ്!","characterMl":"കൊള്ളാം! തീർച്ചയായും പരിശ്രമിക്കുന്നവൻ എന്നും വിജയിക്കും. വീണ്ടും കാണാം!","reactionAr":"فِي أَمَانِ اللّٰهِ يَا صَدِيقِي!","suggestedReplies":[{"ar":"شُكْرًا يَا طَارِقُ","tr":"ശുക്റൻ യാ ത്വാരിഖ്","ml":"നന്ദി താരിഖ്"},{"ar":"إِنَّكَ صَدِيقٌ رَائِعٌ شُكْرًا جَزِيلًا","tr":"ഇന്നക സ്വദീഖുൻ റാഇഉൻ ശുക്റൻ ജസീലൻ","ml":"തീർച്ചയായും നിങ്ങൾ മികച്ച സുഹൃത്താണ്, വളരെ നന്ദി"},{"ar":"شُكْرًا يَا طَارِقُ إِنَّ هٰذِهِ الْمُكَالَمَةَ أَعْطَتْنِي ثِقَةً كَبِيرَةً","tr":"ശുക്റൻ യാ ത്വാരിഖു ഇന്ന ഹാദിഹിൽ മുകാലമത അഅ്ത്വത്നീ ഥിഖതൻ കബീറ","ml":"നന്ദി താരിഖ്, തീർച്ചയായും ഈ വീഡിയോ കോൾ എനിക്ക് വലിയ ആത്മവിശ്വാസം നൽകി"}]}]},"u28":{"id":"u28_vc_scenario","unitNumber":28,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: കർമ്മണി പ്രയോഗവും വാർത്തകളും","sceneSettingMl":"ലൈബ്രറി മുറ്റത്ത് നിന്ന് ലൈല വാർത്തകൾ പങ്കുവെക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"أَهْلًا! هَلْ سَمِعْتَ؟ فُتِحَتْ مَكْتَبَةٌ جَدِيدَةٌ فِي الْمَدِينَةِ!","characterTr":"അഹ്‌ലൻ! ഹൽ സമിഅ്ത? ഫുതിഹത് മക്തബത്തുൻ ജദീദത്തുൻ ഫിൽ മദീന!","characterMl":"സ്വാഗതം! നിങ്ങൾ കേട്ടോ? നഗരത്തിൽ ഒരു പുതിയ ലൈബ്രറി തുറക്കപ്പെട്ടു!","reactionAr":"خَبَرٌ سَارٌّ جِدًّا لِلْجَمِيعِ!","suggestedReplies":[{"ar":"خَبَرٌ جَمِيلٌ!","tr":"ഖബറുൻ ജമീൽ!","ml":"നല്ല വാർത്ത!"},{"ar":"مَا شَاءَ اللّٰهُ أَيْنَ فُتِحَتِ الْمَكْتَبَةُ الْجَدِيدَةُ؟","tr":"മാഷാ അല്ലാഹ് അയ്ന ഫുതിഹത്തിൽ മക്തബത്തുൽ ജദീദ?","ml":"മാഷാ അല്ലാഹ്, പുതിയ ലൈബ്രറി എവിടെയാണ് തുറക്കപ്പെട്ടത്?"},{"ar":"هٰذَا خَبَرٌ رَائِعٌ أَتَمَنَّى أَنْ تُقْرَأَ فِيهَا كُتُبٌ نَافِعَةٌ كَثِيرَةٌ","tr":"ഹാദാ ഖബറുൻ റാഇഉൻ അതമന്നാ അൻ തുഖ്റഅ ഫീഹാ കുതുബുൻ നാഫിഅത്തുൻ കഥീറ","ml":"ഇതൊരു ഗംഭീര വാർത്തയാണ്, അവിടെ ധാരാളം ഉപകാരപ്രദമായ പുസ്തകങ്ങൾ വായിക്കപ്പെടട്ടെ എന്ന് ആശിക്കുന്നു"}]},{"characterAr":"بُنِيَ الْمَبْنَى بِتَصْمِيمٍ عَرَبِيٍّ أَصِيلٍ. هَلْ تُحِبُّ الْعِمَارَةَ الْعَرَبِيَّةَ؟","characterTr":"ബുനിയൽ മബ്നാ ബിതസ്വ്‌മീമിൻ അറബിയ്യിൻ അസ്വീൽ. ഹൽ തുഹിബ്ബുൽ ഇമാറതൽ അറബിയ്യ?","characterMl":"അറബിക് വാസ്തുശൈലിയിലാണ് കെട്ടിടം നിർമ്മിക്കപ്പെട്ടത്. അറബിക് ശില്പകല നിങ്ങൾക്ക് ഇഷ്ടമാണോ?","reactionAr":"ذَوْقٌ رَفِيعٌ جِدًّا!","suggestedReplies":[{"ar":"نَعَمْ أُحِبُّهَا","tr":"നഅം ഉഹിബ്ബുഹാ","ml":"അതെ, എനിക്കിഷ്ടമാണ്"},{"ar":"نَعَمْ أُحِبُّ الْأَقْوَاسَ وَالْمَصَابِيحَ الَّتِي صُنِعَتْ بِإِتْقَانٍ","tr":"നഅം ഉഹിബ്ബുൽ അഖ്വാസ വൽമസ്വാബീഹല്ലതീ സുനിഅത് ബിഇത്ഖാൻ","ml":"ഭംഗിയായി നിർമ്മിക്കപ്പെട്ട കമാനങ്ങളും വിളക്കുകളും എനിക്കിഷ്ടമാണ്"},{"ar":"الْعِمَارَةُ الْعَرَبِيَّةُ رَائِعَةٌ جِدًّا وَتُعْرَفُ بِجَمَالِهَا فِي كُلِّ الْعَالَمِ","tr":"അൽഇമാറത്തുൽ അറബിയ്യത്തു റാഇഅത്തുൻ ജിദ്ദൻ വ തുഅ്റഫു ബിജമാലിഹാ ഫീ കുല്ലിൽ ആലം","ml":"അറബിക് വാസ്തുശൈലി അതിമനോഹരമാണ്, ലോകമെമ്പാടും അതിന്റെ ഭംഗി അറിയപ്പെടുന്നു"}]},{"characterAr":"كُتِبَ عَلَى الْبَابِ: \"الْقِرَاءَةُ حَيَاةٌ\". مَاذَا يُعَلَّمُ هُنَاكَ أَيْضًا؟","characterTr":"കുതിബ അലൽ ബാബി: \"അൽഖിറാഅത്തു ഹയാത്\". മാദാ യുഅല്ലമു ഹുനാക അയ്ളൻ?","characterMl":"വാതിലിൽ \"വായനയാണ് ജീവിതം\" എന്ന് എഴുതപ്പെട്ടിട്ടുണ്ട്. അവിടെ വേറെ എന്താണ് പഠിപ്പിക്കപ്പെടുന്നത്?","reactionAr":"مَشْرُوعٌ ثَقَافِيٌّ عَظِيمٌ!","suggestedReplies":[{"ar":"تُعَلَّمُ اللُّغَةُ الْعَرَبِيَّةُ","tr":"തുഅല്ലമുല്ലുഗത്തുൽ അറബിയ്യ","ml":"അറബി ഭാഷ പഠിപ്പിക്കപ്പെടുന്നു"},{"ar":"تُعَلَّمُ اللُّغَةُ الْعَرَبِيَّةُ وَالْخَطُّ الْعَرَبِيُّ هُنَاكَ","tr":"തുഅല്ലമുല്ലുഗത്തുൽ അറബിയ്യത്തു വൽഖത്ത്വുൽ അറബിയ്യു ഹുനാക്","ml":"അവിടെ അറബി ഭാഷയും കാലിഗ്രാഫിയും പഠിപ്പിക്കപ്പെടുന്നു"},{"ar":"تُقَدَّمُ هُنَاكَ دَوْرَاتٌ فِي الْخَطِّ وَالتَّارِيخِ وَتُكْتَبُ قَصَصٌ جَدِيدَةٌ","tr":"തുഖദ്ദമു ഹുനാക ദൗറാത്തുൻ ഫിൽ ഖത്ത്വി വത്താരീഖി വ തുക്തബു ഖിസ്വസ്വുൻ ജദീദ","ml":"അവിടെ കാലിഗ്രാഫിയിലും ചരിത്രത്തിലും കോഴ്സുകൾ നൽകപ്പെടുകയും പുതിയ കഥകൾ എഴുതപ്പെടുകയും ചെയ്യുന്നു"}]},{"characterAr":"قُدِّمَتِ الْقَهْوَةُ وَالتَّمْرُ لِلزُّوَّارِ مَجَّانًا! هَلْ سَتَزُورُ الْمَكَانَ؟","characterTr":"ഖുദ്ദിമത്തിൽ ഖഹ്‌വത്തു വത്തംറു ലിസ്സുവ്വാരി മജ്ജാനൻ! ഹൽ സതസൂറുൽ മകാൻ?","characterMl":"സന്ദർശകർക്ക് കാപ്പിയും ഈന്തപ്പഴവും സൗജന്യമായി നൽകപ്പെട്ടു! നിങ്ങൾ അവിടെ സന്ദർശിക്കുമോ?","reactionAr":"سَأَكُونُ سَعِيدَةً بِزِيَارَتِكَ!","suggestedReplies":[{"ar":"نَعَمْ بِالتَّأْكِيدِ","tr":"നഅം ബിത്തഅ്കീദ്","ml":"അതെ, തീർച്ചയായും"},{"ar":"نَعَمْ سَأَزُورُ الْمَكْتَبَةَ نِهَايَةَ هٰذَا الْأُسْبُوعِ","tr":"നഅം സഅസൂറുൽ മക്തബത നിഹായത ഹാദൽ ഉസ്ബൂഅ്","ml":"അതെ, ഈ വാരാന്ത്യത്തിൽ ഞാൻ ലൈബ്രറി സന്ദർശിക്കും"},{"ar":"بِالتَّأْكِيدِ سَأَزُورُهَا قَرِيبًا وَأُخْبِرُ أَصْدِقَائِي عَنْ هٰذَا الْمَكَانِ الْجَمِيلِ","tr":"ബിത്തഅ്കീദി സഅസൂറുഹാ ഖരീബൻ വ ഉഖ്ബിറു അസ്വ്ദിഖാഈ അൻ ഹാദൽ മകാനിൽ ജമീൽ","ml":"തീർച്ചയായും ഉടൻ സന്ദർശിക്കുകയും ഈ മനോഹര സ്ഥലത്തെക്കുറിച്ച് സുഹൃത്തുക്കളോട് പറയുകയും ചെയ്യും"}]},{"characterAr":"أُتْقِنَ الدَّرْسُ بِامْتِيَازٍ! شُكْرًا لِحَدِيثِكَ الْجَمِيلِ.","characterTr":"ഉത്ഖിനദ്ദർസു ബിംതിയാസ്! ശുക്റൻ ലിഹദീഥികൽ ജമീൽ.","characterMl":"പാഠം ഉന്നത നിലവാരത്തിൽ പൂർത്തിയാക്കപ്പെട്ടു! നിങ്ങളുടെ മനോഹരമായ സംസാരത്തിന് നന്ദി.","reactionAr":"دُمْتَ بِخَيْرٍ وَتَمَيُّزٍ!","suggestedReplies":[{"ar":"شُكْرًا لَكِ","tr":"ശുക്റൻ ലകി","ml":"നിങ്ങൾക്ക് നന്ദി"},{"ar":"شُكْرًا يَا لَيْلَى فُهِمَ الدَّرْسُ بِوُضُوحٍ","tr":"ശുക്റൻ യാ ലൈല ഫുഹിമദ്ദർസു ബിവുളൂഹ്","ml":"നന്ദി ലൈല, പാഠം വ്യക്തമായി മനസ്സിലാക്കപ്പെട്ടു"},{"ar":"شُكْرًا جَزِيلًا يَا لَيْلَى نُظِّمَ هٰذَا التَّدْرِيبُ بِشَكْلٍ رَائِعٍ جِدًّا","tr":"ശുക്റൻ ജസീലൻ യാ ലൈല നുള്ളിമ ഹാദത്തദ്‌രീബു ബിശക്‌ലിൻ റാഇഇൻ ജിദ്ദൻ","ml":"വളരെ നന്ദി ലൈല, ഈ പരിശീലനം വളരെ മനോഹരമായി ക്രമീകരിക്കപ്പെട്ടിരിക്കുന്നു"}]}]},"u29":{"id":"u29_vc_scenario","unitNumber":29,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: കർത്തൃ-കർമ്മ നാമങ്ങൾ (الْفَاعِل وَالْمَفْعُول)","sceneSettingMl":"സാംസ്കാരിക കഫേയിൽ നിന്ന് താരിഖ് വിളിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا! مَنْ هُوَ الْكَاتِبُ الْمَشْهُورُ الَّذِي تُحِبُّ قِرَاءَةَ كُتُبِهِ؟","characterTr":"അഹ്‌ലൻ! മൻ ഹുവൽ കാതിബുൽ മശ്ഹൂറുല്ലദീ തുഹിബ്ബു ഖിറാഅത കുതുബിഹി?","characterMl":"സ്വാഗതം! നിങ്ങൾക്ക് പുസ്തകങ്ങൾ വായിക്കാൻ ഇഷ്ടമുള്ള പ്രശസ്തനായ എഴുത്തുകാരൻ ആരാണ്?","reactionAr":"اخْتِيَارٌ ثَقَافِيٌّ رَائِعٌ!","suggestedReplies":[{"ar":"أُحِبُّ الْقِرَاءَةَ","tr":"ഉഹിബ്ബുൽ ഖിറാഅ","ml":"എനിക്ക് വായന ഇഷ്ടമാണ്"},{"ar":"أُحِبُّ كُتُبَ الْعُلَمَاءِ وَالْكُتَّابِ الْمَشْهُورِينَ","tr":"ഉഹിബ്ബു കുതുബൽ ഉലമാഇ വൽകുത്താബിൽ മശ്ഹൂരീൻ","ml":"പ്രശസ്തരായ പണ്ഡിതന്മാരുടെയും എഴുത്തുകാരുടെയും പുസ്തകങ്ങൾ എനിക്കിഷ്ടമാണ്"},{"ar":"أُحِبُّ الْكَاتِبَ الَّذِي يَكْتُبُ قَصَصًا مُفِيدَةً وَمَفْهُومَةً لِلْجَمِيعِ","tr":"ഉഹിബ്ബുൽ കാതിബല്ലദീ യക്തുബു ഖിസ്വസ്വൻ മുഫീദതൻ വ മഫ്ഹൂമതൻ ലിൽജമീഅ്","ml":"എല്ലാവർക്കും മനസ്സിലാകുന്ന ഉപകാരപ്രദമായ കഥകൾ എഴുതുന്ന എഴുത്തുകാരനെയാണ് എനിക്കിഷ്ടം"}]},{"characterAr":"هَلِ الدَّرْسُ مَفْهُومٌ وَمَكْتُوبٌ فِي دَفْتَرِكَ الْيَوْمَ؟","characterTr":"ഹലിദ്ദർസു മഫ്ഹൂമുൻ വ മക്തൂബുൻ ഫീ ദഫ്തരികൽ യൗം?","characterMl":"ഇന്നത്തെ പാഠം മനസ്സിലാക്കപ്പെട്ടതും നിങ്ങളുടെ നോട്ടുബുക്കിൽ എഴുതപ്പെട്ടതുമാണോ?","reactionAr":"تَنْظِيمٌ يَسْتَحِقُّ التَّقْدِيرَ!","suggestedReplies":[{"ar":"نَعَمْ مَفْهُومٌ جِدًّا","tr":"നഅം മഫ്ഹൂമുൻ ജിദ്ദൻ","ml":"അതെ, വളരെ വ്യക്തമായി മനസ്സിലായി"},{"ar":"نَعَمْ الدَّرْسُ مَفْهُومٌ وَمَكْتُوبٌ بِخَطٍّ وَاضِحٍ","tr":"നഅം അദ്ദർസു മഫ്ഹൂമുൻ വ മക്തൂബുൻ ബിഖത്ത്വിൻ വാളിഹ്","ml":"അതെ, പാഠം മനസ്സിലാവുകയും വ്യക്തമായ കയ്യക്ഷരത്തിൽ എഴുതപ്പെടുകയും ചെയ്തിട്ടുണ്ട്"},{"ar":"نَعَمْ كُلُّ الْكَلِمَاتِ مَكْتُوبَةٌ وَمَحْفُوظَةٌ فِي دَفْتَرِي الْخَاصِّ","tr":"നഅം കുല്ലുൽ കലിമാത്തി മക്തൂബത്തുൻ വ മഹ്ഫൂളത്തുൻ ഫീ ദഫ്തരിൽ ഖാസ്സ്വ്","ml":"അതെ, എല്ലാ വാക്കുകളും എന്റെ പ്രത്യേക നോട്ടുബുക്കിൽ എഴുതപ്പെടുകയും സൂക്ഷിക്കപ്പെടുകയും ചെയ്തിട്ടുണ്ട്"}]},{"characterAr":"هَلِ الْمَقْهَى مَفْتُوحٌ طَوَالَ الْيَوْمِ فِي مَدِينَتِكَ؟","characterTr":"ഹലിൽ മഖ്ഹാ മഫ്തൂഹുൻ ത്വവാലൽ യൗമി ഫീ മദീനതിക?","characterMl":"നിങ്ങളുടെ നഗരത്തിൽ കഫേ ദിവസം മുഴുവൻ തുറന്നിരിക്കുമോ?","reactionAr":"مَكَانٌ مِثَالِيٌّ لِلِاسْتِرَاحَةِ!","suggestedReplies":[{"ar":"نَعَمْ مَفْتُوحٌ دَائِمًا","tr":"നഅം മഫ്തൂഹുൻ ദാഇമൻ","ml":"അതെ, എപ്പോഴും തുറന്നിരിക്കും"},{"ar":"نَعَمْ الْمَقْهَى مَفْتُوحٌ مِنَ الصَّبَاحِ حَتَّى الْمَسَاءِ","tr":"നഅം അൽമഖ്ഹാ മഫ്തൂഹുൻ മിനസ്സബാഹി ഹത്തൽ മസാഅ്","ml":"അതെ, കഫേ രാവിലെ മുതൽ വൈകുന്നേരം വരെ തുറന്നിരിക്കും"},{"ar":"نَعَمْ بَابُ الْمَقْهَى مَفْتُوحٌ دَائِمًا وَالْمَشْرُوبَاتُ السَّاخِنَةُ مَوْجُودَةٌ هُنَاكَ","tr":"നഅം ബാബുൽ മഖ്ഹാ മഫ്തൂഹുൻ ദാഇമൻ വൽമശ്റൂബാത്തുസ്സാഖിനത്തു മൗജൂദത്തുൻ ഹുനാക്","ml":"അതെ, കഫേയുടെ വാതിൽ എപ്പോഴും തുറന്നിരിക്കും, ചൂടുള്ള പാനീയങ്ങൾ അവിടെ ലഭ്യമാണ്"}]},{"characterAr":"مَا الصِّفَةُ الَّتِي تَجْعَلُ الطَّالِبَ نَاجِحًا وَمَحْبُوبًا؟","characterTr":"മസ്വിഫത്തുല്ലതീ തജ്അലുത്ത്വാലിബ നാജിഹൻ വ മഹ്ബൂബൻ?","characterMl":"ഒരു വിദ്യാർത്ഥിയെ വിജയിയും പ്രിയപ്പെട്ടവനുമാക്കുന്ന ഗുണം എന്താണ്?","reactionAr":"حِكْمَةٌ جَمِيلَةٌ جِدًّا!","suggestedReplies":[{"ar":"الصِّدْقُ وَالِاجْتِهَادُ","tr":"അസ്വിദ്ഖു വൽഇജ്തിഹാദ്","ml":"സത്യസന്ധതയും പരിശ്രമവും"},{"ar":"الطَّالِبُ الصَّادِقُ وَالْمُجْتَهِدُ مَحْبُوبٌ عِنْدَ الْجَمِيعِ","tr":"അത്ത്വാലിബുസ്സ്വാദിഖു വൽമുജ്തഹിദു മഹ്ബൂബുൻ ഇന്ദൽ ജമീഅ്","ml":"സത്യസന്ധനും പരിശ്രമിയുമായ വിദ്യാർത്ഥി എല്ലാവർക്കും പ്രിയപ്പെട്ടവനാണ്"},{"ar":"الطَّالِبُ النَّاجِحُ صَابِرٌ وَشَاكِرٌ وَمَحْبُوبٌ لِحُسْنِ أَخْلَاقِهِ","tr":"അത്ത്വാലിബുന്നാജിഹു സ്വാബിറുൻ വ ശാകിറുൻ വ മഹ്ബൂബുൻ ലിഹുസ്നി അഖ്‌ലാഖിഹി","ml":"വിജയിക്കുന്ന വിദ്യാർത്ഥി ക്ഷമാശീലനും നന്ദിയുള്ളവനും സൽസ്വഭാവത്താൽ പ്രിയപ്പെട്ടവനുമാണ്"}]},{"characterAr":"أَنْتَ طَالِبٌ نَاجِحٌ وَمَشْكُورٌ عَلَى هٰذَا الْأَدَاءِ! إِلَى اللِّقَاءِ.","characterTr":"അൻത ത്വാലിബുൻ നാജിഹുൻ വ മശ്കൂറുൻ അലാ ഹാദൽ അദാഅ്! ഇലല്ലിഖാഅ്.","characterMl":"നിങ്ങൾ വിജയിച്ച വിദ്യാർത്ഥിയാണ്, ഈ പ്രകടനത്തിന് നന്ദി! വീണ്ടും കാണാം.","reactionAr":"وَعَلَيْكُمُ السَّلَامُ وَبِالتَّوْفِيقِ!","suggestedReplies":[{"ar":"شُكْرًا يَا طَارِقُ","tr":"ശുക്റൻ യാ ത്വാരിഖ്","ml":"നന്ദി താരിഖ്"},{"ar":"أَنَا شَاكِرٌ لَكَ جِدًّا عَلَى هٰذَا الدَّرْسِ الْمُمْتِعِ","tr":"അനാ ശാകിറുൻ ലക ജിദ്ദൻ അലാ ഹാദദ്ദർസിൽ മുംതിഅ്","ml":"ഈ ആസ്വാദ്യകരമായ പാഠത്തിന് ഞാൻ നിങ്ങളോട് നന്ദിയുള്ളവനാണ്"},{"ar":"شُكْرًا يَا طَارِقُ أَصْبَحَ اسْمُ الْفَاعِلِ وَالْمَفْعُولِ مَفْهُومًا تَمَامًا","tr":"ശുക്റൻ യാ ത്വാരിഖു അസ്വ്ബഹ ഇസ്മുൽ ഫാഇലി വൽമഫ്ഊലി മഫ്ഹൂമൻ തമാമൻ","ml":"നന്ദി താരിഖ്, കർത്തൃനാമവും കർമ്മനാമവും ഇപ്പോൾ പൂർണ്ണമായി മനസ്സിലായി"}]}]},"u30":{"id":"u30_vc_scenario","unitNumber":30,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: ഉപാധി വാക്യങ്ങളും അലങ്കാരവും","sceneSettingMl":"പൂന്തോട്ടത്തിലെ സായാഹ്ന വിളക്കുകൾക്ക് കീഴിൽ ലൈല സംസാരിക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"مَرْحَبًا! أَكْمِلْ هٰذَا الشَّرْطَ: إِنْ تَجْتَهِدْ فِي دِرَاسَتِكَ، مَاذَا يَحْدُثُ؟","characterTr":"മർഹബൻ! അക്മിൽ ഹാദശ്ശർത്വ: ഇൻ തജ്തഹിദ് ഫീ ദിറാസതിക, മാദാ യഹ്ദുഥ്?","characterMl":"ഹലോ! ഈ ഉപാധി വാക്യം പൂർത്തിയാക്കൂ: പഠനത്തിൽ പരിശ്രമിച്ചാൽ എന്ത് സംഭവിക്കും?","reactionAr":"جَوَابُ شَرْطٍ مُمْتَازٌ!","suggestedReplies":[{"ar":"تَنْجَحْ بِإِذْنِ اللّٰهِ","tr":"തൻജഹ് ബിഇദ്നില്ലാഹ്","ml":"വിജയിക്കും, ഇൻഷാ അല്ലാഹ്"},{"ar":"إِنْ أَجْتَهِدْ فِي دِرَاسَتِي أَنْجَحْ وَأَتَفَوَّقْ","tr":"ഇൻ അജ്തഹിദ് ഫീ ദിറാസതീ അൻജഹ് വ അതഫവ്വഖ്","ml":"ഞാൻ പഠനത്തിൽ പരിശ്രമിച്ചാൽ വിജയിക്കുകയും മുന്നിലെത്തുകയും ചെയ്യും"},{"ar":"مَنْ يَجْتَهِدْ كُلَّ يَوْمٍ يَحْصُلْ عَلَى الْعِلْمِ النَّافِعِ وَالنَّجَاحِ الْكَبِيرِ","tr":"മൻ യജ്തഹിദ് കുല്ല യൗമിൻ യഹ്സുൽ അലൽ ഇൽമിന്നാഫിഇ വന്നജാഹിൽ കബീർ","ml":"ദിവസവും പരിശ്രമിക്കുന്നവന് ഉപകാരപ്രദമായ അറിവും വലിയ വിജയവും ലഭിക്കും"}]},{"characterAr":"إِذَا سَافَرْتَ إِلَى بَلَدٍ عَرَبِيٍّ، مَاذَا سَتَزُورُ أَوَّلًا؟","characterTr":"ഇദാ സാഫർത ഇലാ ബലദിൻ അറബിയ്യിൻ, മാദാ സതസൂറു അവ്വലൻ?","characterMl":"ഒരു അറബ് രാജ്യത്തേക്ക് യാത്ര ചെയ്താൽ നിങ്ങൾ ആദ്യം എന്താണ് സന്ദർശിക്കുക?","reactionAr":"اخْتِيَارٌ يَشْرَحُ الصَّدْرَ!","suggestedReplies":[{"ar":"سَأَزُورُ الْمَسْجِدَ","tr":"സഅസൂറുൽ മസ്ജിദ","ml":"ഞാൻ പള്ളി സന്ദർശിക്കും"},{"ar":"إِذَا سَافَرْتُ سَأَزُورُ الْمَسَاجِدَ التَّارِيخِيَّةَ وَالْأَسْوَاقَ","tr":"ഇദാ സാഫർതു സഅസൂറുൽ മസാജിദത്താരീഖിയ്യത്ത വൽഅസ്വാഖ്","ml":"ഞാൻ യാത്ര ചെയ്താൽ ചരിത്രപ്രസിദ്ധമായ പള്ളികളും സൂഖുകളും സന്ദർശിക്കും"},{"ar":"إِذَا زُرْتُ بَلَدًا عَرَبِيًّا سَأَلْتَقِي بِأَصْدِقَائِي وَأَزُورُ الْمَتَاحِفَ الْقَدِيمَةَ","tr":"ഇദാ സുർതു ബലദൻ അറബിയ്യൻ സഅൽതഖീ ബിഅസ്വ്ദിഖാഈ വ അസൂറുൽ മതാഹിഫൽ ഖദീമ","ml":"ഒരു അറബ് രാജ്യം സന്ദർശിച്ചാൽ സുഹൃത്തുക്കളെ കാണുകയും പഴയ മ്യൂസിയങ്ങൾ സന്ദർശിക്കുകയും ചെയ്യും"}]},{"characterAr":"فِي الْبَلَاغَةِ نَقُولُ: \"الْوَقْتُ كَالسَّيْفِ\". بِمَاذَا تُشَبِّهُ الْعِلْمَ؟","characterTr":"ഫിൽ ബലാഗത്തി നഖൂലു: \"അൽവഖ്തു കസ്സയ്ഫ്\". ബിമാദാ തുശബ്ബിഹുൽ ഇൽമ?","characterMl":"സാഹിത്യത്തിൽ \"സമയം വാൾ പോലെയാണ്\" എന്ന് പറയും. അറിവിനെ നിങ്ങൾ എന്തിനോടാണ് ഉപമിക്കുക?","reactionAr":"تَشْبِيهٌ بَلِيغٌ وَجَمِيلٌ!","suggestedReplies":[{"ar":"الْعِلْمُ كَالنُّورِ","tr":"അൽഇൽമു കന്നൂർ","ml":"അറിവ് പ്രകാശം പോലെയാണ്"},{"ar":"الْعِلْمُ كَالنُّورِ الَّذِي يُضِيءُ الطَّرِيقَ","tr":"അൽഇൽമു കന്നൂരില്ലദീ യുളീഉത്ത്വരീഖ്","ml":"വഴി കാണിക്കുന്ന പ്രകാശം പോലെയാണ് അറിവ്"},{"ar":"الْعِلْمُ كَالْبَحْرِ الْوَاسِعِ وَالْكِتَابُ كَالصَّدِيقِ الْوَفِيِّ لِلْإِنْسَانِ","tr":"അൽഇൽമു കൽബഹ്റിൽ വാസിഇ വൽകിതാബു കസ്സ്വദീഖിൽ വഫിയ്യി ലിൽഇൻസാൻ","ml":"അറിവ് വിശാലമായ സമുദ്രം പോലെയും പുസ്തകം വിശ്വസ്തനായ സുഹൃത്ത് പോലെയുമാണ്"}]},{"characterAr":"لَوْ كَانَ عِنْدَكَ وَقْتٌ إِضَافِيٌّ كُلَّ يَوْمٍ، كَيْفَ تَسْتَغِلُّهُ؟","characterTr":"ലൗ കാന ഇന്ദക വഖ്തുൻ ഇളാഫിയ്യുൻ കുല്ല യൗമിൻ, കൈഫ തസ്തഗില്ലുഹു?","characterMl":"ദിവസവും അധിക സമയം ലഭിച്ചിരുന്നെങ്കിൽ നിങ്ങൾ അതെങ്ങനെ പ്രയോജനപ്പെടുത്തുമായിരുന്നു?","reactionAr":"اسْتِثْمَارٌ ذَكِيٌّ لِلْوَقْتِ!","suggestedReplies":[{"ar":"لَقَرَأْتُ أَكْثَرَ","tr":"ലഖറഅ്തു അക്ഥറ","ml":"ഞാൻ കൂടുതൽ വായിക്കുമായിരുന്നു"},{"ar":"لَوْ كَانَ عِنْدِي وَقْتٌ لَقَرَأْتُ الْقُرْآنَ وَالْكُتُبَ","tr":"ലൗ കാന ഇന്ദീ വഖ്തുൻ ലഖറഅ്തുൽ ഖുർആന വൽകുതുബ","ml":"സമയം ഉണ്ടായിരുന്നെങ്കിൽ ഞാൻ ഖുർആനും പുസ്തകങ്ങളും വായിക്കുമായിരുന്നു"},{"ar":"لَوْ مَلَكْتُ وَقْتًا إِضَافِيًّا لَسَاعَدْتُ عَائِلَتِي وَتَعَلَّمْتُ الشِّعْرَ الْعَرَبِيَّ","tr":"ലൗ മലക്തു വഖ്തൻ ഇളാഫിയ്യൻ ലസാഅദ്തു ആഇലതീ വ തഅല്ലംതുശ്ശിഅ്റൽ അറബിയ്യ","ml":"അധിക സമയം ലഭിച്ചിരുന്നെങ്കിൽ കുടുംബത്തെ സഹായിക്കുകയും അറബി കവിത പഠിക്കുകയും ചെയ്യുമായിരുന്നു"}]},{"characterAr":"مَا أَجْمَلَ بَلَاغَتَكَ! تَسْتَحِقُّ كُلَّ التَّقْدِيرِ. إِلَى اللِّقَاءِ.","characterTr":"മാ അജ്മല ബലാഗതക! തസ്തഹിഖ്ഖു കുല്ലത്തഖ്ദീർ. ഇലല്ലിഖാഅ്.","characterMl":"നിങ്ങളുടെ ഭാഷാസൗന്ദര്യം എത്ര മനോഹരം! എല്ലാ അഭിനന്ദനങ്ങളും അർഹിക്കുന്നു. വീണ്ടും കാണാം.","reactionAr":"شُكْرًا يَا فَصِيحَ اللِّسَانِ!","suggestedReplies":[{"ar":"شُكْرًا يَا لَيْلَى","tr":"ശുക്റൻ യാ ലൈല","ml":"നന്ദി ലൈല"},{"ar":"بَارَكَ اللّٰهُ فِيكِ عَلَى هٰذِهِ الْمُحَادَثَةِ الرَّاقِيَةِ","tr":"ബാറകല്ലാഹു ഫീകി അലാ ഹാദിഹിൽ മുഹാദഥത്തിർറാഖിയ","ml":"ഈ ഉന്നത നിലവാരമുള്ള സംഭാഷണത്തിന് അല്ലാഹു അനുഗ്രഹിക്കട്ടെ"},{"ar":"شُكْرًا يَا لَيْلَى إِنْ تَسْتَمِرَّ هٰذِهِ الْمُكَالَمَاتُ نُصْبِحْ أَفْصَحَ وَأَقْوَى","tr":"ശുക്റൻ യാ ലൈല ഇൻ തസ്തമിർറ ഹാദിഹിൽ മുകാലമാത്തു നുസ്വ്ബിഹ് അഫ്സ്വഹ വ അഖ്വാ","ml":"നന്ദി ലൈല, ഇത്തരം കോളുകൾ തുടർന്നാൽ നമ്മുടെ ഭാഷ കൂടുതൽ സ്ഫുടവും ശക്തവുമാകും"}]}]},"u31":{"id":"u31_vc_scenario","unitNumber":31,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: اَلْأَسْمَاءُ الْمَوْصُولَةُ (ബന്ധിപ്പിക്കുന്ന പദങ്ങൾ)","sceneSettingMl":"നട്ടുച്ചയ്ക്ക് കഫേയിൽ ഇരുന്ന് താരിഖ് വിളിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا! صِفْ لِي الصَّدِيقَ الَّذِي تُحِبُّ الْجُلُوسَ مَعَهُ.","characterTr":"അഹ്‌ലൻ! സ്വിഫ് ലീസ്സ്വദീഖല്ലദീ തുഹിബ്ബുൽ ജുലൂസ മഅഹു.","characterMl":"സ്വാഗതം! കൂടെയിരിക്കാൻ നിങ്ങൾക്ക് ഇഷ്ടമുള്ള സുഹൃത്തിനെക്കുറിച്ച് الَّذِي ഉപയോഗിച്ച് പറയൂ.","reactionAr":"نِعْمَ الصَّدِيقُ الْوَفِيُّ!","suggestedReplies":[{"ar":"الصَّدِيقُ الَّذِي يَصْدُقُ","tr":"അസ്സ്വദീഖുല്ലദീ യസ്വ്ദുഖ്","ml":"സത്യം പറയുന്ന സുഹൃത്ത്"},{"ar":"أُحِبُّ الصَّدِيقَ الَّذِي يُسَاعِدُنِي وَيَبْتَسِمُ دَائِمًا","tr":"ഉഹിബ്ബുസ്സ്വദീഖല്ലദീ യുസാഇദുനീ വ യബ്തസിമു ദാഇമൻ","ml":"എന്നെ സഹായിക്കുകയും എപ്പോഴും പുഞ്ചിരിക്കുകയും ചെയ്യുന്ന സുഹൃത്തിനെ എനിക്കിഷ്ടമാണ്"},{"ar":"أُحِبُّ الصَّدِيقَ الَّذِي يَتَكَلَّمُ بِصِدْقٍ وَيَقِفُ مَعِي فِي كُلِّ وَقْتٍ","tr":"ഉഹിബ്ബുസ്സ്വദീഖല്ലദീ യതകല്ലമു ബിസ്വിദ്ഖിൻ വ യഖിഫു മഈ ഫീ കുല്ലി വഖ്ത്","ml":"സത്യസന്ധമായി സംസാരിക്കുകയും എല്ലാ സമയത്തും കൂടെ നിൽക്കുകയും ചെയ്യുന്ന സുഹൃത്തിനെയാണ് എനിക്കിഷ്ടം"}]},{"characterAr":"مَا الْمَدِينَةُ الَّتِي تَتَمَنَّى أَنْ تَزُورَهَا يَوْمًا مَا؟","characterTr":"മൽ മദീനത്തുല്ലതീ തതമന്നാ അൻ തസൂറഹാ യൗമൻ മാ?","characterMl":"എന്നെങ്കിലും സന്ദർശിക്കാൻ നിങ്ങൾ ആഗ്രഹിക്കുന്ന നഗരം ഏതാണ്? (الَّتِي ഉപയോഗിക്കൂ)","reactionAr":"اللّٰهُمَّ ارْزُقْنَا زِيَارَتَهَا!","suggestedReplies":[{"ar":"الْمَدِينَةُ الْمُنَوَّرَةُ","tr":"അൽമദീനത്തുൽ മുനവ്വറ","ml":"മദീന മുനവ്വറ"},{"ar":"الْمَدِينَةُ الَّتِي أَتَمَنَّى زِيَارَتَهَا هِيَ الْمَدِينَةُ الْمُنَوَّرَةُ","tr":"അൽമദീനത്തുല്ലതീ അതമന്നാ സിയാറത്തഹാ ഹിയൽ മദീനത്തുൽ മുനവ്വറ","ml":"ഞാൻ സന്ദർശിക്കാൻ ആഗ്രഹിക്കുന്ന നഗരം മദീന മുനവ്വറയാണ്"},{"ar":"الْمَدِينَةُ الَّتِي أُحِبُّهَا كَثِيرًا هِيَ الْمَدِينَةُ الَّتِي فِيهَا الْمَسْجِدُ النَّبَوِيُّ","tr":"അൽമദീനത്തുല്ലതീ ഉഹിബ്ബുഹാ കഥീറൻ ഹിയൽ മദീനത്തുല്ലതീ ഫീഹൽ മസ്ജിദുന്നബവിയ്യ്","ml":"ഞാൻ ഏറെ സ്നേഹിക്കുന്ന നഗരം മസ്ജിദുന്നബവി സ്ഥിതി ചെയ്യുന്ന മദീനയാണ്"}]},{"characterAr":"مَنِ الَّذِينَ يُشَجِّعُونَكَ عَلَى تَعَلُّمِ اللُّغَةِ الْعَرَبِيَّةِ؟","characterTr":"മനില്ലദീന യുശജ്ജിഊനക അലാ തഅല്ലുമില്ലുഗത്തിൽ അറബിയ്യ?","characterMl":"അറബി ഭാഷ പഠിക്കാൻ നിങ്ങളെ പ്രോത്സാഹിപ്പിക്കുന്നവർ ആരൊക്കെയാണ്?","reactionAr":"حَفِظَهُمُ اللّٰهُ لَكَ!","suggestedReplies":[{"ar":"عَائِلَتِي وَأَصْدِقَائِي","tr":"ആഇലതീ വ അസ്വ്ദിഖാഈ","ml":"എന്റെ കുടുംബവും സുഹൃത്തുക്കളും"},{"ar":"أَصْدِقَائِي هُمُ الَّذِينَ يُشَجِّعُونَنِي كُلَّ يَوْمٍ","tr":"അസ്വ്ദിഖാഈ ഹുമുല്ലദീന യുശജ്ജിഊനനീ കുല്ല യൗം","ml":"എന്റെ സുഹൃത്തുക്കളാണ് ദിവസവും എന്നെ പ്രോത്സാഹിപ്പിക്കുന്നത്"},{"ar":"أَهْلِي وَمُعَلِّمِي هُمُ الَّذِينَ يُشَجِّعُونَنِي وَيَفْرَحُونَ بِنَجَاحِي دَائِمًا","tr":"അഹ്‌ലീ വ മുഅല്ലിമീ ഹുമുല്ലദീന യുശജ്ജിഊനനീ വ യഫ്റഹൂന ബിനജാഹീ ദാഇമൻ","ml":"എന്റെ വീട്ടുകാരും അധ്യാപകനുമാണ് എന്നെ പ്രോത്സാഹിപ്പിക്കുകയും എന്റെ വിജയത്തിൽ സന്തോഷിക്കുകയും ചെയ്യുന്നത്"}]},{"characterAr":"مَا الْكِتَابُ الَّذِي قَرَأْتَهُ أَخِيرًا وَأَعْجَبَكَ؟","characterTr":"മൽ കിതാബുല്ലദീ ഖറഅ്തഹു അഖീറൻ വ അഅ്ജബക?","characterMl":"അടുത്തിടെ വായിച്ച് നിങ്ങൾക്ക് ഇഷ്ടപ്പെട്ട പുസ്തകം ഏതാണ്?","reactionAr":"سَأَقْرَأُ مِثْلَهُ قَرِيبًا!","suggestedReplies":[{"ar":"كِتَابُ الْقَصَصِ","tr":"കിതാബുൽ ഖിസ്വസ്വ്","ml":"കഥാപുസ്തകം"},{"ar":"الْكِتَابُ الَّذِي قَرَأْتُهُ يَتَحَدَّثُ عَنِ التَّارِيخِ الْعَرَبِيِّ","tr":"അൽകിതാബുല്ലദീ ഖറഅ്തുഹു യതഹദ്ദഥു അനിത്താരീഖിൽ അറബിയ്യ്","ml":"ഞാൻ വായിച്ച പുസ്തകം അറബി ചരിത്രത്തെക്കുറിച്ചാണ് പറയുന്നത്"},{"ar":"الْكِتَابُ الَّذِي أَعْجَبَنِي كَثِيرًا هُوَ كِتَابُ قَصَصٍ عَرَبِيَّةٍ لِلْمُبْتَدِئِينَ","tr":"അൽകിതാബുല്ലദീ അഅ്ജബനീ കഥീറൻ ഹുവ കിതാബു ഖിസ്വസ്വിൻ അറബിയ്യത്തിൻ ലിൽമുബ്തദിഈൻ","ml":"തുടക്കക്കാർക്കുള്ള അറബി കഥാപുസ്തകമാണ് എനിക്ക് വളരെയധികം ഇഷ്ടപ്പെട്ടത്"}]},{"characterAr":"أَبْدَعْتَ فِي الْأَسْمَاءِ الْمَوْصُولَةِ! شُكْرًا وَإِلَى اللِّقَاءِ.","characterTr":"അബ്ദഅ്ത ഫിൽ അസ്മാഇൽ മൗസൂല! ശുക്റൻ വ ഇലല്ലിഖാഅ്.","characterMl":"ബന്ധിപ്പിക്കുന്ന പദങ്ങൾ (അസ്മാഉൽ മൗസൂല) ഗംഭീരമായി! നന്ദി, വീണ്ടും കാണാം.","reactionAr":"مَعَ السَّلَامَةِ يَا أَخِي!","suggestedReplies":[{"ar":"شُكْرًا يَا طَارِقُ","tr":"ശുക്റൻ യാ ത്വാരിഖ്","ml":"നന്ദി താരിഖ്"},{"ar":"أَنْتَ الصَّدِيقُ الَّذِي يُسَاعِدُنِي دَائِمًا شُكْرًا لَكَ","tr":"അൻതസ്സ്വദീഖുല്ലദീ യുസാഇദുനീ ദാഇമൻ ശുക്റൻ ലക","ml":"എപ്പോഴും എന്നെ സഹായിക്കുന്ന സുഹൃത്താണ് നിങ്ങൾ, നന്ദി"},{"ar":"شُكْرًا يَا طَارِقُ هٰذِهِ الدُّرُوسُ الَّتِي تَعَلَّمْتُهَا مُفِيدَةٌ جِدًّا لِي","tr":"ശുക്റൻ യാ ത്വാരിഖു ഹാദിഹിദ്ദുറൂസുല്ലതീ തഅല്ലംതുഹാ മുഫീദത്തുൻ ജിദ്ദൻ ലീ","ml":"നന്ദി താരിഖ്, ഞാൻ പഠിച്ച ഈ പാഠങ്ങൾ എനിക്ക് വളരെ ഉപകാരപ്രദമാണ്"}]}]},"u32":{"id":"u32_vc_scenario","unitNumber":32,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: حُرُوفُ النَّصْبِ (ആഗ്രഹങ്ങളും ലക്ഷ്യങ്ങളും)","sceneSettingMl":"വെയിൽ കായുന്ന മുറ്റത്ത് നിന്ന് ലൈല സംസാരിക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"أَهْلًا! مَاذَا تُرِيدُ أَنْ تَفْعَلَ هٰذَا الْأُسْبُوعَ؟","characterTr":"അഹ്‌ലൻ! മാദാ തുരീദു അൻ തഫ്അല ഹാദൽ ഉസ്ബൂഅ്?","characterMl":"സ്വാഗതം! ഈ ആഴ്ച നിങ്ങൾ എന്ത് ചെയ്യാനാണ് ആഗ്രഹിക്കുന്നത്? (أَنْ + നസ്ബ്)","reactionAr":"هَدَفٌ رَائِعٌ وَمُنَظَّمٌ!","suggestedReplies":[{"ar":"أُرِيدُ أَنْ أَقْرَأَ","tr":"ഉരീദു അൻ അഖ്റഅ","ml":"ഞാൻ വായിക്കാൻ ആഗ്രഹിക്കുന്നു"},{"ar":"أُرِيدُ أَنْ أُكْمِلَ دُرُوسِي وَأَزُورَ أَصْدِقَائِي","tr":"ഉരീദു അൻ ഉക്മില ദുറൂസീ വ അസൂറ അസ്വ്ദിഖാഈ","ml":"എന്റെ പാഠങ്ങൾ പൂർത്തിയാക്കാനും സുഹൃത്തുക്കളെ സന്ദർശിക്കാനും ആഗ്രഹിക്കുന്നു"},{"ar":"أُرِيدُ أَنْ أَتَكَلَّمَ الْعَرَبِيَّةَ كُلَّ يَوْمٍ وَأَكْتُبَ مَقَالًا قَصِيرًا","tr":"ഉരീദു അൻ അതകല്ലമൽ അറബിയ്യത കുല്ല യൗമിൻ വ അക്തുബ മഖാലൻ ഖസീറൻ","ml":"ദിവസവും അറബി സംസാരിക്കാനും ഒരു ചെറിയ ലേഖനം എഴുതാനും ഞാൻ ആഗ്രഹിക്കുന്നു"}]},{"characterAr":"قُلْ لِي شَيْئًا لَنْ تَفْعَلَهُ أَبَدًا مُسْتَعْمِلًا لَنْ!","characterTr":"ഖുൽ ലീ ശയ്അൻ ലൻ തഫ്അലഹു അബദൻ മുസ്തഅ്മിലൻ ലൻ!","characterMl":"لَنْ (ഒരിക്കലും ചെയ്യില്ല) ഉപയോഗിച്ച് നിങ്ങൾ ഒരിക്കലും ചെയ്യാത്ത ഒരു കാര്യം പറയൂ!","reactionAr":"عَزِيمَةٌ قَوِيَّةٌ مَا شَاءَ اللّٰهُ!","suggestedReplies":[{"ar":"لَنْ أَسْتَسْلِمَ","tr":"ലൻ അസ്തസ്‌ലിമ","ml":"ഞാൻ ഒരിക്കലും തോറ്റുകൊടുക്കില്ല"},{"ar":"لَنْ أَتْرُكَ تَعَلُّمَ اللُّغَةِ الْعَرَبِيَّةِ أَبَدًا","tr":"ലൻ അത്റുക തഅല്ലുമല്ലുഗത്തിൽ അറബിയ്യത്തി അബദൻ","ml":"ഞാൻ ഒരിക്കലും അറബി ഭാഷാ പഠനം ഉപേക്ഷിക്കില്ല"},{"ar":"لَنْ أُضَيِّعَ وَقْتِي وَسَأَسْتَمِرُّ فِي التَّدْرِيبِ حَتَّى أُتْقِنَ اللُّغَةَ","tr":"ലൻ ഉളയ്യിഅ വഖ്തീ വ സഅസ്തമിർറു ഫിത്തദ്‌രീബി ഹത്താ ഉത്ഖിനല്ലുഗ","ml":"ഞാൻ സമയം പാഴാക്കില്ല, ഭാഷയിൽ പ്രാവീണ്യം നേടുന്നതുവരെ പരിശീലനം തുടരും"}]},{"characterAr":"لِمَاذَا تَتَدَرَّبُ عَلَى الِاسْتِمَاعِ؟ أَجِبْ مُسْتَعْمِلًا كَيْ أَوْ لِـ!","characterTr":"ലിമാദാ തതദർറബു അലൽ ഇസ്തിമാഅ്? അജിബ് മുസ്തഅ്മിലൻ കയ് ഔ ലി!","characterMl":"നിങ്ങൾ എന്തിനാണ് കേൾവി പരിശീലിക്കുന്നത്? كَيْ അല്ലെങ്കിൽ لِـ ഉപയോഗിച്ച് ഉത്തരം പറയൂ!","reactionAr":"تَفْكِيرٌ ذَكِيٌّ جِدًّا!","suggestedReplies":[{"ar":"كَيْ أَفْهَمَ بِسُرْعَةٍ","tr":"കയ് അഫ്ഹമ ബിസുർഅ","ml":"വേഗത്തിൽ മനസ്സിലാക്കാൻ"},{"ar":"أَسْتَمِعُ كُلَّ يَوْمٍ كَيْ أَفْهَمَ النَّاطِقِينَ بِالْعَرَبِيَّةِ","tr":"അസ്തമിഉ കുല്ല യൗമിൻ കയ് അഫ്ഹമന്നാത്വിഖീന ബിൽഅറബിയ്യ","ml":"അറബി സംസാരിക്കുന്നവരെ മനസ്സിലാക്കാൻ വേണ്ടി ഞാൻ ദിവസവും കേൾക്കുന്നു"},{"ar":"أَتَدَرَّبُ عَلَى الِاسْتِمَاعِ كَيْ أَنْطِقَ الْكَلِمَاتِ بِشَكْلٍ صَحِيحٍ وَطَبِيعِيٍّ","tr":"അതദർറബു അലൽ ഇസ്തിമാഇ കയ് അൻത്വിഖൽ കലിമാത്തി ബിശക്‌ലിൻ സ്വഹീഹിൻ വ ത്വബീഇയ്യ്","ml":"വാക്കുകൾ ശരിയായും സ്വാഭാവികമായും ഉച്ചരിക്കാൻ വേണ്ടിയാണ് ഞാൻ ശ്രവണ പരിശീലനം നടത്തുന്നത്"}]},{"characterAr":"هَلْ سَتَسْتَمِرُّ فِي التَّعَلُّمِ حَتَّى تَصِلَ إِلَى الْوَحْدَةِ الْخَامِسَةِ وَالثَّلَاثِينَ؟","characterTr":"ഹൽ സതസ്തമിർറു ഫിത്തഅല്ലുമി ഹത്താ തസ്വില ഇലൽ വഹ്ദത്തിൽ ഖാമിസത്തി വഥ്ഥലാഥീൻ?","characterMl":"35-ാം യൂണിറ്റിൽ എത്തുന്നതുവരെ നിങ്ങൾ പഠനം തുടരുമോ? (حَتَّى + നസ്ബ്)","reactionAr":"أَنْتَ قَرِيبٌ جِدًّا مِنَ الْقِمَّةِ!","suggestedReplies":[{"ar":"نَعَمْ حَتَّى أَصِلَ","tr":"നഅം ഹത്താ അസ്വില","ml":"അതെ, എത്തുന്നതുവരെ"},{"ar":"نَعَمْ سَأُوَاصِلُ الدِّرَاسَةَ حَتَّى أُتِمَّ كُلَّ الْوَحَدَاتِ","tr":"നഅം സഉവാസിലുദ്ദിറാസത്ത ഹത്താ ഉതിമ്മ കുല്ലൽ വഹദാത്ത്","ml":"അതെ, എല്ലാ യൂണിറ്റുകളും പൂർത്തിയാക്കുന്നതുവരെ ഞാൻ പഠനം തുടരും"},{"ar":"بِالتَّأْكِيدِ سَأَجْتَهِدُ كُلَّ يَوْمٍ حَتَّى أَصِلَ إِلَى النِّهَايَةِ وَأَتْقِنَ الْعَرَبِيَّةَ","tr":"ബിത്തഅ്കീദി സഅജ്തഹിദു കുല്ല യൗമിൻ ഹത്താ അസ്വില ഇലന്നിഹായത്തി വ ഉത്ഖിനൽ അറബിയ്യ","ml":"തീർച്ചയായും, അവസാനം വരെ എത്തി അറബിയിൽ പ്രാവീണ്യം നേടുന്നതുവരെ ദിവസവും പരിശ്രമിക്കും"}]},{"characterAr":"مُمْتَازٌ! نَصَبْتَ الْمُضَارِعَ بِدِقَّةٍ بَعْدَ أَنْ وَلَنْ وَكَيْ وَحَتَّى. إِلَى اللِّقَاءِ!","characterTr":"മുംതാസ്! നസ്വബ്തൽ മുളാരിഅ ബിദിഖ്ഖത്തിൻ ബഅ്ദ അൻ വ ലൻ വ കയ് വ ഹത്താ. ഇലല്ലിഖാഅ്!","characterMl":"മികച്ചത്! നസ്ബിന്റെ അവ്യയങ്ങൾക്ക് ശേഷം ഫത്ഹ് കൃത്യമായി നൽകി. വീണ്ടും കാണാം!","reactionAr":"دُمْتَ مُتَفَوِّقًا!","suggestedReplies":[{"ar":"شُكْرًا يَا لَيْلَى","tr":"ശുക്റൻ യാ ലൈല","ml":"നന്ദി ലൈല"},{"ar":"أُرِيدُ أَنْ أَشْكُرَكِ كَثِيرًا يَا لَيْلَى","tr":"ഉരീദു അൻ അശ്കുറകി കഥീറൻ യാ ലൈല","ml":"നിങ്ങളോട് ഒരുപാട് നന്ദി പറയാൻ ഞാൻ ആഗ്രഹിക്കുന്നു ലൈല"},{"ar":"لَنْ أَنْسَى هٰذِهِ الْمُكَالَمَةَ الرَّائِعَةَ شُكْرًا لَكِ عَلَى كُلِّ شَيْءٍ","tr":"ലൻ അൻസാ ഹാദിഹിൽ മുകാലമതർറാഇഅത്ത ശുക്റൻ ലകി അലാ കുല്ലി ശൈഅ്","ml":"ഈ മനോഹരമായ കോൾ ഞാൻ ഒരിക്കലും മറക്കില്ല, എല്ലാത്തിനും നന്ദി"}]}]},"u33":{"id":"u33_vc_scenario","unitNumber":33,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: حُرُوفُ الْجَزْمِ (സുകൂൻ നൽകുന്ന അവ്യയങ്ങൾ)","sceneSettingMl":"തണലുള്ള കഫേയിൽ നിന്ന് താരിഖ് വിളിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"أَهْلًا! أَخْبِرْنِي عَنْ شَيْءٍ لَمْ تَفْعَلْهُ الْيَوْمَ مُسْتَعْمِلًا لَمْ!","characterTr":"അഹ്‌ലൻ! അഖ്ബിർനീ അൻ ശയ്ഇൻ ലം തഫ്അൽഹുൽ യൗമ മുസ്തഅ്മിലൻ ലം!","characterMl":"സ്വാഗതം! لَمْ ഉപയോഗിച്ച് ഇന്ന് നിങ്ങൾ ചെയ്യാത്ത ഒരു കാര്യം പറയൂ!","reactionAr":"أَحْسَنْتَ! جَزْمٌ صَحِيحٌ مِائَةً بِالْمِائَةِ.","suggestedReplies":[{"ar":"لَمْ أَخْرُجْ الْيَوْمَ","tr":"ലം അഖ്റുജ് അൽയൗം","ml":"ഞാൻ ഇന്ന് പുറത്തിറങ്ങിയില്ല"},{"ar":"لَمْ أَشْرَبِ الْقَهْوَةَ الْيَوْمَ حَتَّى الْآنَ","tr":"ലം അശ്റബിൽ ഖഹ്‌വത്തൽ യൗമ ഹത്തൽ ആൻ","ml":"ഇതുവരെ ഞാൻ ഇന്ന് കാപ്പി കുടിച്ചില്ല"},{"ar":"لَمْ أَذْهَبْ إِلَى السُّوقِ الْيَوْمَ لِأَنَّنِي كُنْتُ مَشْغُولًا بِالدِّرَاسَةِ","tr":"ലം അദ്ഹബ് ഇലസ്സൂഖിൽ യൗമ ലിഅന്നനീ കുൻതു മശ്ഗൂലൻ ബിദ്ദിറാസ","ml":"പഠനത്തിൽ തിരക്കിലായിരുന്നതിനാൽ ഞാൻ ഇന്ന് മാർക്കറ്റിൽ പോയില്ല"}]},{"characterAr":"تَخَيَّلْ أَنَّ صَدِيقَكَ قَلِقٌ قَبْلَ الِامْتِحَانِ. قُلْ لَهُ جُمْلَةً بِـ \"لَا\" النَّاهِيَةِ!","characterTr":"തഖയ്യൽ അന്ന സ്വദീഖക ഖലിഖുൻ ഖബ്ലൽ ഇംതിഹാൻ. ഖുൽ ലഹു ജുംലതൻ ബി \"ലാ\" അന്നാഹിയ!","characterMl":"പരീക്ഷയ്ക്ക് മുമ്പ് ആശങ്കപ്പെടുന്ന സുഹൃത്തിനോട് നിരോധന \"ല\" (لَا النَّاهِيَة) ഉപയോഗിച്ച് ആശ്വസിപ്പിക്കൂ!","reactionAr":"كَلِمَاتٌ تَبْعَثُ الطُّمَأْنِينَةَ!","suggestedReplies":[{"ar":"لَا تَقْلَقْ يَا أَخِي","tr":"ലാ തഖ്‌ലഖ് യാ അഖീ","ml":"വിഷമിക്കരുത് സഹോദരാ"},{"ar":"لَا تَخَفْ وَلَا تَقْلَقْ سَتَنْجَحُ بِإِذْنِ اللّٰهِ","tr":"ലാ തഖഫ് വ ലാ തഖ്‌ലഖ് സതൻജഹു ബിഇദ്നില്ലാഹ്","ml":"പേടിക്കരുത്, വിഷമിക്കരുത്, അല്ലാഹുവിന്റെ അനുഗ്രഹത്താൽ നീ വിജയിക്കും"},{"ar":"لَا تَقْلَقْ يَا صَدِيقِي وَلَا تَتَسَرَّعْ فِي الْإِجَابَةِ تَوَكَّلْ عَلَى اللّٰهِ","tr":"ലാ തഖ്‌ലഖ് യാ സ്വദീഖീ വ ലാ തതസർറഅ് ഫിൽ ഇജാബത്തി തവക്കൽ അലല്ലാഹ്","ml":"വിഷമിക്കരുത് സുഹൃത്തേ, ഉത്തരമെഴുതാൻ തിടുക്കം കൂട്ടരുത്, അല്ലാഹുവിൽ ഭരമേൽപ്പിക്കൂ"}]},{"characterAr":"شَجِّعْ نَفْسَكَ وَفَرِيقَكَ مُسْتَعْمِلًا لَامَ الْأَمْرِ (لِـ)!","characterTr":"ശജ്ജിഅ് നഫ്സക വ ഫരീഖക മുസ്തഅ്മിലൻ ലാമൽ അംരി (ലി)!","characterMl":"ലാമുൽ അംറ് (لِـ — നമുക്ക് ... ചെയ്യാം) ഉപയോഗിച്ച് സ്വയവും ടീമിനെയും പ്രോത്സാഹിപ്പിക്കൂ!","reactionAr":"رُوحٌ حَمَاسِيَّةٌ رَائِعَةٌ!","suggestedReplies":[{"ar":"لِنَبْدَأْ الْآنَ","tr":"ലിനബ്ദഅ് അൽആൻ","ml":"നമുക്ക് ഇപ്പോൾ തുടങ്ങാം"},{"ar":"لِنَجْتَهِدْ مَعًا وَلِنَتَعَلَّمْ كُلَّ يَوْمٍ","tr":"ലിനജ്തഹിദ് മഅൻ വ ലിനതഅല്ലം കുല്ല യൗം","ml":"നമുക്ക് ഒരുമിച്ച് പരിശ്രമിക്കാം, ദിവസവും പഠിക്കാം"},{"ar":"لِنَعْمَلْ بِجِدٍّ وَلِنُسَاعِدْ بَعْضَنَا حَتَّى نُحَقِّقَ النَّجَاحَ الْجَمِيعُ","tr":"ലിനഅ്മൽ ബിജിദ്ദിൻ വ ലിനുസാഇദ് ബഅ്ളനാ ഹത്താ നുഹഖ്ഖിഖന്നജാഹൽ ജമീഅ്","ml":"നമുക്ക് ആത്മാർത്ഥമായി പ്രവർത്തിക്കുകയും പരസ്പരം സഹായിക്കുകയും ചെയ്ത് വിജയം നേടാം"}]},{"characterAr":"هَلْ لَمْ تَنْسَ مَا تَعَلَّمْتَهُ فِي الْوَحَدَاتِ السَّابِقَةِ؟","characterTr":"ഹൽ ലം തൻസ മാ തഅല്ലംതഹു ഫിൽ വഹദാത്തിസ്സാബിഖ?","characterMl":"കഴിഞ്ഞ യൂണിറ്റുകളിൽ പഠിച്ച കാര്യങ്ങൾ നിങ്ങൾ മറന്നിട്ടില്ലല്ലോ?","reactionAr":"ذَاكِرَةٌ قَوِيَّةٌ مَا شَاءَ اللّٰهُ!","suggestedReplies":[{"ar":"لَا لَمْ أَنْسَ","tr":"ലാ ലം അൻസ","ml":"ഇല്ല, ഞാൻ മറന്നിട്ടില്ല"},{"ar":"لَمْ أَنْسَ الدُّرُوسَ لِأَنَّنِي أُرَاجِعُهَا دَائِمًا","tr":"ലം അൻസദ്ദുറൂസ ലിഅന്നനീ ഉറാജിഉഹാ ദാഇമൻ","ml":"എപ്പോഴും ആവർത്തിച്ചു പഠിക്കുന്നതിനാൽ ഞാൻ പാഠങ്ങൾ മറന്നിട്ടില്ല"},{"ar":"لَمْ أَنْسَ شَيْئًا بَلْ أَصْبَحْتُ أَسْتَعْمِلُ الْقَوَاعِدَ فِي كَلَامِي بِطَبِيعِيَّةٍ","tr":"ലം അൻസ ശയ്അൻ ബൽ അസ്വ്ബഹ്തു അസ്തഅ്മിലുൽ ഖവാഇദ ഫീ കലാമീ ബിത്വബീഇയ്യ","ml":"ഞാൻ ഒന്നും മറന്നിട്ടില്ല, മറിച്ച് സംസാരത്തിൽ വ്യാകരണം സ്വാഭാവികമായി ഉപയോഗിക്കുന്നുണ്ട്"}]},{"characterAr":"أَتْقَنْتَ حُرُوفَ الْجَزْمِ بِبَرَاعَةٍ! لِنَلْتَقِ فِي الْوَحْدَةِ الْقَادِمَةِ.","characterTr":"അത്ഖൻത ഹുറൂഫൽ ജസ്മി ബിബറാഅ! ലിനൽതഖി ഫിൽ വഹ്ദത്തിൽ ഖാദിമ.","characterMl":"ജസ്മിന്റെ അവ്യയങ്ങൾ മിടുക്കോടെ പഠിച്ചു! അടുത്ത യൂണിറ്റിൽ നമുക്ക് കാണാം.","reactionAr":"إِلَى اللِّقَاءِ يَا بَطَلُ!","suggestedReplies":[{"ar":"شُكْرًا يَا طَارِقُ","tr":"ശുക്റൻ യാ ത്വാരിഖ്","ml":"നന്ദി താരിഖ്"},{"ar":"لَمْ يَكُنِ الدَّرْسُ صَعْبًا شُكْرًا جَزِيلًا","tr":"ലം യകുനിദ്ദർസു സ്വഅ്ബൻ ശുക്റൻ ജസീലൻ","ml":"പാഠം ബുദ്ധിമുട്ടുള്ളതായിരുന്നില്ല, വളരെ നന്ദി"},{"ar":"شُكْرًا يَا طَارِقُ لَا تَنْسَ أَنْ نَتَدَرَّبَ مَعًا فِي الْوَحْدَةِ التَّالِيَةِ","tr":"ശുക്റൻ യാ ത്വാരിഖു ലാ തൻസ അൻ നതദർറബ മഅൻ ഫിൽ വഹ്ദത്തിത്താലിയ","ml":"നന്ദി താരിഖ്, അടുത്ത യൂണിറ്റിലും നമ്മൾ ഒരുമിച്ച് പരിശീലിക്കാൻ മറക്കല്ലേ"}]}]},"u34":{"id":"u34_vc_scenario","unitNumber":34,"characterKey":"layla","characterNameEn":"Layla","characterNameMl":"ലൈല","characterNameAr":"لَيْلَى","characterAvatar":"🧕","sceneTitleMl":"വീഡിയോ കോൾ: اَلْإِضَافَةُ وَالنَّعْتُ (ബന്ധവും വിശേഷണവും)","sceneSettingMl":"അറേബ്യൻ പൂന്തോട്ടത്തിലെ തണലിൽ നിന്ന് ലൈല വിളിക്കുന്നു","backdropImage":"./images/video_call_courtyard_bg.jpg","turns":[{"characterAr":"أَهْلًا! صِفْ لِي بَيْتَكَ أَوْ غُرْفَتَكَ مُسْتَعْمِلًا الْإِضَافَةَ وَالنَّعْتَ.","characterTr":"അഹ്‌ലൻ! സ്വിഫ് ലീ ബയ്തക ഔ ഗുർഫതക മുസ്തഅ്മിലൻ അൽഇളാഫത വന്നഅ്ത്.","characterMl":"സ്വാഗതം! ഉടമസ്ഥതാ ബന്ധവും (ഇളാഫത്) വിശേഷണവും (നഅ്ത്) ഉപയോഗിച്ച് നിങ്ങളുടെ വീടോ മുറിയോ വിവരിക്കൂ.","reactionAr":"وَصْفٌ دَقِيقٌ وَجَمِيلٌ جِدًّا!","suggestedReplies":[{"ar":"غُرْفَتِي النَّظِيفَةُ","tr":"ഗുർഫതിന്നളീഫ","ml":"എന്റെ വൃത്തിയുള്ള മുറി"},{"ar":"بَابُ الْبَيْتِ كَبِيرٌ وَحَدِيقَةُ الْمَنْزِلِ جَمِيلَةٌ","tr":"ബാബുൽ ബയ്തി കബീറുൻ വ ഹദീഖത്തുൽ മൻസിലി ജമീല","ml":"വീടിന്റെ വാതിൽ വലുതും വീട്ടുമുറ്റത്തെ പൂന്തോട്ടം മനോഹരവുമാണ്"},{"ar":"غُرْفَةُ الدِّرَاسَةِ هَادِئَةٌ جِدًّا وَعَلَى مَكْتَبِي الصَّغِيرِ كُتُبُ اللُّغَةِ الْعَرَبِيَّةِ","tr":"ഗുർഫത്തുദ്ദിറാസത്തി ഹാദിഅത്തുൻ ജിദ്ദൻ വ അലാ മക്തബിസ്സ്വഗീരി കുതുബുല്ലുഗത്തിൽ അറബിയ്യ","ml":"പഠനമുറി വളരെ ശാന്തമാണ്, എന്റെ ചെറിയ മേശപ്പുറത്ത് അറബി ഭാഷാ പുസ്തകങ്ങളുണ്ട്"}]},{"characterAr":"مَاذَا تَرَى فِي مَدِينَتِكَ الْجَمِيلَةِ؟ اسْتَعْمِلْ نَعْتًا وَمَنْعُوتًا!","characterTr":"മാദാ തറാ ഫീ മദീനതികൽ ജമീല? ഇസ്തഅ്മിൽ നഅ്തൻ വ മൻഊതൻ!","characterMl":"നിങ്ങളുടെ സുന്ദരമായ നഗരത്തിൽ എന്തൊക്കെയാണ് കാണുന്നത്? വിശേഷണം ചേർത്ത് പറയൂ!","reactionAr":"شَوَّقْتَنِي لِزِيَارَةِ مَدِينَتِكَ!","suggestedReplies":[{"ar":"شَوَارِعُ نَظِيفَةٌ","tr":"ശവാരിഉ നളീഫ","ml":"വൃത്തിയുള്ള തെരുവുകൾ"},{"ar":"فِي مَدِينَتِي أَشْجَارٌ خَضْرَاءُ وَأَنْهَارٌ جَمِيلَةٌ","tr":"ഫീ മദീനതീ അശ്ജാറുൻ ഖള്റാഉ വ അൻഹാറുൻ ജമീല","ml":"എന്റെ നഗരത്തിൽ പച്ചമരങ്ങളും മനോഹരമായ പുഴകളുമുണ്ട്"},{"ar":"فِي بَلَدِي الْجَمِيلِ شَوَاطِئُ هَادِئَةٌ وَحَدَائِقُ وَاسِعَةٌ وَمَسَاجِدُ كَبِيرَةٌ","tr":"ഫീ ബലദിൽ ജമീലി ശവാത്വിഉ ഹാദിഅത്തുൻ വ ഹദാഇഖു വാസിഅത്തുൻ വ മസാജിദു കബീറ","ml":"എന്റെ സുന്ദരമായ നാട്ടിൽ ശാന്തമായ കടൽത്തീരങ്ങളും വിശാലമായ ഉദ്യാനങ്ങളും വലിയ പള്ളികളുമുണ്ട്"}]},{"characterAr":"مَنْ هُوَ الْمُعَلِّمُ الْفَاضِلُ الَّذِي تَتَذَكَّرُهُ بِالْخَيْرِ؟","characterTr":"മൻ ഹുവൽ മുഅല്ലിമുൽ ഫാളിലുല്ലദീ തതദക്കറുഹു ബിൽഖൈർ?","characterMl":"നിങ്ങൾ നന്മയോടെ ഓർക്കുന്ന ശ്രേഷ്ഠനായ അധ്യാപകൻ ആരാണ്?","reactionAr":"جَزَاهُ اللّٰهُ خَيْرَ الْجَزَاءِ!","suggestedReplies":[{"ar":"مُعَلِّمُ اللُّغَةِ الْعَرَبِيَّةِ","tr":"മുഅല്ലിമുല്ലുഗത്തിൽ അറബിയ്യ","ml":"അറബി ഭാഷാ അധ്യാപകൻ"},{"ar":"أَتَذَكَّرُ مُعَلِّمَ اللُّغَةِ الْعَرَبِيَّةِ الصَّبُورَ وَالطَّيِّبَ","tr":"അതദക്കറു മുഅല്ലിമല്ലുഗത്തിൽ അറബിയ്യത്തിസ്സ്വബൂറ വത്ത്വയ്യിബ്","ml":"ക്ഷമാശീലനും നല്ലവനുമായ അറബി ഭാഷാ അധ്യാപകനെ ഞാൻ ഓർക്കുന്നു"},{"ar":"أَحْتَرِمُ كَثِيرًا مُعَلِّمَ الْمَدْرَسَةِ الَّذِي عَلَّمَنِي حُبَّ الْقِرَاءَةِ وَالْأَدَبِ","tr":"അഹ്തരിമു കഥീറൻ മുഅല്ലിമൽ മദ്റസത്തില്ലദീ അല്ലമനീ ഹുബ്ബൽ ഖിറാഅത്തി വൽഅദബ്","ml":"വായനയോടും സാഹിത്യത്തോടും സ്നേഹം പഠിപ്പിച്ച സ്കൂൾ അധ്യാപകനെ ഞാൻ ഏറെ ബഹുമാനിക്കുന്നു"}]},{"characterAr":"كَيْفَ تَصِفُ فِنْجَانَ الْقَهْوَةِ الْعَرَبِيَّةِ الصَّبَاحِيِّ؟","characterTr":"കൈഫ തസ്വിഫു ഫിൻജാനൽ ഖഹ്‌വത്തിൽ അറബിയ്യത്തിസ്സബാഹിയ്യ്?","characterMl":"രാവിലത്തെ ഒരു കപ്പ് അറബിക് കാപ്പിയെ എങ്ങനെയാണ് വിവരിക്കുക?","reactionAr":"رَائِحَةُ الْقَهْوَةِ تَصِلُ إِلَى هُنَا!","suggestedReplies":[{"ar":"قَهْوَةٌ لَذِيذَةٌ","tr":"ഖഹ്‌വത്തുൻ ലദീദ","ml":"രുചികരമായ കാപ്പി"},{"ar":"فِنْجَانُ الْقَهْوَةِ السَّاخِنَةِ يُعْطِي نَشَاطًا رَائِعًا","tr":"ഫിൻജാനുൽ ഖഹ്‌വത്തിസ്സാഖിനത്തി യുഅ്ത്വീ നശാത്വൻ റാഇഅൻ","ml":"ചൂടുള്ള ഒരു കപ്പ് കാപ്പി നല്ല ഉന്മേഷം നൽകുന്നു"},{"ar":"فِنْجَانُ الْقَهْوَةِ الْعَرَبِيَّةِ بِالْهَيْلِ الزَّكِيِّ أَجْمَلُ بِدَايَةٍ لِلْيَوْمِ الْجَدِيدِ","tr":"ഫിൻജാനുൽ ഖഹ്‌വത്തിൽ അറബിയ്യത്തി ബിൽഹയ്‌ലിസ്സകിയ്യി അജ്മലു ബിദായത്തിൻ ലിൽയൗമിൽ ജദീദ്","ml":"സുഗന്ധമുള്ള ഏലക്കയിട്ട ഒരു കപ്പ് അറബിക് കാപ്പി പുതിയ ദിവസത്തിന്റെ ഏറ്റവും മനോഹരമായ തുടക്കമാണ്"}]},{"characterAr":"رَائِعٌ! تَبْقَى وَحْدَةٌ وَاحِدَةٌ فَقَطْ لِتَخْتِمَ الرِّحْلَةَ كَامِلَةً!","characterTr":"റാഇഅ്! തബ്ഖാ വഹ്ദത്തുൻ വാഹിദത്തുൻ ഫഖത്വ് ലിതൽതിമർരിഹ്‌ലത കാമില!","characterMl":"അതിമനോഹരം! ഈ യാത്ര മുഴുവനായും പൂർത്തിയാക്കാൻ ഇനി ഒരൊറ്റ യൂണിറ്റ് കൂടി മാത്രം!","reactionAr":"إِلَى الْقِمَّةِ يَا بَطَلُ!","suggestedReplies":[{"ar":"الْحَمْدُ لِلّٰهِ!","tr":"അൽഹംദുലില്ലാഹ്!","ml":"അൽഹംദുലില്ലാഹ്!"},{"ar":"أَنَا مُتَحَمِّسٌ جِدًّا لِلْوَحْدَةِ الْأَخِيرَةِ شُكْرًا لَكِ","tr":"അനാ മുതഹമ്മിസുൻ ജിദ്ദൻ ലിൽവഹ്ദത്തിൽ അഖീറത്തി ശുക്റൻ ലകി","ml":"അവസാന യൂണിറ്റിനായി ഞാൻ വളരെ ആവേശത്തിലാണ്, നന്ദി"},{"ar":"شُكْرًا يَا لَيْلَى كَانَتْ رِحْلَةُ تَعَلُّمِ الْعَرَبِيَّةِ أَجْمَلَ تَجْرِبَةٍ فِي حَيَاتِي","tr":"ശുക്റൻ യാ ലൈല കാനത് രിഹ്‌ലത്തു തഅല്ലുമിൽ അറബിയ്യത്തി അജ്മല തജ്‌രിബത്തിൻ ഫീ ഹയാതീ","ml":"നന്ദി ലൈല, അറബി പഠനയാത്ര എന്റെ ജീവിതത്തിലെ ഏറ്റവും മനോഹരമായ അനുഭവമായിരുന്നു"}]}]},"u35":{"id":"u35_vc_scenario","unitNumber":35,"characterKey":"tariq","characterNameEn":"Tariq","characterNameMl":"താരിഖ്","characterNameAr":"طَارِق","characterAvatar":"👳‍♂️","sceneTitleMl":"വീഡിയോ കോൾ: 35 യൂണിറ്റ് ഗ്രാൻഡ് ഫിനാലെ ആഘോഷം!","sceneSettingMl":"ബിരുദ ആഘോഷ കഫേയിൽ നിന്ന് താരിഖ് നിങ്ങളെ അഭിനന്ദിക്കുന്നു","backdropImage":"./images/video_call_arabic_cafe_bg.jpg","turns":[{"characterAr":"مَبْرُوكٌ يَا صَدِيقِي! وَصَلْتَ إِلَى الْوَحْدَةِ الْخَامِسَةِ وَالثَّلَاثِينَ! كَيْفَ تَشْعُرُ الْيَوْمَ؟","characterTr":"മബ്റൂക് യാ സ്വദീഖീ! വസൽത ഇലൽ വഹ്ദത്തിൽ ഖാമിസത്തി വഥ്ഥലാഥീൻ! കൈഫ തശ്ഉറുൽ യൗം?","characterMl":"അഭിനന്ദനങ്ങൾ സുഹൃത്തേ! നിങ്ങൾ 35-ാം യൂണിറ്റിൽ എത്തിയിരിക്കുന്നു! ഇന്ന് നിങ്ങൾക്ക് എന്തു തോന്നുന്നു?","reactionAr":"فَخْرٌ كَبِيرٌ لَنَا جَمِيعًا!","suggestedReplies":[{"ar":"أَشْعُرُ بِسَعَادَةٍ كَبِيرَةٍ","tr":"അശ്ഉറു ബിസആദത്തിൻ കബീറ","ml":"എനിക്ക് വലിയ സന്തോഷം തോന്നുന്നു"},{"ar":"الْحَمْدُ لِلّٰهِ أَنَا فَخُورٌ وَسَعِيدٌ جِدًّا بِهٰذَا الْإِنْجَازِ","tr":"അൽഹംദുലില്ലാഹ് അനാ ഫഖൂറുൻ വ സഈദുൻ ജിദ്ദൻ ബിഹാദൽ ഇൻജാസ്","ml":"അൽഹംദുലില്ലാഹ്, ഈ നേട്ടത്തിൽ എനിക്ക് വലിയ അഭിമാനവും സന്തോഷവുമുണ്ട്"},{"ar":"أَشْعُرُ بِفَرَحٍ عَظِيمٍ لِأَنَّنِي أَتْمَمْتُ خَمْسًا وَثَلَاثِينَ وَحْدَةً مِنَ الْعَرَبِيَّةِ","tr":"അശ്ഉറു ബിഫറഹിൻ അളീമിൻ ലിഅന്നനീ അത്മംതു ഖംസൻ വ ഥലാഥീന വഹ്ദതൻ മിനൽ അറബിയ്യ","ml":"അറബിയിലെ 35 യൂണിറ്റുകൾ പൂർത്തിയാക്കിയതിനാൽ എനിക്ക് അതിയായ സന്തോഷം തോന്നുന്നു"}]},{"characterAr":"لَوْ سَأَلَكَ أَحَدٌ: كَمْ دَرْسًا أَوْ كِتَابًا قَرَأْتَ؟ اسْتَعْمِلْ عَدَدًا وَمَعْدُودًا!","characterTr":"ലൗ സഅലക അഹദുൻ: കം ദർസൻ ഔ കിതാബൻ ഖറഅ്ത? ഇസ്തഅ്മിൽ അദദൻ വ മഅ്ദൂദൻ!","characterMl":"നിങ്ങൾ എത്ര പാഠങ്ങളോ പുസ്തകങ്ങളോ വായിച്ചെന്ന് ചോദിച്ചാൽ അറബി സംഖ്യയും മഅ്ദൂദും ഉപയോഗിച്ച് പറയൂ!","reactionAr":"إِعْرَابٌ سَلِيمٌ وَإِنْجَازٌ عَظِيمٌ!","suggestedReplies":[{"ar":"عِشْرِينَ دَرْسًا","tr":"ഇശ്‌രീന ദർസൻ","ml":"ഇരുപത് പാഠങ്ങൾ"},{"ar":"قَرَأْتُ خَمْسَةَ عَشَرَ كِتَابًا وَعِشْرِينَ قِصَّةً","tr":"ഖറഅ്തു ഖംസത്ത അശറ കിതാബൻ വ ഇശ്‌രീന ഖിസ്സ്വ","ml":"ഞാൻ പതിനഞ്ച് പുസ്തകങ്ങളും ഇരുപത് കഥകളും വായിച്ചു"},{"ar":"دَرَسْتُ مِائَةَ كَلِمَةٍ جَدِيدَةٍ وَأَتْمَمْتُ خَمْسًا وَثَلَاثِينَ وَحْدَةً بِالْكَامِلِ","tr":"ദറസ്തു മിഅത കലിമത്തിൻ ജദീദത്തിൻ വ അത്മംതു ഖംസൻ വ ഥലാഥീന വഹ്ദതൻ ബിൽകാമിൽ","ml":"ഞാൻ നൂറ് പുതിയ വാക്കുകൾ പഠിക്കുകയും മുപ്പത്തഞ്ച് യൂണിറ്റുകൾ പൂർണ്ണമായി തീർക്കുകയും ചെയ്തു"}]},{"characterAr":"مَا أَجْمَلُ دَرْسٍ تَعَلَّمْتَهُ خِلَالَ هٰذِهِ الرِّحْلَةِ الطَّوِيلَةِ؟","characterTr":"മാ അജ്മലു ദർസിൻ തഅല്ലംതഹു ഖിലാല ഹാദിഹിർരിഹ്‌ലത്തിത്ത്വവീല?","characterMl":"ഈ നീണ്ട പഠനയാത്രയ്ക്കിടയിൽ നിങ്ങൾക്ക് ഏറ്റവും ഇഷ്ടപ്പെട്ട പാഠം ഏതായിരുന്നു?","reactionAr":"ذِكْرَيَاتٌ لَا تُنْسَى!","suggestedReplies":[{"ar":"الْقَصَصُ وَالْمُكَالَمَاتُ","tr":"അൽഖിസ്വസ്വു വൽമുകാലമാത്ത്","ml":"കഥകളും വീഡിയോ കോളുകളും"},{"ar":"أَحْبَبْتُ قَصَصَ الْمُحَادَثَةِ وَمُكَالَمَاتِ الْفِيدْيُو كَثِيرًا","tr":"അഹ്ബബ്തു ഖിസ്വസ്വൽ മുഹാദഥത്തി വ മുകാലമാത്തിൽ ഫീദ്‌യൂ കഥീറൻ","ml":"സംഭാഷണ കഥകളും വീഡിയോ കോളുകളും എനിക്ക് വളരെ ഇഷ്ടമായി"},{"ar":"كُلُّ الْوَحَدَاتِ جَمِيلَةٌ وَخَاصَّةً التَّحَدُّثُ بِالْعَرَبِيَّةِ وَفَهْمُ الْقَوَاعِدِ الْأَسَاسِيَّةِ","tr":"കുല്ലുൽ വഹദാത്തി ജമീലത്തുൻ വ ഖാസ്സ്വത്തനത്തഹദ്ദുഥു ബിൽഅറബിയ്യത്തി വ ഫഹ്മുൽ ഖവാഇദിൽ അസാസിയ്യ","ml":"എല്ലാ യൂണിറ്റുകളും മനോഹരമായിരുന്നു, പ്രത്യേകിച്ച് അറബി സംസാരിക്കലും അടിസ്ഥാന വ്യാകരണം മനസ്സിലാക്കലും"}]},{"characterAr":"كَيْفَ سَتَسْتَخْدِمُ اللُّغَةَ الْعَرَبِيَّةَ فِي حَيَاتِكَ بَعْدَ الْيَوْمِ؟","characterTr":"കൈഫ സതസ്തഖ്ദിമുല്ലുഗതൽ അറബിയ്യത്ത ഫീ ഹയാതിക ബഅ്ദൽ യൗം?","characterMl":"ഇനി മുതൽ നിങ്ങളുടെ ജീവിതത്തിൽ അറബി ഭാഷ എങ്ങനെയൊക്കെയാണ് ഉപയോഗിക്കുക?","reactionAr":"بَارَكَ اللّٰهُ فِي عِلْمِكَ وَعَمَلِكَ!","suggestedReplies":[{"ar":"فِي الْقِرَاءَةِ وَالسَّفَرِ","tr":"ഫിൽ ഖിറാഅത്തി വസ്സഫർ","ml":"വായനയിലും യാത്രയിലും"},{"ar":"سَأَتَحَدَّثُ بِهَا مَعَ أَصْدِقَائِي وَأَقْرَأُ الْكُتُبَ الْعَرَبِيَّةَ","tr":"സഅതഹദ്ദഥു ബിഹാ മഅ അസ്വ്ദിഖാഈ വ അഖ്റഉൽ കുതുബൽ അറബിയ്യ","ml":"സുഹൃത്തുക്കളോട് സംസാരിക്കാനും അറബി പുസ്തകങ്ങൾ വായിക്കാനും ഉപയോഗിക്കും"},{"ar":"سَأَسْتَخْدِمُ الْعَرَبِيَّةَ فِي فَهْمِ الْقُرْآنِ وَالتَّوَاصُلِ فِي الْعَمَلِ وَتَعْلِيمِ الْآخَرِينَ","tr":"സഅസ്തഖ്ദിമുൽ അറബിയ്യത്ത ഫീ ഫഹ്മിൽ ഖുർആനി വത്തവാസുലി ഫിൽ അമലി വ തഅ്ലീമിൽ ആഖരീൻ","ml":"ഖുർആൻ മനസ്സിലാക്കാനും ജോലിയിലെ ആശയവിനിമയത്തിനും മറ്റുള്ളവരെ പഠിപ്പിക്കാനും അറബി ഉപയോഗിക്കും"}]},{"characterAr":"مُبَارَكٌ تَخَرُّجُكَ! أَنْتَ الْآنَ مُتَحَدِّثٌ بَارِعٌ بِالْعَرَبِيَّةِ. كَلِمَةٌ أَخِيرَةٌ؟","characterTr":"മുബാറകുൻ തഖർറുജുക! അൻതൽ ആന മുതഹദ്ദിഥുൻ ബാരിഉൻ ബിൽഅറബിയ്യ. കലിമത്തുൻ അഖീറ?","characterMl":"പഠനം പൂർത്തിയാക്കിയതിന് ഹൃദയം നിറഞ്ഞ അഭിനന്ദനങ്ങൾ! നിങ്ങൾ ഇപ്പോൾ മിടുക്കനായ അറബി സംഭാഷകനാണ്. അവസാനമായി ഒരു വാക്ക്?","reactionAr":"وَعَلَيْكُمُ السَّلَامُ وَرَحْمَةُ اللّٰهِ! إِلَى الْأَمَامِ دَائِمًا!","suggestedReplies":[{"ar":"الْحَمْدُ لِلّٰهِ وَشُكْرًا","tr":"അൽഹംദുലില്ലാഹി വ ശുക്റൻ","ml":"അൽഹംദുലില്ലാഹ്, നന്ദി"},{"ar":"شُكْرًا جَزِيلًا يَا طَارِقُ وَيَا لَيْلَى عَلَى هٰذِهِ الرِّحْلَةِ","tr":"ശുക്റൻ ജസീലൻ യാ ത്വാരിഖു വ യാ ലൈല അലാ ഹാദിഹിർരിഹ്‌ല","ml":"ഈ യാത്രയ്ക്ക് താരിഖിനും ലൈലയ്ക്കും വളരെ നന്ദി"},{"ar":"الْحَمْدُ لِلّٰهِ الَّذِي بِنِعْمَتِهِ تَتِمُّ الصَّالِحَاتُ شُكْرًا لَكُمْ جَمِيعًا وَالسَّلَامُ عَلَيْكُمْ","tr":"അൽഹംദുലില്ലാഹില്ലദീ ബിനിഅ്മത്തിഹി തതിമ്മുസ്സ്വാലിഹാത്തു ശുക്റൻ ലക്കും ജമീഅൻ വസ്സലാമു അലൈക്കും","ml":"അനുഗ്രഹത്താൽ സൽക്കർമ്മങ്ങൾ പൂർത്തിയാകുന്ന അല്ലാഹുവിന് സ്തുതി! എല്ലാവർക്കും നന്ദി, അസ്സലാമു അലൈക്കും"}]}]}};
+
     function expandUnitsToEightNodes(baseUnits) {
       const cloneQs = qs => JSON.parse(JSON.stringify(qs));
       return baseUnits.map(unit => {
         const pack = UNIT_EXPANSION_PACKS[unit.id];
         const fillBlanks = UNIT_FILL_BLANK_QUESTIONS[unit.id];
         const story = UNIT_STORIES[unit.id] || null;
+        const videoCall = unit.number >= 15 ? (UNIT_VIDEO_CALLS[unit.id] || null) : null;
         const [base1, base2, base3] = unit.lessons;
         const allBase = unit.lessons.flatMap(l => l.questions);
         const listens = allBase.filter(q => q.type === "listen");
@@ -3434,6 +3597,7 @@
             { id: `${unit.id}_n4`, title: "നിധിപ്പെട്ടി · ബോണസ്", subtitle: "+25 XP · +1 ❤️", icon: "🎁", nodeType: "chest", xpReward: TREASURE_CHEST_XP, heartReward: TREASURE_CHEST_HEARTS, questions: [] },
             { id: `${unit.id}_n5`, title: story?.titleMl || pack?.dialogueTitle || "നിത്യോപയോഗ സംഭാഷണം", subtitle: "കഥ / Story", icon: "📖", nodeType: "story", xpReward: 15, story, questions: cloneQs(dialogueNodeQuestions) },
             { id: `${unit.id}_n6`, title: pack?.listeningTitle || "അറബിക് റേഡിയോ & ശ്രവണം", subtitle: "പോഡ്കാസ്റ്റ് & ശ്രവണം", icon: "🎧", nodeType: "listening", xpReward: 20, questions: cloneQs(listeningQuestions) },
+            ...(videoCall ? [{ id: `${unit.id}_vc`, title: videoCall.sceneTitleMl, subtitle: `വീഡിയോ കോൾ · ${videoCall.characterNameMl}`, icon: "📹", nodeType: "video_call", xpReward: 15, videoCall, questions: [] }] : []),
             { id: `${unit.id}_n7`, title: pack?.hardTitle || "കഠിന പരിശീലനം", subtitle: "മിക്സഡ് വെല്ലുവിളി", icon: "⚡", nodeType: "hard", xpReward: 20, questions: cloneQs(hardQuestions) },
             { id: `${unit.id}_n8`, title: pack?.trophyTitle || `യൂണിറ്റ് ${unit.number} ട്രോഫി പരീക്ഷ`, subtitle: "അടുത്ത യൂണിറ്റ് അൺലോക്ക്", icon: "🏆", nodeType: "trophy", xpReward: 25, questions: cloneQs(trophyQuestions) }
           ]
@@ -3455,8 +3619,15 @@
     ];
 
     // ================= STATE =================
+    if ("scrollRestoration" in history) {
+      try { history.scrollRestoration = "manual"; } catch (e) {}
+    }
     const STORAGE_KEY = "arabic_ml_app_state_v3";
+    const VALID_APP_TABS = ["path", "alphabet", "leaderboard", "profile"];
     const STORY_XP_REWARD = 15;
+    const VIDEO_CALL_BASE_XP = 15;
+    const VIDEO_CALL_XP_PER_WORD = 2;
+    const VIDEO_CALL_MAX_BONUS_XP = 35;
     const REVIEW_XP_REWARD = 5;
     const LEGENDARY_XP_REWARD = 40;
     const LEGENDARY_HEARTS = 3;
@@ -3465,7 +3636,8 @@
 
     let userState = {
       uid: null, name: "", avatar: "🧕", xp: 0, streak: 1, hearts: 5,
-      completedLessons: [], legendaryLessons: [], lastActiveDate: new Date().toDateString(), soundEnabled: true
+      completedLessons: [], legendaryLessons: [], lastActiveDate: new Date().toDateString(),
+      soundEnabled: true, activeTab: "path", currentUnitId: "u1"
     };
     let activeSession = {
       mode: "lesson", variant: "standard", hideTranslit: false, lessonId: null, lessonRef: null,
@@ -3476,6 +3648,7 @@
     };
     let activePopoverNodeId = null;
     let activeStorySession = null;
+    let activeVideoCallSession = null;
     let currentVowel = "base";
     let selectedAlpha = ARABIC_ALPHABET[0];
 
@@ -3602,6 +3775,7 @@
       if (!cleaned) return "";
 
       const tokens = cleaned.split(/\s+/);
+      const isMultiWord = tokens.length > 1;
       const lastIdx = tokens.length - 1;
       const wordRegex =
         /^([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)([\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]+)([^\u0621-\u065F\u0670-\u06D3\u06D5-\u06ED]*)$/;
@@ -3620,33 +3794,38 @@
           .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "")
           .replace(/[أإآٱ]/g, "ا");
 
-        const nextToken = idx + 1 < tokens.length ? tokens[idx + 1] : null;
-        const nextMatch = !trailPunct && nextToken ? nextToken.match(wordRegex) : null;
-        const prepPrefix = WASL_PREP_PREFIXES[bare] ?? (core === "مِنَ" ? "مِنَ" : undefined);
+        // Multi-word sentences only: Hamzat al-Wasl elision across preposition + definite noun
+        if (isMultiWord) {
+          const nextToken = idx + 1 < tokens.length ? tokens[idx + 1] : null;
+          const nextMatch = !trailPunct && nextToken ? nextToken.match(wordRegex) : null;
+          const prepPrefix = WASL_PREP_PREFIXES[bare] ?? (core === "مِنَ" ? "مِنَ" : undefined);
 
-        if (prepPrefix && nextMatch && !nextMatch[1]) {
-          const nextCore = nextMatch[2];
-          const nextTrail = nextMatch[3];
-          const nextBare = nextCore.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "");
-          if (!ALLAH_BARE_FORMS.has(nextBare) && /^ا[\u064E]?ل/.test(nextCore)) {
-            const formattedNext = formatSingleArabicToken(nextCore, idx + 1 === lastIdx);
-            const elidedNext = formattedNext.replace(/^ا[\u064E]?/, "");
-            formattedTokens.push(`${leadPunct}${prepPrefix}${elidedNext}${nextTrail}`);
-            idx += 1;
-            continue;
+          if (prepPrefix && nextMatch && !nextMatch[1]) {
+            const nextCore = nextMatch[2];
+            const nextTrail = nextMatch[3];
+            const nextBare = nextCore.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "");
+            if (!ALLAH_BARE_FORMS.has(nextBare) && /^ا[\u064E]?ل/.test(nextCore)) {
+              const formattedNext = formatSingleArabicToken(nextCore, idx + 1 === lastIdx);
+              const elidedNext = formattedNext.replace(/^ا[\u064E]?/, "");
+              formattedTokens.push(`${leadPunct}${prepPrefix}${elidedNext}${nextTrail}`);
+              idx += 1;
+              continue;
+            }
           }
         }
 
-        const formattedWord = formatSingleArabicToken(core, idx === lastIdx);
+        // Single-word taps keep exact final Harakat ("Al-masjidu"); full multi-word sentences apply end-of-sentence pausal Sukoon (Al-Waqf)
+        const formattedWord = formatSingleArabicToken(core, isMultiWord && idx === lastIdx);
         formattedTokens.push(`${leadPunct}${formattedWord}${trailPunct}`);
       }
 
       return formattedTokens.join(" ");
     }
 
+    const PRIMARY_ARABIC_VOICE_ID = "ar-SA-HamedNeural";
+
     function buildArabicAudioSources(text) {
       const cleaned = text.trim();
-      const ttsText = formatForArabicTTS(cleaned);
       const sources = [];
       const letterMp3 = getArabicLetterAudioUrl(cleaned);
       if (letterMp3) {
@@ -3657,34 +3836,38 @@
           sources.push({ url: duaMp3, crossOrigin: true, provider: "hisnmuslim" });
         }
       }
-      sources.push({
-        url: `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(ttsText)}`,
-        crossOrigin: true,
-        provider: "streamelements"
-      });
-      sources.push({
-        url: `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(ttsText)}&le=ar`,
-        crossOrigin: false,
-        provider: "youdao"
-      });
       return sources;
+    }
+
+    function isHamedNeuralVoice(voice) {
+      if (!voice) return false;
+      const lang = String(voice.lang || "").toLowerCase();
+      const name = String(voice.name || "").toLowerCase();
+      const uri = String(voice.voiceURI || "").toLowerCase();
+      return (
+        lang.startsWith("ar") &&
+        (/hamed/.test(name) || /hamed/.test(uri) || uri.includes("ar-sa-hamedneural"))
+      );
     }
 
     function scoreArabicVoice(voice) {
       const lang = (voice && voice.lang ? voice.lang : "").toLowerCase();
       if (!lang.startsWith("ar")) return -1;
       const name = (voice && voice.name ? voice.name : "").toLowerCase();
+      const uri = (voice && voice.voiceURI ? voice.voiceURI : "").toLowerCase();
+
+      if (isHamedNeuralVoice(voice)) {
+        let score = 1000;
+        if (lang === "ar-sa") score += 100;
+        if (/natural|neural|online/.test(name) || /neural/.test(uri)) score += 60;
+        return score;
+      }
 
       let score = 10;
-      if (/hamed/.test(name)) score += 120;
-      else if (/maged|majed|tariq/.test(name)) score += 95;
-      else if (/zariyah|salma|shakir|laith|rana|hamdan|fadwa|jamal|bassel|mouna|amany|omar|laila/.test(name)) score += 80;
-
-      if (/natural|neural|online|wavenet|studio|enhanced|premium/.test(name)) score += 50;
-      if (/google/.test(name)) score += 55;
-      if (lang === "ar-sa") score += 25;
-      else if (lang.startsWith("ar-ae") || lang.startsWith("ar-eg") || lang.startsWith("ar-001")) score += 15;
-      if (/espeak|eloquence|compact/.test(name)) score -= 40;
+      if (lang === "ar-sa") score += 60;
+      else if (lang.startsWith("ar-ae") || lang.startsWith("ar-eg") || lang.startsWith("ar-001")) score += 20;
+      if (/natural|neural|online|google|enhanced|premium/.test(name)) score += 35;
+      if (/espeak|eloquence|compact/.test(name)) score -= 25;
       return Math.max(1, score);
     }
 
@@ -3702,7 +3885,7 @@
     }
 
     function isPremiumNeuralArabicVoice(voice) {
-      return Boolean(voice && scoreArabicVoice(voice) >= 65);
+      return isHamedNeuralVoice(voice);
     }
 
     function buildFilledSentence(sentence, word) {
@@ -4180,18 +4363,51 @@
       return Array.from(out);
     }
 
+    function normalizeAppTab(tab) {
+      return VALID_APP_TABS.includes(tab) ? tab : "path";
+    }
+
+    function resolveCurrentUnitIdFromCompleted(completedIds) {
+      const completedSet = new Set(Array.isArray(completedIds) ? completedIds : []);
+      for (const u of UNITS) {
+        if (u.lessons.some(l => !completedSet.has(l.id))) return u.id;
+      }
+      return UNITS[UNITS.length - 1]?.id || "u1";
+    }
+
+    function persistLocalStateSync() {
+      userState.activeTab = normalizeAppTab(userState.activeTab);
+      if (!userState.currentUnitId) {
+        userState.currentUnitId = resolveCurrentUnitIdFromCompleted(userState.completedLessons);
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(userState));
+      } catch (e) {}
+    }
+
     function loadLocalState() {
       const autostart = new URLSearchParams(window.location.search).get("autostart") === "1";
-      const saved = localStorage.getItem(STORAGE_KEY);
+      let saved = null;
+      try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) {}
       if (saved) {
-        userState = { ...userState, ...JSON.parse(saved) };
+        try {
+          userState = { ...userState, ...JSON.parse(saved) };
+        } catch (e) {}
         userState.completedLessons = migrateLegacyCompletedIds(userState.completedLessons);
         userState.legendaryLessons = Array.isArray(userState.legendaryLessons) ? userState.legendaryLessons : [];
+        userState.activeTab = normalizeAppTab(userState.activeTab);
+        const validUnitIds = new Set(UNITS.map(u => u.id));
+        if (!validUnitIds.has(userState.currentUnitId)) {
+          userState.currentUnitId = resolveCurrentUnitIdFromCompleted(userState.completedLessons);
+        }
         checkStreak();
         return Boolean(userState.name);
       }
       if (autostart) {
         userState.name = "അഹമ്മദ്";
+        userState.activeTab = "path";
+        userState.currentUnitId = resolveCurrentUnitIdFromCompleted(userState.completedLessons);
+        persistLocalStateSync();
         return true;
       }
       return false;
@@ -4204,12 +4420,13 @@
         userState.streak = userState.lastActiveDate === yesterday ? userState.streak + 1 : 1;
         userState.hearts = 5;
         userState.lastActiveDate = today;
-        saveState();
+        persistLocalStateSync();
       }
     }
 
     async function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(userState));
+      userState.currentUnitId = resolveCurrentUnitIdFromCompleted(userState.completedLessons);
+      persistLocalStateSync();
       updateStatsUI();
       if (db && fbApi && userState.uid && userState.name) {
         try {
@@ -4218,6 +4435,8 @@
             streak: userState.streak, hearts: userState.hearts,
             completedLessons: userState.completedLessons,
             legendaryLessons: userState.legendaryLessons || [],
+            currentUnitId: userState.currentUnitId,
+            activeTab: userState.activeTab,
             lastActiveDate: userState.lastActiveDate, updatedAt: new Date().toISOString()
           }, { merge: true });
         } catch (err) {
@@ -4225,6 +4444,12 @@
         }
       }
     }
+
+    window.addEventListener("pagehide", persistLocalStateSync);
+    window.addEventListener("beforeunload", persistLocalStateSync);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") persistLocalStateSync();
+    });
 
     async function syncCloudProgressFromFirestore(uid) {
       if (!db || !fbApi || !uid) return false;
@@ -4254,7 +4479,8 @@
           userState.streak = nextStreak;
           if (!userState.name && cloud.name) userState.name = cloud.name;
           if (cloud.avatar && !userState.avatar) userState.avatar = cloud.avatar;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(userState));
+          userState.currentUnitId = resolveCurrentUnitIdFromCompleted(mergedCompleted);
+          persistLocalStateSync();
           renderLearningPath();
           updateStatsUI();
           const nextActiveId = getActiveNodeTargetId();
@@ -4452,6 +4678,10 @@
       if (jumpBtn) {
         jumpBtn.dataset.jumpUnit = String(uIdx);
         jumpBtn.classList.toggle("hidden", isUnitUnlocked);
+      }
+      if (userState.currentUnitId !== unit.id) {
+        userState.currentUnitId = unit.id;
+        persistLocalStateSync();
       }
       const guideBtn = document.getElementById("sticky-guidebook-btn");
       if (guideBtn) {
@@ -4659,10 +4889,12 @@
           const isChest = lesson.nodeType === "chest";
           const isTrophy = lesson.nodeType === "trophy";
           const isStory = lesson.nodeType === "story";
+          const isVideoCall = lesson.nodeType === "video_call";
           const isPopoverOpen = isCompleted && !isChest && activePopoverNodeId === lesson.id;
+          const curveClass = unit.lessons.length >= 9 ? `path-node-9-${nIdx % 9}` : `path-node-${nIdx % 8}`;
 
           const wrap = document.createElement("div");
-          wrap.className = `relative flex flex-col items-center path-node-${nIdx} ${isPopoverOpen ? "z-30" : ""}`;
+          wrap.className = `relative flex flex-col items-center ${curveClass} ${isPopoverOpen ? "z-30" : ""}`;
           wrap.dataset.nodeId = lesson.id;
           wrap.dataset.nodeType = lesson.nodeType || "lesson";
           if (lesson.id === activeNodeId) wrap.dataset.activeNode = "true";
@@ -4670,15 +4902,15 @@
 
           if (isCurrent) {
             const tip = document.createElement("div");
-            tip.className = `animate-bounce-slow mb-2 bg-white font-extrabold text-xs px-3.5 py-1 rounded-xl border-2 border-slate-200 shadow-sm ${isChest ? "text-amber-600" : isStory ? "text-emerald-700" : "text-[#357A00]"}`;
-            tip.textContent = isChest ? "തുറക്കുക! 🎁" : isStory ? "കഥ വായിക്കാം! 📖" : isTrophy ? "ട്രോഫി പരീക്ഷ!" : "തുടങ്ങുക";
+            tip.className = `animate-bounce-slow mb-2 bg-white font-extrabold text-xs px-3.5 py-1 rounded-xl border-2 border-slate-200 shadow-sm ${isChest ? "text-amber-600" : isVideoCall ? "text-[#0284C7]" : isStory ? "text-emerald-700" : "text-[#357A00]"}`;
+            tip.textContent = isChest ? "തുറക്കുക! 🎁" : isVideoCall ? "📹 വീഡിയോ കോൾ" : isStory ? "കഥ വായിക്കാം! 📖" : isTrophy ? "ട്രോഫി പരീക്ഷ!" : "തുടങ്ങുക";
             wrap.appendChild(tip);
           }
 
           const btn = document.createElement("button");
           btn.type = "button";
           btn.disabled = !isUnlocked;
-          btn.setAttribute("aria-label", `${lesson.title} — ${isLegendary ? "ലെജൻഡറി പൂർത്തിയായി" : isCompleted ? "പൂർത്തിയായി" : isCurrent ? (isChest ? "നിധിപ്പെട്ടി തുറക്കുക" : isStory ? "കഥ തുറക്കുക" : "ഇപ്പോൾ തുടങ്ങുക") : "ലോക്ക് ചെയ്തിരിക്കുന്നു"}`);
+          btn.setAttribute("aria-label", `${lesson.title} — ${isLegendary ? "ലെജൻഡറി പൂർത്തിയായി" : isCompleted ? "പൂർത്തിയായി" : isCurrent ? (isChest ? "നിധിപ്പെട്ടി തുറക്കുക" : isVideoCall ? "വീഡിയോ കോൾ തുടങ്ങുക" : isStory ? "കഥ തുറക്കുക" : "ഇപ്പോൾ തുടങ്ങുക") : "ലോക്ക് ചെയ്തിരിക്കുന്നു"}`);
           if (isCompleted && !isChest) {
             btn.setAttribute("aria-expanded", String(isPopoverOpen));
           }
@@ -4704,13 +4936,15 @@
                 : isCompleted
                   ? "bg-[#FFC800] border-[#E5A400] text-white"
                   : isCurrent
-                    ? `${unit.color} ${unit.borderColor} text-white ring-8 ring-slate-200/80`
+                    ? isVideoCall
+                      ? "bg-gradient-to-b from-[#0EA5E9] to-[#0284C7] border-[#0369A1] text-white ring-8 ring-sky-200/85"
+                      : `${unit.color} ${unit.borderColor} text-white ring-8 ring-slate-200/80`
                     : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
             }`;
             btn.innerHTML = isLegendary
               ? `<span aria-hidden="true" class="drop-shadow-sm">👑</span><span aria-hidden="true" class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-400 border-2 border-white text-purple-950 text-xs font-extrabold flex items-center justify-center">★</span>`
               : isCompleted
-                ? `<span aria-hidden="true">${isTrophy ? "🏆" : isStory ? "📖" : "⭐"}</span><span aria-hidden="true" class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#58CC02] border-2 border-white text-white text-xs font-extrabold flex items-center justify-center">✓</span>`
+                ? `<span aria-hidden="true">${isTrophy ? "🏆" : isVideoCall ? "📹" : isStory ? "📖" : "⭐"}</span><span aria-hidden="true" class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#58CC02] border-2 border-white text-white text-xs font-extrabold flex items-center justify-center">✓</span>`
                 : isUnlocked
                   ? `<span aria-hidden="true">${lesson.icon}</span>`
                   : `<span aria-hidden="true" class="opacity-55 grayscale">${lesson.icon}</span><span aria-hidden="true" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-300 border-2 border-white text-slate-600 text-[11px] flex items-center justify-center">🔒</span>`;
@@ -4726,6 +4960,9 @@
               } else if (isCompleted) {
                 activePopoverNodeId = activePopoverNodeId === lesson.id ? null : lesson.id;
                 renderLearningPath();
+              } else if (isVideoCall) {
+                activePopoverNodeId = null;
+                startVideoCall(lesson);
               } else if (isStory) {
                 activePopoverNodeId = null;
                 startStory(lesson);
@@ -4741,7 +4978,7 @@
           lbl.textContent = lesson.title;
 
           const subLbl = document.createElement("span");
-          subLbl.className = `text-[11px] font-semibold text-center ${isLegendary ? "text-amber-600 font-extrabold" : isChest && isUnlocked && !isCompleted ? "text-amber-600" : "text-slate-400"}`;
+          subLbl.className = `text-[11px] font-semibold text-center ${isLegendary ? "text-amber-600 font-extrabold" : isChest && isUnlocked && !isCompleted ? "text-amber-600" : isVideoCall && isUnlocked ? "text-[#0284C7] font-bold" : "text-slate-400"}`;
           subLbl.textContent = isLegendary ? "👑 ലെജൻഡറി മാസ്റ്റർ" : isChest && isCompleted ? "ലഭിച്ചു · +25 XP" : (lesson.subtitle || "");
 
           wrap.appendChild(btn);
@@ -4766,6 +5003,11 @@
                 <button type="button" class="popover-close-btn w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 font-bold text-sm flex items-center justify-center shrink-0" aria-label="അടയ്ക്കുക">✕</button>
               </div>
               <div class="space-y-2.5">
+                ${isVideoCall ? `
+                <button type="button" data-testid="popover-videocall-btn" class="popover-videocall-btn btn-3d w-full py-3 px-4 rounded-2xl bg-[#0284C7] border-b-4 border-[#0369A1] text-white font-extrabold text-xs sm:text-sm flex items-center justify-between gap-2">
+                  <span class="whitespace-nowrap">📹 വീണ്ടും വിളിക്കുക</span>
+                  <span class="font-latin text-xs bg-white/20 px-2.5 py-0.5 rounded-lg whitespace-nowrap shrink-0">+15–50 XP</span>
+                </button>` : `
                 <button type="button" data-testid="popover-review-btn" class="popover-review-btn btn-3d w-full py-3 px-4 rounded-2xl bg-[#1CB0F6] border-b-4 border-[#1899D6] text-white font-extrabold text-xs sm:text-sm flex items-center justify-between gap-2">
                   <span class="whitespace-nowrap">🔄 REVIEW · റിവ്യൂ (5)</span>
                   <span class="font-latin text-xs bg-white/20 px-2.5 py-0.5 rounded-lg whitespace-nowrap shrink-0">+5 XP</span>
@@ -4777,23 +5019,37 @@
                 ${isStory ? `
                 <button type="button" data-testid="popover-story-btn" class="popover-story-btn btn-3d w-full py-2.5 px-4 rounded-2xl bg-emerald-50 border-2 border-b-4 border-emerald-200 text-emerald-800 font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-100">
                   <span>📖 കഥ വീണ്ടും വായിക്കാം</span>
-                </button>` : ""}
+                </button>` : ""}`}
               </div>`;
             pop.querySelector(".popover-close-btn").addEventListener("click", () => {
               playTone("tap");
               activePopoverNodeId = null;
               renderLearningPath();
             });
-            pop.querySelector(".popover-review-btn").addEventListener("click", () => {
-              playTone("tap");
-              activePopoverNodeId = null;
-              startReviewLesson(lesson);
-            });
-            pop.querySelector(".popover-legendary-btn").addEventListener("click", () => {
-              playTone("tap");
-              activePopoverNodeId = null;
-              startLegendaryLesson(lesson);
-            });
+            const vcReplayBtn = pop.querySelector(".popover-videocall-btn");
+            if (vcReplayBtn) {
+              vcReplayBtn.addEventListener("click", () => {
+                playTone("tap");
+                activePopoverNodeId = null;
+                startVideoCall(lesson);
+              });
+            }
+            const revBtn = pop.querySelector(".popover-review-btn");
+            if (revBtn) {
+              revBtn.addEventListener("click", () => {
+                playTone("tap");
+                activePopoverNodeId = null;
+                startReviewLesson(lesson);
+              });
+            }
+            const legBtn = pop.querySelector(".popover-legendary-btn");
+            if (legBtn) {
+              legBtn.addEventListener("click", () => {
+                playTone("tap");
+                activePopoverNodeId = null;
+                startLegendaryLesson(lesson);
+              });
+            }
             const storyReplayBtn = pop.querySelector(".popover-story-btn");
             if (storyReplayBtn) {
               storyReplayBtn.addEventListener("click", () => {
@@ -5260,7 +5516,7 @@
       };
       (unit.guidebook || []).forEach(g => pushCandidate(g.ar, g.tr, g.ml));
       (unit.lessons || []).forEach(l => {
-        if (l.nodeType === "chest") return;
+        if (l.nodeType === "chest" || l.nodeType === "video_call") return;
         (l.questions || []).forEach(q => {
           if (q.type === "pairs") {
             (q.pairs || []).forEach(p => pushCandidate(p.ar, p.tr, p.ml));
@@ -5296,7 +5552,7 @@
       };
       (unit.guidebook || []).forEach(g => pushCandidate(g.ar, g.tr, g.ml));
       (unit.lessons || []).forEach(l => {
-        if (l.nodeType === "chest") return;
+        if (l.nodeType === "chest" || l.nodeType === "video_call") return;
         (l.questions || []).forEach(q => {
           if (q.type === "pairs") {
             (q.pairs || []).forEach(p => pushCandidate(p.ar, p.tr, p.ml));
@@ -5342,7 +5598,7 @@
           const earlierUnit = units[i];
           if (!earlierUnit.lessons.some(l => completedSet.has(l.id))) continue;
           earlierUnit.lessons.forEach(l => {
-            if (l.nodeType === "chest" || !Array.isArray(l.questions)) return;
+            if (l.nodeType === "chest" || l.nodeType === "video_call" || !Array.isArray(l.questions)) return;
             l.questions.forEach(q => earlierPool.push(q));
           });
         }
@@ -5361,7 +5617,7 @@
       const siblingHandcrafted = [];
       if (unit) {
         unit.lessons.forEach(sibling => {
-          if (sibling.id === lesson.id || sibling.nodeType === "chest") return;
+          if (sibling.id === lesson.id || sibling.nodeType === "chest" || sibling.nodeType === "video_call") return;
           (sibling.questions || []).forEach(q => siblingHandcrafted.push(q));
         });
       }
@@ -5373,7 +5629,7 @@
         units.forEach(u => {
           if (unit && u.id === unit.id) return;
           u.lessons.forEach(l => {
-            if (l.nodeType === "chest") return;
+            if (l.nodeType === "chest" || l.nodeType === "video_call") return;
             (l.questions || []).forEach(q => fallbackPool.push(q));
           });
         });
@@ -5641,6 +5897,7 @@
 
     function startLesson(lesson) {
       if (lesson.nodeType === "chest") { openTreasureChest(lesson); return; }
+      if (lesson.nodeType === "video_call" && lesson.videoCall) { startVideoCall(lesson); return; }
       if (lesson.nodeType === "story" && lesson.story) { startStory(lesson); return; }
       if (userState.hearts <= 0) { document.getElementById("out-of-hearts-modal").classList.remove("hidden"); return; }
       const banner = lesson.nodeType === "trophy" ? "🏆 യൂണിറ്റ് ട്രോഫി പരീക്ഷ — അടുത്ത യൂണിറ്റ് അൺലോക്ക് ചെയ്യാം!" : lesson.nodeType === "hard" ? "⚡ കഠിന പരിശീലനം (+20 XP)" : lesson.nodeType === "listening" ? "🎧 ശ്രവണ വെല്ലുവിളി (+20 XP)" : null;
@@ -5888,7 +6145,7 @@
       const pool = [];
       for (let i = 0; i < targetUnitIndex; i++) {
         UNITS[i].lessons.forEach(l => {
-          if (l.nodeType === "chest" || !Array.isArray(l.questions)) return;
+          if (l.nodeType === "chest" || l.nodeType === "video_call" || !Array.isArray(l.questions)) return;
           l.questions.forEach(q => { if (q.type !== "pairs") pool.push(q); });
         });
       }
@@ -7266,28 +7523,497 @@
     });
     document.getElementById("modal-quit-btn").addEventListener("click", () => { document.getElementById("out-of-hearts-modal").classList.add("hidden"); closeLessonModal(); });
 
-    // ================= NAVIGATION & PROFILE =================
-    function switchTab(tabName) {
-      playTone("tap");
+    // ================= VIDEO CALL ROLEPLAY ENGINE (UNITS 15-35) =================
+    function countSpokenArabicWords(text) {
+      const normalized = normalizeArabicSpeech(text);
+      if (!normalized) return 0;
+      return normalized.split(/\s+/).filter(tok => /[\u0621-\u064A]/.test(tok)).length;
+    }
+
+    function calculateVideoCallXp(totalWords) {
+      const safeWords = Math.max(0, Math.floor(Number(totalWords) || 0));
+      const bonusXp = Math.min(VIDEO_CALL_MAX_BONUS_XP, safeWords * VIDEO_CALL_XP_PER_WORD);
+      return { baseXp: VIDEO_CALL_BASE_XP, bonusXp, totalXp: VIDEO_CALL_BASE_XP + bonusXp, spokenWords: safeWords };
+    }
+
+    function playVideoCallRingChime() {
+      if (!userState.soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const now = audioCtx.currentTime;
+        [523.25, 659.25].forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + i * 0.22);
+          gain.gain.setValueAtTime(0.0001, now + i * 0.22);
+          gain.gain.exponentialRampToValueAtTime(0.06, now + i * 0.22 + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.22 + 0.2);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + i * 0.22);
+          osc.stop(now + i * 0.22 + 0.22);
+        });
+      } catch (e) {}
+    }
+
+    function stopVideoCallRecognition() {
+      if (!activeVideoCallSession) return;
+      const rec = activeVideoCallSession.recognition;
+      activeVideoCallSession.recognition = null;
+      if (rec) {
+        rec.onstart = null; rec.onresult = null; rec.onerror = null; rec.onend = null;
+        try { rec.abort(); } catch (e) {}
+      }
+      activeVideoCallSession.isListening = false;
+    }
+
+    function clearVideoCallTimers() {
+      if (!activeVideoCallSession) return;
+      (activeVideoCallSession.timers || []).forEach(id => clearTimeout(id));
+      activeVideoCallSession.timers = [];
+    }
+
+    function scheduleVcTimer(fn, ms) {
+      if (!activeVideoCallSession) return;
+      const id = setTimeout(fn, ms);
+      activeVideoCallSession.timers.push(id);
+    }
+
+    function speakVideoCallLine(arabicText) {
+      if (!activeVideoCallSession || !arabicText) return;
+      activeVideoCallSession.isCharacterSpeaking = true;
+      renderVideoCallModal();
+      speakArabic(arabicText, 0.96);
+      const est = Math.min(4800, Math.max(1500, arabicText.length * 52));
+      scheduleVcTimer(() => {
+        if (!activeVideoCallSession) return;
+        activeVideoCallSession.isCharacterSpeaking = false;
+        renderVideoCallModal();
+      }, est);
+    }
+
+    function startVideoCall(lesson) {
+      if (!lesson || !lesson.videoCall) return;
       stopArabicAudio();
+      history.pushState({ view: "video_call" }, "");
+      const SpeechCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+      activeVideoCallSession = {
+        lessonId: lesson.id,
+        scenario: lesson.videoCall,
+        stage: "ringing",
+        turnIndex: 0,
+        showSubtitles: false,
+        showSuggestions: !SpeechCtor,
+        isCharacterSpeaking: false,
+        isListening: false,
+        isAdvancing: false,
+        liveTranscript: "",
+        micNote: "",
+        reactionBanner: "",
+        turnRecords: [],
+        recognition: null,
+        timers: []
+      };
+
+      const modal = document.getElementById("video-call-modal");
+      const bgImg = document.getElementById("vc-backdrop-img");
+      const fallbackGrad = document.getElementById("vc-fallback-gradient");
+      fallbackGrad.style.background = lesson.videoCall.characterKey === "tariq"
+        ? "radial-gradient(circle at 50% 25%, #D97706 0%, #7C2D12 52%, #1C1410 100%)"
+        : "radial-gradient(circle at 50% 25%, #EA580C 0%, #9A3412 50%, #1E1310 100%)";
+      bgImg.style.display = "block";
+      bgImg.src = lesson.videoCall.backdropImage || "";
+      modal.classList.remove("hidden");
+      renderVideoCallModal();
+
+      playVideoCallRingChime();
+      scheduleVcTimer(() => {
+        if (activeVideoCallSession && activeVideoCallSession.stage === "ringing") playVideoCallRingChime();
+      }, 950);
+      scheduleVcTimer(() => {
+        if (activeVideoCallSession && activeVideoCallSession.stage === "ringing") {
+          enterActiveVideoCallStage();
+        }
+      }, 2100);
+    }
+
+    function enterActiveVideoCallStage() {
+      if (!activeVideoCallSession) return;
+      clearVideoCallTimers();
+      activeVideoCallSession.stage = "active";
+      renderVideoCallModal();
+      const turn = activeVideoCallSession.scenario.turns[activeVideoCallSession.turnIndex];
+      if (turn) {
+        scheduleVcTimer(() => speakVideoCallLine(turn.characterAr), 220);
+      }
+    }
+
+    function closeVideoCallModal() {
+      clearVideoCallTimers();
+      stopVideoCallRecognition();
+      stopArabicAudio();
+      activeVideoCallSession = null;
+      document.getElementById("video-call-modal").classList.add("hidden");
+      renderLearningPath();
+    }
+
+    function submitVideoCallReply(replyText) {
+      if (!activeVideoCallSession || activeVideoCallSession.isAdvancing) return;
+      const cleaned = String(replyText || "").trim();
+      if (!cleaned) return;
+      const sc = activeVideoCallSession.scenario;
+      const turn = sc.turns[activeVideoCallSession.turnIndex];
+      if (!turn) return;
+
+      stopVideoCallRecognition();
+      const wc = Math.max(1, countSpokenArabicWords(cleaned));
+      playTone("correct");
+      activeVideoCallSession.isAdvancing = true;
+      activeVideoCallSession.liveTranscript = cleaned;
+      activeVideoCallSession.reactionBanner = turn.reactionAr;
+      activeVideoCallSession.turnRecords.push({
+        turnIndex: activeVideoCallSession.turnIndex,
+        characterAr: turn.characterAr,
+        userReplyAr: cleaned,
+        wordCount: wc
+      });
+      renderVideoCallModal();
+      speakVideoCallLine(turn.reactionAr);
+
+      scheduleVcTimer(() => {
+        if (!activeVideoCallSession) return;
+        const nextIdx = activeVideoCallSession.turnIndex + 1;
+        if (nextIdx < sc.turns.length) {
+          activeVideoCallSession.turnIndex = nextIdx;
+          activeVideoCallSession.isAdvancing = false;
+          activeVideoCallSession.liveTranscript = "";
+          activeVideoCallSession.reactionBanner = "";
+          renderVideoCallModal();
+          const nextTurn = sc.turns[nextIdx];
+          if (nextTurn) scheduleVcTimer(() => speakVideoCallLine(nextTurn.characterAr), 200);
+        } else {
+          playTone("complete");
+          activeVideoCallSession.stage = "summary";
+          activeVideoCallSession.isAdvancing = false;
+          renderVideoCallModal();
+        }
+      }, 1450);
+    }
+
+    function toggleVideoCallSpeak() {
+      if (!activeVideoCallSession || activeVideoCallSession.isAdvancing) return;
+      const st = activeVideoCallSession;
+      if (st.isListening) {
+        const captured = (st.liveTranscript || "").trim();
+        stopVideoCallRecognition();
+        renderVideoCallModal();
+        if (captured) submitVideoCallReply(captured);
+        return;
+      }
+
+      const SpeechCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+      if (!SpeechCtor) {
+        st.micNote = "ഈ ബ്രൗസറിൽ മൈക്രോഫോൺ ലഭ്യമല്ല — താഴെയുള്ള അറബി മറുപടികൾ ടാപ്പ് ചെയ്ത് സംസാരിക്കാം.";
+        st.showSuggestions = true;
+        playTone("tap");
+        renderVideoCallModal();
+        return;
+      }
+
+      stopArabicAudio();
+      st.isCharacterSpeaking = false;
+      st.micNote = "";
+      st.liveTranscript = "";
+
+      try {
+        const rec = new SpeechCtor();
+        rec.lang = "ar-SA";
+        rec.continuous = false;
+        rec.interimResults = true;
+        rec.maxAlternatives = 3;
+
+        rec.onstart = () => {
+          if (!activeVideoCallSession) return;
+          activeVideoCallSession.isListening = true;
+          playTone("tap");
+          renderVideoCallModal();
+        };
+        rec.onresult = (ev) => {
+          if (!activeVideoCallSession) return;
+          let combined = "";
+          let hasFinal = false;
+          for (let i = 0; i < ev.results.length; i++) {
+            const item = ev.results[i];
+            if (item && item[0] && item[0].transcript) {
+              combined += (combined ? " " : "") + item[0].transcript.trim();
+            }
+            if (item && item.isFinal) hasFinal = true;
+          }
+          activeVideoCallSession.liveTranscript = combined.trim();
+          renderVideoCallModal();
+          if (hasFinal && combined.trim()) submitVideoCallReply(combined.trim());
+        };
+        rec.onerror = (ev) => {
+          if (!activeVideoCallSession) return;
+          stopVideoCallRecognition();
+          if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+            activeVideoCallSession.micNote = "മൈക്ക് അനുമതി ലഭിച്ചില്ല — താഴെയുള്ള അറബി മറുപടികൾ ടാപ്പ് ചെയ്ത് തുടരാം.";
+          } else {
+            activeVideoCallSession.micNote = "ശബ്ദം തിരിച്ചറിയാൻ കഴിഞ്ഞില്ല — വീണ്ടും 🎤 അമർത്തുകയോ താഴെയുള്ള മറുപടി ടാപ്പ് ചെയ്യുകയോ ചെയ്യൂ.";
+          }
+          activeVideoCallSession.showSuggestions = true;
+          renderVideoCallModal();
+        };
+        rec.onend = () => {
+          if (!activeVideoCallSession) return;
+          const captured = (activeVideoCallSession.liveTranscript || "").trim();
+          activeVideoCallSession.isListening = false;
+          activeVideoCallSession.recognition = null;
+          renderVideoCallModal();
+          if (captured && !activeVideoCallSession.isAdvancing) submitVideoCallReply(captured);
+        };
+        st.recognition = rec;
+        rec.start();
+      } catch (e) {
+        stopVideoCallRecognition();
+        st.micNote = "മൈക്ക് തുടങ്ങാൻ കഴിഞ്ഞില്ല — താഴെയുള്ള അറബി മറുപടികൾ ടാപ്പ് ചെയ്ത് സംസാരിക്കാം.";
+        st.showSuggestions = true;
+        renderVideoCallModal();
+      }
+    }
+
+    function finishVideoCallSession() {
+      if (!activeVideoCallSession) return;
+      const st = activeVideoCallSession;
+      const totalWords = st.turnRecords.reduce((s, r) => s + r.wordCount, 0);
+      const xpStats = calculateVideoCallXp(totalWords);
+      const lessonId = st.lessonId;
+      const sc = st.scenario;
+
+      if (!userState.completedLessons.includes(lessonId)) {
+        userState.completedLessons.push(lessonId);
+      }
+      userState.xp += xpStats.totalXp;
+      saveState();
+
+      clearVideoCallTimers();
+      stopVideoCallRecognition();
+      stopArabicAudio();
+      activeVideoCallSession = null;
+      document.getElementById("video-call-modal").classList.add("hidden");
+
+      document.getElementById("complete-emoji").textContent = "📹";
+      document.getElementById("complete-title").textContent = "വീഡിയോ കോൾ പൂർത്തിയായി!";
+      document.getElementById("complete-subtitle").textContent = `${sc.characterNameMl} (${sc.characterNameEn}) ഉമായി ${xpStats.spokenWords} അറബി വാക്കുകൾ സംസാരിച്ചു! (+${xpStats.baseXp} Base + ${xpStats.bonusXp} Word Bonus XP)`;
+      document.getElementById("complete-xp").textContent = `+${xpStats.totalXp} ⭐`;
+      document.getElementById("complete-streak").textContent = `${userState.streak} 🔥`;
+      document.getElementById("complete-modal").classList.remove("hidden");
+      launchConfetti("confetti-canvas");
+      renderLearningPath();
+    }
+
+    function renderVideoCallModal() {
+      if (!activeVideoCallSession) return;
+      const st = activeVideoCallSession;
+      const sc = st.scenario;
+      const totalTurns = sc.turns.length;
+      const totalWords = st.turnRecords.reduce((s, r) => s + r.wordCount, 0);
+      const xpStats = calculateVideoCallXp(totalWords);
+
+      document.getElementById("vc-stage-ringing").classList.toggle("hidden", st.stage !== "ringing");
+      document.getElementById("vc-stage-active").classList.toggle("hidden", st.stage !== "active");
+      document.getElementById("vc-stage-summary").classList.toggle("hidden", st.stage !== "summary");
+
+      const bgImg = document.getElementById("vc-backdrop-img");
+      if (bgImg) {
+        bgImg.className = st.stage === "ringing"
+          ? "w-full h-full object-cover scale-105 blur-[3px] opacity-55 transition-transform duration-700"
+          : "w-full h-full object-cover scale-100 opacity-90 transition-transform duration-700";
+      }
+
+      if (st.stage === "ringing") {
+        document.getElementById("vc-ring-unit-badge").textContent = `📹 VIDEO CALL · യൂണിറ്റ് ${sc.unitNumber}`;
+        document.getElementById("vc-ring-title").textContent = `Calling ${sc.characterNameEn}...`;
+        document.getElementById("vc-ring-subtitle").textContent = `${sc.characterNameMl} (${sc.characterNameAr}) വിളിക്കുന്നു...`;
+        document.getElementById("vc-ring-setting").textContent = sc.sceneSettingMl;
+        document.getElementById("vc-ring-avatar").textContent = sc.characterAvatar;
+        return;
+      }
+
+      if (st.stage === "active") {
+        const turn = sc.turns[st.turnIndex] || sc.turns[0];
+        const pct = Math.max(12, Math.round(((st.turnIndex + (st.isAdvancing ? 1 : 0)) / Math.max(1, totalTurns)) * 100));
+        document.getElementById("vc-progress-bar").style.width = `${pct}%`;
+        document.getElementById("vc-turn-counter").textContent = `${st.turnIndex + 1} / ${totalTurns}`;
+        document.getElementById("vc-character-pill").innerHTML = `<span>${sc.characterAvatar}</span><span>${sc.characterNameMl}</span><span class="text-white/50">·</span><span class="font-arabic text-sm text-white">${sc.characterNameAr}</span>`;
+        document.getElementById("vc-xp-pill").textContent = `✨ ${totalWords} words · +${xpStats.totalXp} XP`;
+
+        const portraitBtn = document.getElementById("vc-portrait-btn");
+        portraitBtn.textContent = sc.characterAvatar;
+        portraitBtn.className = `relative w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-b from-amber-50 via-amber-100 to-amber-300 border-4 shadow-2xl flex items-center justify-center text-7xl sm:text-8xl transition-transform duration-300 ${
+          st.isCharacterSpeaking ? "border-amber-300 scale-105" : st.isListening ? "border-sky-400 scale-100" : "border-white/90"
+        }`;
+        document.getElementById("vc-speak-ping").classList.toggle("hidden", !st.isCharacterSpeaking);
+        document.getElementById("vc-listen-ring").classList.toggle("hidden", !st.isListening);
+
+        const statusPill = document.getElementById("vc-status-pill");
+        if (st.isCharacterSpeaking) statusPill.textContent = `🔊 ${sc.characterNameMl} സംസാരിക്കുന്നു...`;
+        else if (st.isListening) statusPill.textContent = "🎤 കേൾക്കുന്നു... അറബിയിൽ സംസാരിക്കൂ!";
+        else if (st.reactionBanner) statusPill.innerHTML = `<span class="text-[#58CC02]">✓</span> <span class="font-arabic text-base text-emerald-200">${st.reactionBanner}</span>`;
+        else statusPill.textContent = "മറുപടി പറയാൻ 🎤 അമർത്തുക";
+
+        const subCard = document.getElementById("vc-subtitle-card");
+        subCard.classList.toggle("hidden", !st.showSubtitles);
+        document.getElementById("vc-sub-ar").textContent = turn.characterAr;
+        document.getElementById("vc-sub-tr").textContent = turn.characterTr;
+        document.getElementById("vc-sub-ml").textContent = turn.characterMl;
+
+        const subBtn = document.getElementById("vc-subtitle-toggle-btn");
+        subBtn.setAttribute("aria-pressed", String(st.showSubtitles));
+        subBtn.className = st.showSubtitles
+          ? "btn-3d w-14 h-14 rounded-2xl bg-amber-400 border border-b-4 border-amber-600 text-slate-950 flex flex-col items-center justify-center gap-0.5 shrink-0"
+          : "btn-3d w-14 h-14 rounded-2xl bg-slate-900/85 hover:bg-slate-800 border border-white/20 border-b-4 border-b-slate-950 text-white flex flex-col items-center justify-center gap-0.5 shrink-0";
+
+        const liveBox = document.getElementById("vc-live-transcript-box");
+        liveBox.classList.toggle("hidden", !st.liveTranscript);
+        if (st.liveTranscript) {
+          document.getElementById("vc-live-transcript-meta").textContent = `നിങ്ങൾ പറഞ്ഞത് (${countSpokenArabicWords(st.liveTranscript)} വാക്കുകൾ)`;
+          document.getElementById("vc-live-transcript-text").textContent = st.liveTranscript;
+        }
+
+        const micNoteEl = document.getElementById("vc-mic-note");
+        micNoteEl.classList.toggle("hidden", !st.micNote);
+        micNoteEl.textContent = st.micNote || "";
+
+        const speakBtn = document.getElementById("vc-speak-btn");
+        speakBtn.disabled = st.isAdvancing;
+        speakBtn.className = st.isListening
+          ? "btn-3d flex-1 h-16 px-5 rounded-2xl bg-rose-500 hover:bg-rose-600 border-b-[5px] border-rose-700 text-white ring-4 ring-rose-400/40 font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl whitespace-nowrap"
+          : "btn-3d flex-1 h-16 px-5 rounded-2xl bg-[#1CB0F6] hover:bg-[#17A2E6] border-b-[5px] border-[#0284C7] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl whitespace-nowrap disabled:opacity-60";
+        speakBtn.innerHTML = st.isListening
+          ? `<span>⏹️ നിർത്തുക · STOP</span>`
+          : `<span>🎤 സംസാരിക്കുക</span><span class="hidden sm:inline text-xs font-bold opacity-90 font-latin">(TAP TO SPEAK)</span>`;
+
+        const ideasToggle = document.getElementById("vc-ideas-toggle-btn");
+        ideasToggle.textContent = st.showSuggestions ? "💡 മറുപടി സൂചനകൾ മറയ്ക്കുക" : "💡 മറുപടി സൂചനകൾ കാണുക";
+
+        const suggBox = document.getElementById("vc-suggestions-box");
+        const showSugg = st.showSuggestions && !st.isAdvancing;
+        suggBox.classList.toggle("hidden", !showSugg);
+        if (showSugg) {
+          const list = document.getElementById("vc-suggestions-list");
+          list.innerHTML = "";
+          (turn.suggestedReplies || []).forEach((reply, idx) => {
+            const wc = countSpokenArabicWords(reply.ar);
+            const rBtn = document.createElement("button");
+            rBtn.type = "button";
+            rBtn.dataset.testid = `video-call-quick-reply-${idx}`;
+            rBtn.className = "w-full text-right bg-white/10 hover:bg-sky-500/25 border border-white/15 hover:border-sky-300/60 rounded-xl px-3.5 py-2.5 transition flex items-center justify-between gap-3";
+            rBtn.innerHTML = `
+              <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-200 text-[11px] font-extrabold font-latin tabular-nums">+${wc * 2} XP</span>
+              <div class="flex-1 min-w-0">
+                <div dir="rtl" lang="ar" class="font-arabic text-lg sm:text-xl font-bold text-white leading-snug">${reply.ar}</div>
+                <div dir="ltr" class="text-[11px] font-semibold text-white/75 truncate">${reply.ml}</div>
+              </div>`;
+            rBtn.addEventListener("click", () => {
+              playTone("tap");
+              submitVideoCallReply(reply.ar);
+            });
+            list.appendChild(rBtn);
+          });
+        }
+        return;
+      }
+
+      if (st.stage === "summary") {
+        document.getElementById("vc-summary-avatar").textContent = sc.characterAvatar;
+        document.getElementById("vc-summary-subtitle").textContent = `${sc.characterNameMl} (${sc.characterNameEn}) ഉമായി ${totalTurns} ഘട്ടങ്ങളും വിജയകരമായി പൂർത്തിയാക്കി.`;
+        document.getElementById("vc-summary-words").textContent = String(xpStats.spokenWords);
+        document.getElementById("vc-summary-bonus").textContent = `+${xpStats.bonusXp}`;
+        document.getElementById("vc-summary-xp").textContent = `+${xpStats.totalXp}`;
+        document.getElementById("vc-summary-formula").textContent = `✨ കൂടുതൽ അറബി വാക്കുകൾ ഉപയോഗിക്കൂ, കൂടുതൽ XP നേടൂ! (Base +${xpStats.baseXp} XP + ${xpStats.spokenWords} × 2 XP)`;
+        document.getElementById("vc-finish-btn").textContent = `തുടരുക (+${xpStats.totalXp} XP)`;
+
+        const recap = document.getElementById("vc-summary-recap");
+        recap.innerHTML = "";
+        st.turnRecords.forEach((rec, idx) => {
+          const row = document.createElement("div");
+          row.className = "rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 flex items-center justify-between gap-2";
+          row.innerHTML = `<span class="text-[11px] font-extrabold text-[#0284C7] font-latin tabular-nums shrink-0">#${idx + 1} · ${rec.wordCount}w</span><span dir="rtl" lang="ar" class="font-arabic text-base font-bold text-slate-800 truncate">${rec.userReplyAr}</span>`;
+          recap.appendChild(row);
+        });
+      }
+    }
+
+    document.getElementById("vc-ring-end-btn").addEventListener("click", () => { playTone("tap"); closeVideoCallModal(); });
+    document.getElementById("vc-active-end-btn").addEventListener("click", () => { playTone("tap"); closeVideoCallModal(); });
+    document.getElementById("vc-ring-answer-btn").addEventListener("click", () => { playTone("tap"); enterActiveVideoCallStage(); });
+    document.getElementById("vc-portrait-btn").addEventListener("click", () => {
+      if (!activeVideoCallSession) return;
+      const t = activeVideoCallSession.scenario.turns[activeVideoCallSession.turnIndex];
+      if (t) speakVideoCallLine(t.characterAr);
+    });
+    document.getElementById("vc-replay-btn").addEventListener("click", () => {
+      if (!activeVideoCallSession) return;
+      playTone("tap");
+      const t = activeVideoCallSession.scenario.turns[activeVideoCallSession.turnIndex];
+      if (t) speakVideoCallLine(t.characterAr);
+    });
+    document.getElementById("vc-speak-btn").addEventListener("click", () => toggleVideoCallSpeak());
+    document.getElementById("vc-subtitle-toggle-btn").addEventListener("click", () => {
+      if (!activeVideoCallSession) return;
+      playTone("tap");
+      activeVideoCallSession.showSubtitles = !activeVideoCallSession.showSubtitles;
+      renderVideoCallModal();
+    });
+    document.getElementById("vc-ideas-toggle-btn").addEventListener("click", () => {
+      if (!activeVideoCallSession) return;
+      playTone("tap");
+      activeVideoCallSession.showSuggestions = !activeVideoCallSession.showSuggestions;
+      renderVideoCallModal();
+    });
+    document.getElementById("vc-finish-btn").addEventListener("click", () => {
+      playTone("tap");
+      finishVideoCallSession();
+    });
+
+    // ================= NAVIGATION & PROFILE =================
+    function switchTab(tabName, options = {}) {
+      const normalized = normalizeAppTab(tabName);
+      const silent = Boolean(options.silent);
+      const scrollBehavior = options.scrollBehavior || "smooth";
+      if (!silent) playTone("tap");
+      stopArabicAudio();
+      userState.activeTab = normalized;
+      persistLocalStateSync();
+
       ["path", "alphabet", "leaderboard", "profile"].forEach(t => document.getElementById(`tab-${t}`).classList.add("hidden"));
-      document.getElementById(`tab-${tabName}`).classList.remove("hidden");
+      document.getElementById(`tab-${normalized}`).classList.remove("hidden");
 
       document.querySelectorAll(".nav-btn").forEach(b => {
-        b.className = b.dataset.tab === tabName
+        b.className = b.dataset.tab === normalized
           ? "nav-btn flex flex-col items-center justify-center py-1 rounded-xl text-[#357A00] bg-green-50"
           : "nav-btn flex flex-col items-center justify-center py-1 rounded-xl text-slate-500";
       });
       document.querySelectorAll(".side-nav-btn").forEach(b => {
-        b.className = b.dataset.tab === tabName
+        b.className = b.dataset.tab === normalized
           ? "side-nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-extrabold text-sm bg-green-50 text-[#357A00] border border-green-200"
           : "side-nav-btn w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-extrabold text-sm text-slate-600 hover:bg-slate-100 border border-transparent";
       });
-      if (tabName === "path") scheduleScrollToActiveLesson("smooth");
-      else syncPathScrollUI();
-      if (tabName === "alphabet") preloadAlphabetAudio();
-      if (tabName === "leaderboard") loadLeaderboard();
-      if (tabName === "profile") updateStatsUI();
+      if (normalized === "path") {
+        if (scrollBehavior === "auto") {
+          scrollToActiveLessonNode("auto");
+          syncPathScrollUI();
+        }
+        scheduleScrollToActiveLesson(scrollBehavior);
+      } else {
+        syncPathScrollUI();
+      }
+      if (normalized === "alphabet") preloadAlphabetAudio();
+      if (normalized === "leaderboard") loadLeaderboard();
+      if (normalized === "profile") updateStatsUI();
     }
     document.querySelectorAll(".nav-btn, .side-nav-btn").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 
@@ -7356,6 +8082,7 @@
     document.getElementById("reset-ok-btn").addEventListener("click", () => {
       document.getElementById("reset-confirm-modal").classList.add("hidden");
       userState.xp = 0; userState.completedLessons = []; userState.legendaryLessons = []; userState.hearts = 5;
+      userState.activeTab = "path"; userState.currentUnitId = "u1";
       activePopoverNodeId = null;
       saveState(); renderLearningPath(); switchTab("path"); showToast("പ്രോഗ്രസ് റീസെറ്റ് ചെയ്തിരിക്കുന്നു.");
     });
@@ -7372,6 +8099,7 @@
     window.addEventListener("popstate", () => {
       if (!document.getElementById("guidebook-modal").classList.contains("hidden")) closeGuidebookModal();
       else if (!document.getElementById("chest-modal").classList.contains("hidden")) closeChestModal();
+      else if (!document.getElementById("video-call-modal").classList.contains("hidden")) closeVideoCallModal();
       else if (!document.getElementById("story-modal").classList.contains("hidden")) closeStoryModal();
       else if (!document.getElementById("lesson-modal").classList.contains("hidden")) closeLessonModal();
       else if (!document.getElementById("complete-modal").classList.contains("hidden")) document.getElementById("complete-modal").classList.add("hidden");
@@ -7398,9 +8126,11 @@
       renderAlphabetGrid();
       renderLearningPath();
       updateStatsUI();
-      if (!hasProfile) document.getElementById("onboarding-screen").classList.remove("hidden");
-      else {
-        scheduleScrollToActiveLesson("smooth");
+      if (!hasProfile) {
+        document.getElementById("onboarding-screen").classList.remove("hidden");
+      } else {
+        const savedTab = normalizeAppTab(userState.activeTab);
+        switchTab(savedTab, { silent: true, scrollBehavior: "auto" });
         await ensureFirebaseAuth();
         saveState();
       }

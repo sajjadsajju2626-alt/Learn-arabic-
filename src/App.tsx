@@ -27,6 +27,7 @@ import { LeaderboardTab } from './components/LeaderboardTab';
 import { ProfileTab } from './components/ProfileTab';
 import { LessonModal } from './components/LessonModal';
 import { StoryModal } from './components/StoryModal';
+import { VideoCallModal } from './components/VideoCallModal';
 import { CompleteModal } from './components/CompleteModal';
 
 const STORAGE_KEY = 'arabic_ml_app_state_v2';
@@ -84,6 +85,7 @@ export default function App() {
   const [pathFocusTrigger, setPathFocusTrigger] = useState(0);
   const [activeSession, setActiveSession] = useState<SessionConfig | null>(null);
   const [activeStoryLesson, setActiveStoryLesson] = useState<Lesson | null>(null);
+  const [activeVideoCallLesson, setActiveVideoCallLesson] = useState<Lesson | null>(null);
   const [completeResult, setCompleteResult] = useState<SessionResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -188,6 +190,10 @@ export default function App() {
       setActiveStoryLesson(lesson);
       return;
     }
+    if (lesson.nodeType === 'video_call' && lesson.videoCall) {
+      setActiveVideoCallLesson(lesson);
+      return;
+    }
     if (user.hearts <= 0) {
       updateUserSync((prev) => ({ ...prev, hearts: MAX_HEARTS }));
       showToast('ഹാർട്ടുകൾ സ്വയമേവ നിറച്ചിരിക്കുന്നു! പാഠം തുടങ്ങാം.');
@@ -269,6 +275,7 @@ export default function App() {
     });
     setActiveSession(null);
     setActiveStoryLesson(null);
+    setActiveVideoCallLesson(null);
     setCompleteResult(result);
     setPathFocusTrigger((n) => n + 1);
   };
@@ -374,6 +381,16 @@ export default function App() {
           initialHearts={Math.max(user.hearts, 1)}
           onComplete={handleSessionComplete}
           onClose={() => setActiveStoryLesson(null)}
+        />
+      )}
+
+      {activeVideoCallLesson && activeVideoCallLesson.videoCall && (
+        <VideoCallModal
+          lessonId={activeVideoCallLesson.id}
+          scenario={activeVideoCallLesson.videoCall}
+          soundEnabled={user.soundEnabled}
+          onComplete={handleSessionComplete}
+          onClose={() => setActiveVideoCallLesson(null)}
         />
       )}
 

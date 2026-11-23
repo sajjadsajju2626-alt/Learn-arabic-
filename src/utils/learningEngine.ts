@@ -13,12 +13,17 @@ import type {
   Unit,
   UnitStory,
   UserState,
+  VideoCallScenario,
   VowelMode,
 } from '../types/learning';
 
 export const MAX_HEARTS = 5;
 export const LESSON_XP_REWARD = 15;
 export const STORY_XP_REWARD = 15;
+export const VIDEO_CALL_MIN_UNIT_NUMBER = 15;
+export const VIDEO_CALL_BASE_XP = 15;
+export const VIDEO_CALL_XP_PER_WORD = 2;
+export const VIDEO_CALL_MAX_BONUS_XP = 35;
 export const REVIEW_XP_REWARD = 5;
 export const LEGENDARY_XP_REWARD = 40;
 export const LEGENDARY_HEARTS = 3;
@@ -535,6 +540,22 @@ export function evaluateSessionOutcome(params: {
     };
   }
 
+  if (variant === 'video_call') {
+    return {
+      mode: 'lesson',
+      variant: 'video_call',
+      lessonId,
+      targetUnitIndex: null,
+      score,
+      totalQuestions,
+      earnedXp: xpReward ?? VIDEO_CALL_BASE_XP,
+      unlockedUpToUnitIndex: null,
+      title: 'വീഡിയോ കോൾ പൂർത്തിയായി! 📹',
+      subtitle: 'അറബി സംഭാഷണം വിജയകരമായി പൂർത്തിയാക്കി ബോണസ് XP നേടി!',
+      emoji: '📹',
+    };
+  }
+
   return {
     mode: 'lesson',
     variant: 'standard',
@@ -957,7 +978,7 @@ function collectUnitSpeakPool(unit: Unit): VocabEntry[] {
     pushCandidate(g.ar, g.tr, g.ml);
   }
   for (const l of unit.lessons) {
-    if (l.nodeType === 'chest') continue;
+    if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
     if (l.story) {
       for (const step of l.story.steps) {
         if (step.kind === 'line') {
@@ -1013,7 +1034,7 @@ function collectUnitDictationPool(unit: Unit): VocabEntry[] {
     pushCandidate(g.ar, g.tr, g.ml);
   }
   for (const l of unit.lessons) {
-    if (l.nodeType === 'chest') continue;
+    if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
     for (const q of l.questions) {
       if (q.type === 'pairs') {
         for (const p of q.pairs) {
@@ -1090,7 +1111,7 @@ export function buildLessonSessionQuestions(
       const hasCompletedInUnit = earlierUnit.lessons.some((l) => completedSet.has(l.id));
       if (!hasCompletedInUnit) continue;
       for (const l of earlierUnit.lessons) {
-        if (l.nodeType === 'chest' || l.questions.length === 0) continue;
+        if (l.nodeType === 'chest' || l.nodeType === 'video_call' || l.questions.length === 0) continue;
         for (const q of l.questions) {
           earlierPool.push(q);
         }
@@ -1113,7 +1134,7 @@ export function buildLessonSessionQuestions(
   const siblingHandcrafted: LessonQuestion[] = [];
   if (unit) {
     for (const sibling of unit.lessons) {
-      if (sibling.id === lesson.id || sibling.nodeType === 'chest') continue;
+      if (sibling.id === lesson.id || sibling.nodeType === 'chest' || sibling.nodeType === 'video_call') continue;
       for (const q of sibling.questions) {
         siblingHandcrafted.push(q);
       }
@@ -1131,7 +1152,7 @@ export function buildLessonSessionQuestions(
     for (const u of units) {
       if (unit && u.id === unit.id) continue;
       for (const l of u.lessons) {
-        if (l.nodeType === 'chest') continue;
+        if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
         for (const q of l.questions) fallbackPool.push(q);
       }
     }
@@ -1487,7 +1508,7 @@ export function buildUnitJumpQuestions(
   const pool: LessonQuestion[] = [];
   for (let i = 0; i < Math.min(targetUnitIndex, units.length); i++) {
     for (const lesson of units[i].lessons) {
-      if (lesson.nodeType === 'chest' || lesson.questions.length === 0) continue;
+      if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call' || lesson.questions.length === 0) continue;
       for (const q of lesson.questions) {
         if (q.type !== 'pairs') {
           pool.push(q);
@@ -1756,5 +1777,57 @@ export function mergeCloudUserState(
     },
   };
 }
+
+/**
+ * Counts meaningful spoken Arabic words in a Video Call turn transcript.
+ */
+export function countSpokenArabicWords(text: string): number {
+  const normalized = normalizeArabicSpeech(text);
+  if (!normalized) return 0;
+  return normalized
+    .split(/\s+/)
+    .filter((token) => /[\u0621-\u064A]/.test(token))
+    .length;
+}
+
+/**
+ * Computes proportional Video Call XP: "Use more words, get more XP!"
+ * Base 15 XP + 2 XP per spoken Arabic word (capped at +35 bonus XP -> 50 XP max).
+ */
+export function calculateVideoCallXp(totalSpokenWords: number): {
+  baseXp: number;
+  bonusXp: number;
+  totalXp: number;
+  spokenWords: number;
+} {
+  const safeWords = Math.max(0, Math.floor(Number(totalSpokenWords) || 0));
+  const bonusXp = Math.min(VIDEO_CALL_MAX_BONUS_XP, safeWords * VIDEO_CALL_XP_PER_WORD);
+  return {
+    baseXp: VIDEO_CALL_BASE_XP,
+    bonusXp,
+    totalXp: VIDEO_CALL_BASE_XP + bonusXp,
+    spokenWords: safeWords,
+  };
+}
+
+/**
+ * Collects unique Arabic lines from a Video Call scenario for audio preloading.
+ */
+export function collectVideoCallArabicTexts(scenario: VideoCallScenario): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (text?: string) => {
+    const t = String(text ?? '').trim();
+    if (!t || !/[\u0600-\u06FF]/.test(t) || seen.has(t)) return;
+    seen.add(t);
+    out.push(t);
+  };
+  for (const turn of scenario.turns) {
+    add(turn.characterAr);
+    add(turn.reactionAr);
+  }
+  return out;
+}
+
 
 

@@ -1,6 +1,7 @@
 import type { FillBlankQuestion, GuidebookEntry, Lesson, LessonQuestion, ListenQuestion, Unit, UnitMascot } from '../types/learning';
 import { UNIT_STORIES } from './unitStories';
 import { buildUnitPodcastQuestions } from './unitPodcasts';
+import { UNIT_VIDEO_CALLS } from './unitVideoCalls';
 
 export const TREASURE_CHEST_XP = 25;
 export const TREASURE_CHEST_HEARTS = 1;
@@ -5425,6 +5426,20 @@ export function expandUnitsToEightNodes(baseUnits: Unit[]): Unit[] {
         xpReward: 20,
         questions: cloneQuestions(listeningQuestions),
       },
+      ...(unit.number >= 15 && UNIT_VIDEO_CALLS[unit.id]
+        ? [
+            {
+              id: `${unit.id}_vc`,
+              title: UNIT_VIDEO_CALLS[unit.id].sceneTitleMl,
+              subtitle: `വീഡിയോ കോൾ · ${UNIT_VIDEO_CALLS[unit.id].characterNameMl}`,
+              icon: '📹',
+              nodeType: 'video_call' as const,
+              xpReward: 15,
+              questions: [] as LessonQuestion[],
+              videoCall: UNIT_VIDEO_CALLS[unit.id],
+            },
+          ]
+        : []),
       {
         id: `${unit.id}_n7`,
         title: pack?.hardTitle ?? 'കഠിന പരിശീലനം',

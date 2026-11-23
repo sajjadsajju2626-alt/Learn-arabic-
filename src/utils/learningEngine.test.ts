@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum';
 import { UNIT_STORIES } from '../data/unitStories';
+import { UNIT_VIDEO_CALLS } from '../data/unitVideoCalls';
 import {
   ALL_QUESTION_TYPES,
   applySessionResult,
@@ -14,11 +15,14 @@ import {
   buildLessonSessionQuestions,
   buildReviewSessionQuestions,
   buildUnitJumpQuestions,
+  calculateVideoCallXp,
   claimTreasureChest,
   collectStoryArabicTexts,
+  collectVideoCallArabicTexts,
   computeJumpButtonDirection,
   computeStreakUpdate,
   computeVisibleUnitIndex,
+  countSpokenArabicWords,
   enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
@@ -29,6 +33,7 @@ import {
   getAllLessonIds,
   getLetterDisplay,
   getQuestionFingerprint,
+  hydratePersistedUserState,
   isLessonUnlocked,
   isPodcastQuestion,
   isUnitUnlocked,
@@ -36,13 +41,17 @@ import {
   LEGENDARY_QUESTION_COUNT,
   LEGENDARY_XP_REWARD,
   mergeAndSortLeaderboard,
+  mergeCloudUserState,
   migrateLegacyCompletedIds,
   MISTAKE_REVIEW_BANNER_TEXT,
+  normalizeAppTab,
   normalizeArabicDictation,
   normalizeArabicSpeech,
   normalizeWordBankText,
+  persistUserStateSync,
   prepareSessionQuestions,
   prepareStorySteps,
+  resolveCurrentUnitId,
   REVIEW_QUESTION_COUNT,
   REVIEW_XP_REWARD,
   shouldShowArabicPromptCard,
@@ -51,22 +60,28 @@ import {
   SPEAK_MIN_UNIT_NUMBER,
   STORY_XP_REWARD,
   unlockLessonsUpToUnit,
+  VIDEO_CALL_BASE_XP,
+  VIDEO_CALL_MAX_BONUS_XP,
+  VIDEO_CALL_MIN_UNIT_NUMBER,
+  VIDEO_CALL_XP_PER_WORD,
 } from './learningEngine';
 import {
   audioCache,
   BUFFER_TIMEOUT_MS,
   buildArabicAudioSources,
   buildArabicTtsUrl,
-  buildStreamElementsTtsUrl,
-  buildYoudaoTtsUrl,
+  buildHamedNeuralTtsUrl,
   clearArabicAudioCache,
   collectQuestionArabicTexts,
   formatForArabicTTS,
   getArabicLetterAudioUrl,
   getDuaAudioUrl,
+  isHamedNeuralVoice,
   isPremiumNeuralArabicVoice,
   normalizeDuaLookupKey,
   preloadArabicAudio,
+  PRIMARY_ARABIC_VOICE_ID,
+  PRIMARY_ARABIC_VOICE_LABEL,
   resolveArabicPlaybackRate,
   selectBestArabicVoice,
 } from './audio';
@@ -85,16 +100,26 @@ const baseUser: UserState = {
   onboarded: true,
 };
 
-test('curriculum contains 35 units and 280 winding nodes (8 per unit) with 28 Arabic letters', () => {
+test('curriculum contains 35 units and 301 winding nodes (8 per unit in Units 1-14, 9 with Video Call in Units 15-35) with 28 Arabic letters', () => {
   assert.equal(UNITS.length, 35);
-  assert.equal(getAllLessonIds().length, 280);
+  assert.equal(getAllLessonIds().length, 301);
   assert.equal(ARABIC_ALPHABET.length, 28);
 
-  const expectedIcons = ['⭐', '📖', '🧩', '🎁', '📖', '🎧', '⚡', '🏆'];
-  const expectedTypes = ['lesson', 'practice', 'wordbank', 'chest', 'story', 'listening', 'hard', 'trophy'];
+  const expectedIcons8 = ['⭐', '📖', '🧩', '🎁', '📖', '🎧', '⚡', '🏆'];
+  const expectedTypes8 = ['lesson', 'practice', 'wordbank', 'chest', 'story', 'listening', 'hard', 'trophy'];
+  const expectedIcons9 = ['⭐', '📖', '🧩', '🎁', '📖', '🎧', '📹', '⚡', '🏆'];
+  const expectedTypes9 = ['lesson', 'practice', 'wordbank', 'chest', 'story', 'listening', 'video_call', 'hard', 'trophy'];
 
   for (const unit of UNITS) {
-    assert.equal(unit.lessons.length, 8, `${unit.id} must have 8 nodes`);
+    const hasVideoCall = unit.number >= VIDEO_CALL_MIN_UNIT_NUMBER;
+    const expectedIcons = hasVideoCall ? expectedIcons9 : expectedIcons8;
+    const expectedTypes = hasVideoCall ? expectedTypes9 : expectedTypes8;
+
+    assert.equal(
+      unit.lessons.length,
+      hasVideoCall ? 9 : 8,
+      `${unit.id} must have ${hasVideoCall ? 9 : 8} nodes`
+    );
     assert.ok(unit.guidebook && unit.guidebook.length >= 8, `${unit.id} must have >= 8 guidebook entries`);
     assert.ok(unit.guidebookTip && unit.guidebookTip.length > 0, `${unit.id} must have a guidebook tip`);
     unit.lessons.forEach((node, idx) => {
@@ -104,6 +129,10 @@ test('curriculum contains 35 units and 280 winding nodes (8 per unit) with 28 Ar
         assert.equal(node.xpReward, 25);
         assert.equal(node.heartReward, 1);
         assert.equal(node.questions.length, 0);
+      } else if (node.nodeType === 'video_call') {
+        assert.equal(node.id, `${unit.id}_vc`);
+        assert.equal(node.questions.length, 0);
+        assert.ok(node.videoCall, `${node.id} must attach a VideoCallScenario`);
       } else {
         assert.ok(node.questions.length >= 3, `${node.id} must have interactive questions`);
       }
@@ -115,9 +144,9 @@ test('Units 5 to 35 quiz nodes have Harakat, Malayalam transliteration, and mixe
   const advanced = UNITS.slice(4);
   assert.equal(advanced.length, 31);
   for (const unit of advanced) {
-    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons.length, unit.number >= VIDEO_CALL_MIN_UNIT_NUMBER ? 9 : 8);
     for (const lesson of unit.lessons) {
-      if (lesson.nodeType === 'chest') continue;
+      if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call') continue;
       assert.ok(lesson.questions.length >= 4, `${lesson.id} should have at least 4 questions`);
       for (const q of lesson.questions) {
         if ('arabic' in q && q.arabic) {
@@ -379,7 +408,10 @@ test('no Malayalam-to-Arabic question across all 280 nodes or Placement Test lea
   }
 });
 
-test('multi-source Arabic audio pipeline routes 28 base letters to studio MP3s and words/harakat to StreamElements Wavenet-B + Youdao backup', () => {
+test('exclusive ar-SA-HamedNeural audio pipeline routes 28 base letters to studio MP3s and words/sentences to Hamed Neural TTS', () => {
+  assert.equal(PRIMARY_ARABIC_VOICE_ID, 'ar-SA-HamedNeural');
+  assert.ok(PRIMARY_ARABIC_VOICE_LABEL.includes('Hamed'));
+
   // 1. All 28 base Arabic letters map cleanly to 01.mp3 .. 28.mp3
   ARABIC_ALPHABET.forEach((letter, idx) => {
     const expectedIndex = String(idx + 1).padStart(2, '0');
@@ -388,34 +420,24 @@ test('multi-source Arabic audio pipeline routes 28 base letters to studio MP3s a
     assert.equal(buildArabicTtsUrl(letter.base), expectedUrl);
 
     const sources = buildArabicAudioSources(letter.base);
-    assert.equal(sources.length, 3);
+    assert.equal(sources.length, 1);
     assert.equal(sources[0].provider, 'letter-mp3');
     assert.equal(sources[0].url, expectedUrl);
     assert.equal(sources[0].crossOrigin, true);
-    assert.equal(sources[1].provider, 'streamelements');
-    assert.equal(sources[2].provider, 'youdao');
   });
 
-  // 2. Harakat syllables, words, and sentences route to StreamElements ar-XA-Wavenet-B then Youdao backup
-  // using formatForArabicTTS for natural spoken pronunciation
-  for (const sample of ['بَ', 'أَقْرَأُ', 'السَّلَامُ عَلَيْكُمْ']) {
+  // 2. Harakat syllables, single words, and multi-word sentences route directly to ar-SA-HamedNeural
+  //    (zero broken external StreamElements/Youdao calls) using formatForArabicTTS
+  for (const sample of ['بَ', 'الْمَسْجِدُ', 'السَّلَامُ عَلَيْكُمْ']) {
     assert.equal(getArabicLetterAudioUrl(sample), null);
     const ttsFormatted = formatForArabicTTS(sample);
     const sources = buildArabicAudioSources(sample);
-    assert.equal(sources.length, 2);
-    assert.equal(sources[0].provider, 'streamelements');
+    assert.equal(sources.length, 0);
     assert.equal(
-      sources[0].url,
-      `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent(ttsFormatted)}`
+      buildHamedNeuralTtsUrl(sample),
+      `speech://ar-SA-HamedNeural?text=${encodeURIComponent(ttsFormatted)}`
     );
-    assert.equal(sources[0].crossOrigin, true);
-    assert.equal(sources[1].provider, 'youdao');
-    assert.equal(
-      sources[1].url,
-      `https://dictation.youdao.com/dictvoice?audio=${encodeURIComponent(ttsFormatted)}&le=ar`
-    );
-    assert.equal(buildStreamElementsTtsUrl(sample), sources[0].url);
-    assert.equal(buildYoudaoTtsUrl(sample), sources[1].url);
+    assert.equal(buildArabicTtsUrl(sample), buildHamedNeuralTtsUrl(sample));
   }
 
   // 3. Normal (1.0) and slow turtle (0.65) playback rates & 800ms buffer timeout
@@ -686,9 +708,9 @@ test('Units 11 to 15 have exact theme colors, key vocabulary, 8-node progression
     assert.equal(unit.id, expectedMeta[idx].id);
     assert.equal(unit.theme.bg, expectedMeta[idx].color);
     assert.equal(unit.theme.border, expectedMeta[idx].border);
-    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons.length, unit.number >= VIDEO_CALL_MIN_UNIT_NUMBER ? 9 : 8);
     assert.equal(unit.lessons[3].nodeType, 'chest');
-    assert.equal(unit.lessons[7].nodeType, 'trophy');
+    assert.equal(unit.lessons[unit.lessons.length - 1].nodeType, 'trophy');
     assert.ok(unit.guidebook && unit.guidebook.length === 8, `${unit.id} must have 8 guidebook entries`);
   });
 
@@ -744,9 +766,10 @@ test('Units 16 to 20 cover Grammar & Long-Sentence Mastery with exact colors, Ma
     assert.equal(unit.id, expectedMeta[idx].id);
     assert.equal(unit.theme.bg, expectedMeta[idx].color);
     assert.equal(unit.theme.border, expectedMeta[idx].border);
-    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons.length, 9);
     assert.equal(unit.lessons[3].nodeType, 'chest');
-    assert.equal(unit.lessons[7].nodeType, 'trophy');
+    assert.equal(unit.lessons[6].nodeType, 'video_call');
+    assert.equal(unit.lessons[8].nodeType, 'trophy');
     assert.ok(unit.guidebook && unit.guidebook.length === 8, `${unit.id} must have 8 guidebook entries`);
     assert.ok(
       unit.guidebookTip && unit.guidebookTip.includes('വ്യാകരണ നിയമം'),
@@ -776,9 +799,9 @@ test('Units 16 to 20 cover Grammar & Long-Sentence Mastery with exact colors, Ma
     assert.ok(serialized.includes(term), `Missing required Units 16–20 grammar term/sentence: ${term}`);
   }
 
-  // Unit 20 (index 19) unlock & jump test verification
+  // Unit 20 (index 19) unlock & jump test verification (14*8 + 5*9 = 157 nodes)
   const unlockedUpTo20 = unlockLessonsUpToUnit([], 19);
-  assert.equal(unlockedUpTo20.length, 152);
+  assert.equal(unlockedUpTo20.length, 157);
   assert.equal(isUnitUnlocked(19, unlockedUpTo20), true);
   assert.equal(isLessonUnlocked('u20_n1', unlockedUpTo20), true);
   assert.equal(isLessonUnlocked('u20_n2', unlockedUpTo20), false);
@@ -804,9 +827,10 @@ test('Units 21 to 25 cover Advanced Fluency, Gulf Expressions & Proverbs with ex
     assert.equal(unit.id, expectedMeta[idx].id);
     assert.equal(unit.theme.bg, expectedMeta[idx].color);
     assert.equal(unit.theme.border, expectedMeta[idx].border);
-    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons.length, 9);
     assert.equal(unit.lessons[3].nodeType, 'chest');
-    assert.equal(unit.lessons[7].nodeType, 'trophy');
+    assert.equal(unit.lessons[6].nodeType, 'video_call');
+    assert.equal(unit.lessons[8].nodeType, 'trophy');
     assert.ok(unit.guidebook && unit.guidebook.length === 8, `${unit.id} must have 8 guidebook entries`);
     assert.ok(
       unit.guidebookTip && unit.guidebookTip.length > 40,
@@ -841,9 +865,9 @@ test('Units 21 to 25 cover Advanced Fluency, Gulf Expressions & Proverbs with ex
     assert.ok(serialized.includes(term), `Missing required Units 21–25 fluency/proverb term: ${term}`);
   }
 
-  // Unit 25 (index 24) unlock & jump test verification
+  // Unit 25 (index 24) unlock & jump test verification (14*8 + 10*9 = 202 nodes)
   const unlockedUpTo25 = unlockLessonsUpToUnit([], 24);
-  assert.equal(unlockedUpTo25.length, 192);
+  assert.equal(unlockedUpTo25.length, 202);
   assert.equal(isUnitUnlocked(24, unlockedUpTo25), true);
   assert.equal(isLessonUnlocked('u25_n1', unlockedUpTo25), true);
   assert.equal(isLessonUnlocked('u25_n2', unlockedUpTo25), false);
@@ -869,9 +893,10 @@ test('Units 26 to 30 cover Core Arabic Grammar Mastery (Kaana, Inna, Passive, Pa
     assert.equal(unit.id, expectedMeta[idx].id);
     assert.equal(unit.theme.bg, expectedMeta[idx].color);
     assert.equal(unit.theme.border, expectedMeta[idx].border);
-    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons.length, 9);
     assert.equal(unit.lessons[3].nodeType, 'chest');
-    assert.equal(unit.lessons[7].nodeType, 'trophy');
+    assert.equal(unit.lessons[6].nodeType, 'video_call');
+    assert.equal(unit.lessons[8].nodeType, 'trophy');
     assert.ok(unit.guidebook && unit.guidebook.length === 8, `${unit.id} must have 8 guidebook entries`);
     assert.ok(
       unit.guidebookTip && unit.guidebookTip.includes('വ്യാകരണ നിയമം'),
@@ -906,9 +931,9 @@ test('Units 26 to 30 cover Core Arabic Grammar Mastery (Kaana, Inna, Passive, Pa
     assert.ok(serialized.includes(term), `Missing required Units 26–30 grammar term: ${term}`);
   }
 
-  // Unit 30 (index 29) unlock & jump test verification
+  // Unit 30 (index 29) unlock & jump test verification (14*8 + 15*9 = 247 nodes)
   const unlockedUpTo30 = unlockLessonsUpToUnit([], 29);
-  assert.equal(unlockedUpTo30.length, 232);
+  assert.equal(unlockedUpTo30.length, 247);
   assert.equal(isUnitUnlocked(29, unlockedUpTo30), true);
   assert.equal(isLessonUnlocked('u30_n1', unlockedUpTo30), true);
   assert.equal(isLessonUnlocked('u30_n2', unlockedUpTo30), false);
@@ -934,9 +959,10 @@ test('Units 31 to 35 cover Classical & Modern Arabic Syntax (Relative Pronouns, 
     assert.equal(unit.id, expectedMeta[idx].id);
     assert.equal(unit.theme.bg, expectedMeta[idx].color);
     assert.equal(unit.theme.border, expectedMeta[idx].border);
-    assert.equal(unit.lessons.length, 8);
+    assert.equal(unit.lessons.length, 9);
     assert.equal(unit.lessons[3].nodeType, 'chest');
-    assert.equal(unit.lessons[7].nodeType, 'trophy');
+    assert.equal(unit.lessons[6].nodeType, 'video_call');
+    assert.equal(unit.lessons[8].nodeType, 'trophy');
     assert.ok(unit.guidebook && unit.guidebook.length === 8, `${unit.id} must have 8 guidebook entries`);
     assert.ok(
       unit.guidebookTip && unit.guidebookTip.includes('വ്യാകരണ നിയമം'),
@@ -967,9 +993,9 @@ test('Units 31 to 35 cover Classical & Modern Arabic Syntax (Relative Pronouns, 
     assert.ok(serialized.includes(term), `Missing required Units 31–35 syntax term: ${term}`);
   }
 
-  // Unit 35 (index 34) unlock & jump test verification
+  // Unit 35 (index 34) unlock & jump test verification (14*8 + 20*9 = 292 nodes)
   const unlockedUpTo35 = unlockLessonsUpToUnit([], 34);
-  assert.equal(unlockedUpTo35.length, 272);
+  assert.equal(unlockedUpTo35.length, 292);
   assert.equal(isUnitUnlocked(34, unlockedUpTo35), true);
   assert.equal(isLessonUnlocked('u35_n1', unlockedUpTo35), true);
   assert.equal(isLessonUnlocked('u35_n2', unlockedUpTo35), false);
@@ -1045,7 +1071,7 @@ test('buildLessonSessionQuestions delivers 10-12 unique balanced 5-type question
     const unit = UNITS[uIdx];
     const priorCompleted = unlockLessonsUpToUnit([], uIdx);
     for (const lesson of unit.lessons) {
-      if (lesson.nodeType === 'chest') continue;
+      if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call') continue;
       checkedNodes += 1;
 
       const session = buildLessonSessionQuestions(lesson, priorCompleted, UNITS, seededRng);
@@ -1273,49 +1299,52 @@ test('Review (+5 XP, 5 questions) and Legendary (+40 XP, 10 zero-hint questions,
   assert.deepEqual(afterLegendaryAgain.legendaryLessons, ['u15_n2']);
 });
 
-test('formatForArabicTTS applies Sun-letter assimilation, natural pausal endings, and preserves Tanween Fath, Harakat, and Divine Name', () => {
-  // Sun-letter assimilation + pausal ending
-  assert.equal(formatForArabicTTS('كَالسَّيْفِ'), 'كَسَّيْفْ');
-  assert.equal(formatForArabicTTS('بِالسَّيَّارَةِ'), 'بِسَّيَّارَةْ');
-  assert.equal(formatForArabicTTS('وَالشَّمْسُ'), 'وَشَّمْسْ');
-  assert.equal(formatForArabicTTS('فَالسَّفَرُ'), 'فَسَّفَرْ');
-  assert.equal(formatForArabicTTS('لِلسَّفَرِ'), 'لِسَّفَرْ');
+test('formatForArabicTTS preserves single-word final Harakat and applies Sun-letter assimilation, Hamzat al-Wasl elision, and multi-word pausal Sukoon', () => {
+  // 1. Single-word taps preserve exact final Harakat ("Al-masjidu") while applying Sun-letter assimilation
+  assert.equal(formatForArabicTTS('الْمَسْجِدُ'), 'الْمَسْجِدُ');
+  assert.equal(formatForArabicTTS('كَالْمَاءِ'), 'كَالْمَاءِ');
+  assert.equal(formatForArabicTTS('كَالْبَيْتِ'), 'كَالْبَيْتِ');
+  assert.equal(formatForArabicTTS('كَالسَّيْفِ'), 'كَسَّيْفِ');
+  assert.equal(formatForArabicTTS('بِالسَّيَّارَةِ'), 'بِسَّيَّارَةِ');
+  assert.equal(formatForArabicTTS('وَالشَّمْسُ'), 'وَشَّمْسُ');
+  assert.equal(formatForArabicTTS('فَالسَّفَرُ'), 'فَسَّفَرُ');
+  assert.equal(formatForArabicTTS('لِلسَّفَرِ'), 'لِسَّفَرِ');
+
+  // 2. Full multi-word sentences apply Sun-letter assimilation, Hamzat al-Wasl elision, and end-of-sentence pausal Sukoon
   assert.equal(formatForArabicTTS('السَّلَامُ عَلَيْكُمْ'), 'اسَّلَامُ عَلَيْكُمْ');
-
-  // Moon letters keep Lam, apply natural pausal ending (Sukoon)
-  assert.equal(formatForArabicTTS('كَالْمَاءِ'), 'كَالْمَاءْ');
-  assert.equal(formatForArabicTTS('كَالْبَيْتِ'), 'كَالْبَيْتْ');
   assert.equal(formatForArabicTTS('أَيْنَ الْمَسْجِدُ؟'), 'أَيْنَ الْمَسْجِدْ؟');
-
-  // Full proverb sentence: mid-sentence Sun assimilation + sentence-final pausal ending
   assert.equal(formatForArabicTTS('الْوَقْتُ كَالسَّيْفِ'), 'الْوَقْتُ كَسَّيْفْ');
   assert.equal(
     formatForArabicTTS('الْوَقْتُ كَالسَّيْفِ إِنْ لَمْ تَقْطَعْهُ قَطَعَكَ'),
     'الْوَقْتُ كَسَّيْفِ إِنْ لَمْ تَقْطَعْهُ قَطَعَكْ'
   );
 
-  // Tanween Fath (-an) stays intact
+  // 3. Tanween Fath (-an) stays intact
   assert.equal(formatForArabicTTS('شُكْرًا'), 'شُكْرًا');
   assert.equal(formatForArabicTTS('مَرْحَبًا'), 'مَرْحَبًا');
   assert.equal(formatForArabicTTS('سَفَرًا سَعِيدًا'), 'سَفَرًا سَعِيدًا');
 
-  // Single-letter Harakat syllables stay intact for Alphabet & Unit 1
+  // 4. Single-letter Harakat syllables stay intact for Alphabet & Unit 1
   assert.equal(formatForArabicTTS('ب'), 'ب');
   assert.equal(formatForArabicTTS('بَ'), 'بَ');
   assert.equal(formatForArabicTTS('جِ'), 'جِ');
   assert.equal(formatForArabicTTS('تُ'), 'تُ');
 
-  // Divine Name Allah is never stripped of its Lam
+  // 5. Divine Name Allah is never stripped of its Lam
   assert.equal(formatForArabicTTS('إِنْ شَاءَ اللّٰهُ'), 'إِنْ شَاءَ اللّٰهْ');
   assert.equal(formatForArabicTTS('الْحَمْدُ لِلّٰهِ'), 'الْحَمْدُ لِلّٰهْ');
 
-  // StreamElements URL encodes the formatted pronunciation (كَسَّيْفْ) while UI keeps كَالسَّيْفِ
+  // 6. Hamed Neural URL encodes the formatted pronunciation while UI keeps original Arabic
   assert.equal(
-    buildStreamElementsTtsUrl('كَالسَّيْفِ'),
-    `https://api.streamelements.com/kappa/v2/speech?voice=ar-XA-Wavenet-B&text=${encodeURIComponent('كَسَّيْفْ')}`
+    buildHamedNeuralTtsUrl('الْوَقْتُ كَالسَّيْفِ'),
+    `speech://ar-SA-HamedNeural?text=${encodeURIComponent('الْوَقْتُ كَسَّيْفْ')}`
+  );
+  assert.equal(
+    buildHamedNeuralTtsUrl('الْمَسْجِدُ'),
+    `speech://ar-SA-HamedNeural?text=${encodeURIComponent('الْمَسْجِدُ')}`
   );
 
-  // Verify Malayalam transliterations for كَالسَّيْفِ / كَالْمَاءِ / كَالْبَيْتِ match natural spoken Arabic
+  // 7. Verify Malayalam transliterations for كَالسَّيْفِ / كَالْمَاءِ / كَالْبَيْتِ match natural spoken Arabic
   const u25n2 = UNITS[24].lessons[1];
   const swordFb = u25n2.questions.find(
     (q) => q.type === 'fill_blank' && q.options.includes('كَالسَّيْفِ')
@@ -1325,7 +1354,7 @@ test('formatForArabicTTS applies Sun-letter assimilation, natural pausal endings
   assert.equal(swordFb.optionTranslits?.['كَالْمَاءِ'], 'കൽമാഅ്');
   assert.equal(swordFb.optionTranslits?.['كَالْبَيْتِ'], 'കൽബയ്ത്');
 
-  // Connected Hamzatul Wasl prepositions before ال
+  // 8. Connected Hamzatul Wasl prepositions before ال
   assert.equal(formatForArabicTTS('فِي الْمَسْجِدِ'), 'فِلْمَسْجِدْ');
   assert.equal(formatForArabicTTS('فِي السُّوقِ'), 'فِسُّوقْ');
   assert.equal(formatForArabicTTS('أَنَا أَذْهَبُ إِلَى الْمَسْجِدِ'), 'أَنَا أَذْهَبُ إِلَلْمَسْجِدْ');
@@ -1334,8 +1363,8 @@ test('formatForArabicTTS applies Sun-letter assimilation, natural pausal endings
   assert.equal(formatForArabicTTS('فِي اللّٰهِ'), 'فِي اللّٰهْ');
 });
 
-test('hisnmuslim.com Du-a MP3 routing and Hamed/Maged Neural Arabic voice prioritization work accurately', () => {
-  // 1. Direct MP3 endpoints from hisnmuslim.com for Du'as & Dhikr (crossOrigin: true + Cloud TTS backups)
+test('hisnmuslim.com Du-a MP3 routing and exclusive ar-SA-HamedNeural prioritization with ar-SA offline fallback work accurately', () => {
+  // 1. Direct MP3 endpoints from hisnmuslim.com for Du'as & Dhikr
   const duaExpectations: Array<[string, string]> = [
     ['بِسْمِ اللّٰهِ تَوَكَّلْتُ عَلَى اللّٰهِ', 'https://www.hisnmuslim.com/audio/ar/16.mp3'],
     ['جَزَاكَ اللّٰهُ خَيْرًا', 'https://www.hisnmuslim.com/audio/ar/198.mp3'],
@@ -1351,19 +1380,17 @@ test('hisnmuslim.com Du-a MP3 routing and Hamed/Maged Neural Arabic voice priori
     assert.equal(buildArabicTtsUrl(duaText), expectedUrl);
 
     const sources = buildArabicAudioSources(duaText);
+    assert.equal(sources.length, 1);
     assert.equal(sources[0].provider, 'hisnmuslim');
     assert.equal(sources[0].url, expectedUrl);
     assert.equal(sources[0].crossOrigin, true);
-    assert.ok(sources.length >= 3, 'Must preserve Cloud TTS backups after HisnMuslim MP3');
-    assert.equal(sources[1].provider, 'streamelements');
-    assert.equal(sources[2].provider, 'youdao');
   }
 
   // Non-Du'a lesson sentence must NOT accidentally match HisnMuslim MP3
   assert.equal(getDuaAudioUrl('كَالسَّيْفِ'), null);
   assert.equal(getDuaAudioUrl('أَيْنَ الْمَسْجِدُ؟'), null);
 
-  // 2. Neural Arabic voice priority: Hamed Neural > Maged > Google Arabic > robotic eSpeak
+  // 2. Exclusive Hamed Neural primary voice + ar-SA offline fallback
   const espeakVoice = { name: 'Arabic eSpeak', lang: 'ar' };
   const googleVoice = { name: 'Google العربية', lang: 'ar-SA' };
   const magedVoice = { name: 'Maged', lang: 'ar-SA' };
@@ -1372,16 +1399,19 @@ test('hisnmuslim.com Du-a MP3 routing and Hamed/Maged Neural Arabic voice priori
 
   assert.equal(selectBestArabicVoice([englishVoice]), null);
   assert.equal(selectBestArabicVoice([englishVoice, espeakVoice]), espeakVoice);
-  assert.equal(isPremiumNeuralArabicVoice(espeakVoice), false);
-
-  assert.equal(selectBestArabicVoice([espeakVoice, googleVoice]), googleVoice);
-  assert.equal(isPremiumNeuralArabicVoice(googleVoice), true);
-
-  assert.equal(selectBestArabicVoice([googleVoice, magedVoice]), magedVoice);
-  assert.equal(isPremiumNeuralArabicVoice(magedVoice), true);
-
-  assert.equal(selectBestArabicVoice([espeakVoice, googleVoice, magedVoice, hamedVoice]), hamedVoice);
+  assert.equal(isHamedNeuralVoice(espeakVoice), false);
+  assert.equal(isHamedNeuralVoice(googleVoice), false);
+  assert.equal(isHamedNeuralVoice(magedVoice), false);
+  assert.equal(isHamedNeuralVoice(hamedVoice), true);
   assert.equal(isPremiumNeuralArabicVoice(hamedVoice), true);
+  assert.equal(isPremiumNeuralArabicVoice(magedVoice), false);
+
+  // When offline / Hamed unavailable, gracefully falls back to ar-SA voices
+  assert.equal(selectBestArabicVoice([espeakVoice, googleVoice]), googleVoice);
+  assert.equal(selectBestArabicVoice([espeakVoice, magedVoice]), magedVoice);
+
+  // Whenever Hamed Neural is available, Hamed wins exclusively over all other voices
+  assert.equal(selectBestArabicVoice([espeakVoice, googleVoice, magedVoice, hamedVoice]), hamedVoice);
 });
 
 test('all 35 units include all 3 Arabic Radio / Podcast formats (radio_tf, radio_select3, radio_mcq) on Node 6 with valid clips, distractors, and Audio-Only First gating', () => {
@@ -1583,7 +1613,7 @@ test('Dictation ("Type What You Hear") Harakat-insensitive normalization, quick-
     const unit = UNITS[uIdx];
     const priorCompleted = unlockLessonsUpToUnit([], uIdx);
     for (const lesson of unit.lessons) {
-      if (lesson.nodeType === 'chest') continue;
+      if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call') continue;
       const session = buildLessonSessionQuestions(lesson, priorCompleted, UNITS, rng);
       const dictations = session.filter((q) => q.type === 'dictation');
       assert.ok(
@@ -1617,7 +1647,7 @@ test('Dictation ("Type What You Hear") Harakat-insensitive normalization, quick-
 
 test('Auto-scroll progress helpers accurately resolve active lesson node, sticky unit banner index, and floating jump direction', () => {
   const allIds = getAllLessonIds();
-  assert.equal(allIds.length, 280);
+  assert.equal(allIds.length, 301);
 
   // 1. Fresh learner starts on u1_n1
   assert.equal(getActiveNodeTargetId([], UNITS), 'u1_n1');
@@ -1738,7 +1768,7 @@ test('Speaking Exercise (speak) strips Harakat/punctuation with 70% word-match t
     const unit = UNITS[uIdx];
     const priorCompleted = unlockLessonsUpToUnit([], uIdx);
     for (const lesson of unit.lessons) {
-      if (lesson.nodeType === 'chest') continue;
+      if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call') continue;
       const session = buildLessonSessionQuestions(lesson, priorCompleted, UNITS, rng);
       const speakQs = session.filter((q) => q.type === 'speak');
 
@@ -1771,11 +1801,142 @@ test('Speaking Exercise (speak) strips Harakat/punctuation with 70% word-match t
   assert.ok(u20Leg.some((q) => q.type === 'speak'), 'Unit 20 Legendary should include speaking challenges');
 });
 
+test('Instant synchronous localStorage persistence, pre-render hydration, and monotonic cloud merge prevent refresh progress resets', () => {
+  const store = new Map<string, string>();
+  const mockStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      store.set(k, v);
+    },
+  };
+  const key = 'arabic_ml_app_state_v3';
 
+  // 1. Synchronous persistence writes completedLessons, xp, streak, hearts, activeTab, and currentUnitId immediately
+  const completed14 = unlockLessonsUpToUnit([], 14);
+  const saved = persistUserStateSync(mockStorage, key, {
+    ...baseUser,
+    xp: 640,
+    streak: 9,
+    hearts: 4,
+    completedLessons: [...completed14, 'u15_n1', 'u15_n2'],
+    activeTab: 'alphabet',
+    currentUnitId: 'u15',
+  });
+  assert.equal(saved.activeTab, 'alphabet');
+  assert.equal(saved.currentUnitId, 'u15');
+  assert.ok(store.has(key));
 
+  // 2. Pre-render hydration restores exact progress, tab, and active unit without jumping back to Unit 1
+  const hydrated = hydratePersistedUserState(mockStorage, key, baseUser, {
+    now: new Date('2026-11-20T12:00:00Z'),
+  });
+  assert.equal(hydrated.xp, 640);
+  assert.equal(hydrated.streak, 9);
+  assert.equal(hydrated.hearts, 4);
+  assert.equal(hydrated.activeTab, 'alphabet');
+  assert.equal(hydrated.currentUnitId, 'u15');
+  assert.equal(getActiveNodeTargetId(hydrated.completedLessons, UNITS), 'u15_n3');
+  assert.equal(resolveCurrentUnitId(hydrated.completedLessons, UNITS), 'u15');
+  assert.equal(normalizeAppTab('invalid_tab'), 'path');
 
+  // 3. Monotonic cloud merge never regresses local progress when cloud snapshot is stale
+  const staleCloud = {
+    xp: 200,
+    streak: 3,
+    completedLessons: ['u1_n1', 'u1_n2'],
+  };
+  const staleMerge = mergeCloudUserState(hydrated, staleCloud);
+  assert.equal(staleMerge.changed, false);
+  assert.equal(staleMerge.state.xp, 640);
+  assert.equal(staleMerge.state.completedLessons.length, hydrated.completedLessons.length);
 
+  // 4. Newer cloud progress merges cleanly without losing local completions or activeTab
+  const newerCloud = {
+    xp: 720,
+    streak: 11,
+    completedLessons: [...hydrated.completedLessons, 'u15_n3'],
+    legendaryLessons: ['u15_n1'],
+  };
+  const newerMerge = mergeCloudUserState(hydrated, newerCloud);
+  assert.equal(newerMerge.changed, true);
+  assert.equal(newerMerge.state.xp, 720);
+  assert.equal(newerMerge.state.streak, 11);
+  assert.equal(newerMerge.state.activeTab, 'alphabet');
+  assert.equal(newerMerge.state.currentUnitId, 'u15');
+  assert.ok(newerMerge.state.completedLessons.includes('u15_n3'));
+  assert.deepEqual(newerMerge.state.legendaryLessons, ['u15_n1']);
+});
 
+test('Video Call Roleplay (video_call) appears EXCLUSIVELY in Units 15 to 35 with 5-turn Tariq/Layla conversations and word-count bonus XP', () => {
+  assert.equal(VIDEO_CALL_MIN_UNIT_NUMBER, 15);
+  assert.equal(VIDEO_CALL_BASE_XP, 15);
+  assert.equal(VIDEO_CALL_XP_PER_WORD, 2);
+  assert.equal(VIDEO_CALL_MAX_BONUS_XP, 35);
+  assert.equal(Object.keys(UNIT_VIDEO_CALLS).length, 21);
 
+  // 1. Units 1-14 must have ZERO video_call nodes; Units 15-35 must each have 1 video_call node
+  for (const unit of UNITS) {
+    const vcNodes = unit.lessons.filter((l) => l.nodeType === 'video_call');
+    if (unit.number < 15) {
+      assert.equal(vcNodes.length, 0, `${unit.id} must NOT have a video_call node`);
+    } else {
+      assert.equal(vcNodes.length, 1, `${unit.id} must have exactly 1 video_call node`);
+      const vcNode = vcNodes[0];
+      assert.equal(vcNode.id, `${unit.id}_vc`);
+      assert.equal(vcNode.icon, '📹');
+      assert.ok(vcNode.videoCall, `${vcNode.id} must attach VideoCallScenario`);
 
+      const scenario = vcNode.videoCall;
+      assert.ok(
+        scenario.characterKey === 'tariq' || scenario.characterKey === 'layla',
+        `${vcNode.id} character must be Tariq or Layla`
+      );
+      assert.equal(
+        scenario.characterAvatar,
+        scenario.characterKey === 'tariq' ? '👳‍♂️' : '🧕'
+      );
+      assert.equal(scenario.turns.length, 5, `${vcNode.id} must have 5 conversational turns`);
 
+      for (const turn of scenario.turns) {
+        assert.ok(/[\u0621-\u064A]/.test(turn.characterAr), `${vcNode.id} turn needs Arabic question`);
+        assert.ok(turn.characterTr.trim().length > 0);
+        assert.ok(turn.characterMl.trim().length > 0);
+        assert.ok(/[\u0621-\u064A]/.test(turn.reactionAr), `${vcNode.id} turn needs Arabic reaction`);
+        assert.ok(turn.suggestedReplies.length >= 2, `${vcNode.id} turn needs quick-reply suggestions`);
+      }
+
+      const audioLines = collectVideoCallArabicTexts(scenario);
+      assert.ok(audioLines.length >= 5, `${vcNode.id} must collect Arabic lines for preloading`);
+    }
+  }
+
+  // 2. Spoken Arabic word counting ignores English/Malayalam/punctuation and strips Harakat
+  assert.equal(countSpokenArabicWords('أَنَا مُسَافِرٌ إِلَى دُبَي الْيَوْمَ!'), 5);
+  assert.equal(countSpokenArabicWords('مَرْحَبًا يَا طَارِقُ'), 3);
+  assert.equal(countSpokenArabicWords('hello 123'), 0);
+  assert.equal(countSpokenArabicWords(''), 0);
+
+  // 3. Proportional XP: Base 15 + 2 XP/word, capped at +35 bonus (50 XP max)
+  assert.deepEqual(calculateVideoCallXp(0), { baseXp: 15, bonusXp: 0, totalXp: 15, spokenWords: 0 });
+  assert.deepEqual(calculateVideoCallXp(10), { baseXp: 15, bonusXp: 20, totalXp: 35, spokenWords: 10 });
+  assert.deepEqual(calculateVideoCallXp(25), { baseXp: 15, bonusXp: 35, totalXp: 50, spokenWords: 25 });
+
+  // 4. Session outcome & persistence for completing u15_vc
+  const xpCalc = calculateVideoCallXp(12); // 15 + 24 = 39 XP
+  const outcome = evaluateSessionOutcome({
+    mode: 'lesson',
+    variant: 'video_call',
+    lessonId: 'u15_vc',
+    targetUnitIndex: null,
+    score: 5,
+    totalQuestions: 5,
+    xpReward: xpCalc.totalXp,
+  });
+  assert.equal(outcome.earnedXp, 39);
+  assert.equal(outcome.emoji, '📹');
+  assert.equal(outcome.lessonId, 'u15_vc');
+
+  const updated = applySessionResult(baseUser, outcome);
+  assert.equal(updated.xp, 39);
+  assert.ok(updated.completedLessons.includes('u15_vc'));
+});

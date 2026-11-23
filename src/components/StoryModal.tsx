@@ -164,7 +164,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({
       </header>
 
       {/* Scrollable Progressive Dialogue Stage */}
-      <div className="flex-1 overflow-y-auto bg-slate-50/50">
+      <div data-scroll-container="true" className="flex-1 overflow-y-auto bg-slate-50/50">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-5">
           {/* Story Header Card */}
           <div className="bg-white rounded-3xl border-2 border-b-4 border-slate-200 p-5 text-center space-y-2 shadow-xs">
