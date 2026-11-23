@@ -38,6 +38,16 @@
       100% { transform: scale(1) rotate(0deg); opacity: 1; }
     }
     .animate-chest-open { animation: chestBurst 0.52s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes soundWaveBar {
+      0%, 100% { transform: scaleY(0.32); opacity: 0.72; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+    .animate-sound-wave { animation: soundWaveBar 0.72s ease-in-out infinite; transform-origin: center; }
+    @keyframes micPulseRing {
+      0% { transform: scale(1); opacity: 0.55; }
+      100% { transform: scale(1.22); opacity: 0; }
+    }
+    .animate-mic-ring { animation: micPulseRing 1.35s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
     /* Smooth 8-node Duolingo S-curve offsets (mobile-safe, expanded on sm+) */
     .path-node-0 { transform: translateX(0px); }
     .path-node-1 { transform: translateX(-32px); }
@@ -60,7 +70,7 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     @media (prefers-reduced-motion: reduce) {
-      .animate-bounce-slow, .animate-shake, .animate-pop, .animate-float-slow, .animate-chest-open { animation: none !important; }
+      .animate-bounce-slow, .animate-shake, .animate-pop, .animate-float-slow, .animate-chest-open, .animate-sound-wave, .animate-mic-ring { animation: none !important; }
     }
   </style>
 </head>
@@ -430,6 +440,12 @@
     <div id="check-area" class="border-t border-slate-200 bg-white">
       <div class="max-w-3xl mx-auto px-4 py-4 flex justify-end">
         <button id="check-answer-btn" type="button" disabled class="btn-3d w-full sm:w-auto sm:min-w-[200px] py-3.5 px-8 rounded-2xl font-extrabold text-base bg-slate-200 text-slate-400 border-b-4 border-slate-300 cursor-not-allowed">പരിശോധിക്കുക</button>
+      </div>
+    </div>
+
+    <div id="speak-skip-area" class="hidden border-t border-slate-200 bg-white">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-center">
+        <button id="speak-skip-btn" data-testid="speak-skip-btn" type="button" class="btn-3d w-full sm:w-auto py-3 px-6 rounded-2xl border-2 border-b-4 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-extrabold text-xs sm:text-sm whitespace-nowrap transition">ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല (CAN'T SPEAK NOW)</button>
       </div>
     </div>
 
@@ -4999,6 +5015,43 @@
       return Boolean(normExpected) && normUser === normExpected;
     }
 
+    const SPEAK_MIN_UNIT_NUMBER = 20;
+    const SPEAK_MATCH_THRESHOLD = 0.7;
+
+    function normalizeArabicSpeech(text) {
+      return normalizeArabicDictation(text).replace(/ة/g, "ه");
+    }
+
+    function evaluateSpeechMatch(spokenText, expectedArabic, threshold = SPEAK_MATCH_THRESHOLD) {
+      const targetWords = normalizeArabicSpeech(expectedArabic).split(/\s+/).filter(Boolean);
+      if (targetWords.length === 0) {
+        return { isMatch: false, ratio: 0, matchedCount: 0, totalWords: 0, matchedIndices: [] };
+      }
+      const spokenWords = normalizeArabicSpeech(spokenText).split(/\s+/).filter(Boolean);
+      if (spokenWords.length === 0) {
+        return { isMatch: false, ratio: 0, matchedCount: 0, totalWords: targetWords.length, matchedIndices: [] };
+      }
+      const spokenFreq = new Map();
+      spokenWords.forEach(w => spokenFreq.set(w, (spokenFreq.get(w) || 0) + 1));
+      const matchedIndices = [];
+      targetWords.forEach((word, idx) => {
+        const avail = spokenFreq.get(word) || 0;
+        if (avail > 0) {
+          matchedIndices.push(idx);
+          spokenFreq.set(word, avail - 1);
+        }
+      });
+      const matchedCount = matchedIndices.length;
+      const ratio = matchedCount / targetWords.length;
+      return {
+        isMatch: ratio >= threshold,
+        ratio,
+        matchedCount,
+        totalWords: targetWords.length,
+        matchedIndices
+      };
+    }
+
     function isPodcastQuestion(q) {
       return Boolean(q && (q.type === "radio_tf" || q.type === "radio_select3" || q.type === "radio_mcq"));
     }
@@ -5046,6 +5099,7 @@
       if (q.type === "wordbank") return `wordbank|${norm(q.arabic || q.prompt)}|${norm((q.answer || []).join(" "))}`;
       if (q.type === "fill_blank") return `fill_blank|${norm(q.sentence)}|${norm(q.answer)}`;
       if (q.type === "dictation") return `dictation|${normalizeArabicDictation(q.arabic)}`;
+      if (q.type === "speak") return `speak|${normalizeArabicSpeech(q.arabic)}`;
       if (q.type === "radio_tf") return `radio_tf|${norm(q.arabic)}|${norm(q.statementMl)}|${String(q.answer)}`;
       if (q.type === "radio_select3") return `radio_select3|${norm(q.arabic)}|${(q.answers || []).map(norm).sort().join(",")}`;
       if (q.type === "radio_mcq") return `radio_mcq|${norm(q.arabic)}|${norm(q.answer)}`;
@@ -5166,6 +5220,20 @@
         });
       });
 
+      if (unit.number >= SPEAK_MIN_UNIT_NUMBER) {
+        const speakCandidates = shuffleArray(collectUnitSpeakPool(unit));
+        speakCandidates.forEach((entry, idx) => {
+          generated.push({
+            type: "speak",
+            prompt: "കേട്ട ശേഷം ഉറക്കെ വായിക്കുക",
+            arabic: entry.ar,
+            translit: entry.tr || undefined,
+            meaningMl: entry.ml,
+            avatar: idx % 2 === 0 ? "🧕" : "👳‍♂️"
+          });
+        });
+      }
+
       return generated;
     }
 
@@ -5204,6 +5272,42 @@
         });
       });
       return multiLetter.length >= 3 ? multiLetter : [...multiLetter, ...singleLetter];
+    }
+
+    function collectUnitSpeakPool(unit) {
+      const seen = new Set();
+      const preferredSentences = [];
+      const shorterPhrases = [];
+      const pushCandidate = (ar, tr, ml) => {
+        const cleanAr = String(ar || "").trim();
+        const cleanMl = String(ml || "").trim();
+        if (!cleanAr || !cleanMl) return;
+        if (/[_→\/]/.test(cleanAr)) return;
+        if (/[\u0D00-\u0D7F]/.test(cleanAr)) return;
+        if (!/[\u0621-\u064A]/.test(cleanAr)) return;
+        const normKey = normalizeArabicSpeech(cleanAr);
+        if (!normKey || seen.has(normKey)) return;
+        const wordCount = normKey.split(/\s+/).filter(Boolean).length;
+        if (wordCount < 1 || wordCount > 8) return;
+        seen.add(normKey);
+        const entry = { ar: cleanAr, tr: String(tr || "").trim(), ml: cleanMl };
+        if (wordCount >= 2) preferredSentences.push(entry);
+        else if (normKey.replace(/\s+/g, "").length >= 3) shorterPhrases.push(entry);
+      };
+      (unit.guidebook || []).forEach(g => pushCandidate(g.ar, g.tr, g.ml));
+      (unit.lessons || []).forEach(l => {
+        if (l.nodeType === "chest") return;
+        (l.questions || []).forEach(q => {
+          if (q.type === "pairs") {
+            (q.pairs || []).forEach(p => pushCandidate(p.ar, p.tr, p.ml));
+          } else if ((q.type === "mcq" || q.type === "listen") && q.arabic && !q.isArabicOption) {
+            pushCandidate(q.arabic, q.translit, q.answer);
+          } else if (q.type === "fill_blank" && q.sentence && q.answer && q.hintMl) {
+            pushCandidate(buildFilledSentence(q.sentence, q.answer), "", q.hintMl);
+          }
+        });
+      });
+      return preferredSentences.length >= 3 ? preferredSentences : [...preferredSentences, ...shorterPhrases];
     }
 
     function buildLessonSessionQuestions(lesson, completedLessons, units) {
@@ -5318,22 +5422,65 @@
         if (!addedDict) break;
       }
 
+      // Exclusively for Units 20-35: guarantee 1-2 Speaking exercises per lesson
+      const speakAllowed = Boolean(unit && unit.number >= SPEAK_MIN_UNIT_NUMBER);
+      const countSpeak = () =>
+        [...handcrafted, ...spacedRepetition, ...reinforcements].filter(q => q.type === "speak").length;
+      if (speakAllowed) {
+        const desiredSpeakCount = (lesson.nodeType === "dialogue" || lesson.nodeType === "hard" || lesson.nodeType === "trophy") ? 2 : 1;
+        while (countSpeak() < desiredSpeakCount) {
+          if (currentTotal() >= maxSessionCount) {
+            const countsNow = {};
+            [...handcrafted, ...spacedRepetition, ...reinforcements].forEach(q => {
+              countsNow[q.type] = (countsNow[q.type] || 0) + 1;
+            });
+            const swapIdx = reinforcements.findIndex(q => {
+              if (q.type === "speak" || isPodcastQuestion(q)) return false;
+              if (q.type === "dictation" && countDictation() <= desiredDictationCount) return false;
+              return (countsNow[q.type] || 0) > 1;
+            });
+            if (swapIdx >= 0) {
+              reinforcements.splice(swapIdx, 1);
+            } else {
+              let swappedHandcrafted = false;
+              for (let i = handcrafted.length - 1; i >= 1; i--) {
+                const item = handcrafted[i];
+                if (item.type === "speak" || isPodcastQuestion(item)) continue;
+                if ((countsNow[item.type] || 0) > 1) {
+                  handcrafted.splice(i, 1);
+                  swappedHandcrafted = true;
+                  break;
+                }
+              }
+              if (!swappedHandcrafted) break;
+            }
+          }
+          let addedSpeak = false;
+          for (const cand of allCandidates) {
+            if (cand.type !== "speak") continue;
+            if (tryAccept(reinforcements, cand, false)) { addedSpeak = true; break; }
+          }
+          if (!addedSpeak) break;
+        }
+      }
+
       if (currentTotal() > effectiveTargetCount) {
         effectiveTargetCount = Math.min(maxSessionCount, currentTotal());
       }
 
-      const typeCounts = { mcq: 0, listen: 0, pairs: 0, wordbank: 0, fill_blank: 0, radio_tf: 0, radio_select3: 0, radio_mcq: 0, dictation: 0 };
+      const typeCounts = { mcq: 0, listen: 0, pairs: 0, wordbank: 0, fill_blank: 0, radio_tf: 0, radio_select3: 0, radio_mcq: 0, dictation: 0, speak: 0 };
       [...handcrafted, ...spacedRepetition, ...reinforcements].forEach(q => { typeCounts[q.type] = (typeCounts[q.type] || 0) + 1; });
 
-      const fillTypes = [...ALL_QUESTION_TYPES, "dictation"];
+      const fillTypes = speakAllowed ? [...ALL_QUESTION_TYPES, "dictation", "speak"] : [...ALL_QUESTION_TYPES, "dictation"];
       while (currentTotal() < effectiveTargetCount) {
         const prioritizedTypes = [...fillTypes].sort((a, b) => {
-          const penA = (a === "pairs" && typeCounts.pairs >= 2) || (a === "dictation" && typeCounts.dictation >= 2) ? 10 : 0;
-          const penB = (b === "pairs" && typeCounts.pairs >= 2) || (b === "dictation" && typeCounts.dictation >= 2) ? 10 : 0;
+          const penA = (a === "pairs" && typeCounts.pairs >= 2) || (a === "dictation" && typeCounts.dictation >= 2) || (a === "speak" && typeCounts.speak >= 2) ? 10 : 0;
+          const penB = (b === "pairs" && typeCounts.pairs >= 2) || (b === "dictation" && typeCounts.dictation >= 2) || (b === "speak" && typeCounts.speak >= 2) ? 10 : 0;
           return (typeCounts[a] + penA) - (typeCounts[b] + penB);
         });
         let added = false;
         for (const t of prioritizedTypes) {
+          if (t === "speak" && typeCounts.speak >= 2) continue;
           for (const cand of allCandidates) {
             if (cand.type !== t) continue;
             if (tryAccept(reinforcements, cand, false)) {
@@ -5418,26 +5565,43 @@
       const combined = [...basePool, ...shuffleArray(extraDynamic)];
       const rank = q => {
         if (q.type === "dictation") return 0;
-        if (q.type === "wordbank" && q.isArabicWords) return 1;
-        if (q.type === "fill_blank") return 2;
-        if (q.type === "listen") return 3;
-        if (q.type === "mcq" && q.isArabicOption) return 4;
-        if (q.type === "wordbank") return 5;
-        if (q.type === "mcq") return 6;
-        return 7;
+        if (q.type === "speak") return 1;
+        if (q.type === "wordbank" && q.isArabicWords) return 2;
+        if (q.type === "fill_blank") return 3;
+        if (q.type === "listen") return 4;
+        if (q.type === "mcq" && q.isArabicOption) return 5;
+        if (q.type === "wordbank") return 6;
+        if (q.type === "mcq") return 7;
+        return 8;
       };
       const ranked = [...combined].sort((a, b) => rank(a) - rank(b));
       const seen = new Set();
       const picked = [];
+      const counts = {};
+      const maxForType = t => (t === "dictation" || t === "speak" ? 2 : 3);
       for (const q of ranked) {
         if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
+        if ((counts[q.type] || 0) >= maxForType(q.type)) continue;
         const fp = getQuestionFingerprint(q);
         if (seen.has(fp)) continue;
         seen.add(fp);
+        counts[q.type] = (counts[q.type] || 0) + 1;
         const clone = JSON.parse(JSON.stringify(q));
         delete clone.isReview;
         delete clone.isSpacedRepetition;
         picked.push(clone);
+      }
+      if (picked.length < LEGENDARY_QUESTION_COUNT) {
+        for (const q of ranked) {
+          if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
+          const fp = getQuestionFingerprint(q);
+          if (seen.has(fp)) continue;
+          seen.add(fp);
+          const clone = JSON.parse(JSON.stringify(q));
+          delete clone.isReview;
+          delete clone.isSpacedRepetition;
+          picked.push(clone);
+        }
       }
       return prepareSessionQuestions(picked.slice(0, LEGENDARY_QUESTION_COUNT));
     }
@@ -5745,11 +5909,34 @@
       renderCurrentQuestion();
     }
 
+    let activeSpeechRecognition = null;
+
+    function getSpeechRecognitionCtor() {
+      if (typeof window === "undefined") return null;
+      return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    }
+
+    function stopSpeechRecognition() {
+      const rec = activeSpeechRecognition;
+      activeSpeechRecognition = null;
+      if (rec) {
+        rec.onstart = null;
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+        try { rec.abort(); } catch (_) {
+          try { rec.stop(); } catch (_) {}
+        }
+      }
+    }
+
     function closeLessonModal() {
+      stopSpeechRecognition();
       stopArabicAudio();
       document.getElementById("lesson-modal").classList.add("hidden");
       document.getElementById("lesson-review-banner").classList.add("hidden");
       document.getElementById("feedback-drawer").classList.add("hidden");
+      document.getElementById("speak-skip-area")?.classList.add("hidden");
       renderLearningPath();
     }
     document.getElementById("close-lesson-btn").addEventListener("click", () => { playTone("tap"); closeLessonModal(); });
@@ -5767,7 +5954,7 @@
 
     function shouldShowArabicPromptCard(q) {
       if (!q || !q.arabic) return false;
-      if (q.type === "dictation" || isPodcastQuestion(q)) return false;
+      if (q.type === "dictation" || q.type === "speak" || isPodcastQuestion(q)) return false;
       if (q.type === "listen") return true;
       if (q.type === "wordbank") return !q.isArabicWords;
       if (q.type === "mcq" && q.isArabicOption) {
@@ -5780,6 +5967,7 @@
     }
 
     function renderCurrentQuestion() {
+      stopSpeechRecognition();
       stopArabicAudio();
       const q = activeSession.questions[activeSession.currentIndex];
       preloadArabicAudioBatch(collectQuestionArabicTexts(q));
@@ -5789,7 +5977,15 @@
       if (progressCountEl) progressCountEl.textContent = `${activeSession.currentIndex + 1} / ${total}`;
       document.getElementById("lesson-hearts-count").textContent = activeSession.hearts;
       document.getElementById("feedback-drawer").classList.add("hidden");
-      document.getElementById("check-area").classList.remove("hidden");
+      const checkArea = document.getElementById("check-area");
+      const speakSkipArea = document.getElementById("speak-skip-area");
+      if (q.type === "speak") {
+        checkArea.classList.add("hidden");
+        speakSkipArea?.classList.remove("hidden");
+      } else {
+        checkArea.classList.remove("hidden");
+        speakSkipArea?.classList.add("hidden");
+      }
       disableCheckBtn();
 
       // Toggle Duolingo-style Mistake Review Banner / Legendary Zero-Hint Banner
@@ -6459,6 +6655,314 @@
 
           speakArabic(q.arabic, 1.0, normalBtn);
         }, 80);
+      } else if (q.type === "speak") {
+        const avatarEmoji = q.avatar || "🧕";
+        const displayWords = String(q.arabic || "").trim().split(/\s+/).filter(Boolean);
+        const speechSupported = Boolean(getSpeechRecognitionCtor());
+        const renderIdx = activeSession.currentIndex;
+
+        const wrap = document.createElement("div");
+        wrap.className = "space-y-6";
+        wrap.setAttribute("data-testid", "speak-exercise");
+
+        wrap.innerHTML = `
+          <div class="flex items-start gap-3 sm:gap-4">
+            <div aria-hidden="true" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-emerald-50 border-2 border-b-4 border-sky-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none">${avatarEmoji}</div>
+            <div data-testid="speak-speech-bubble" class="relative flex-1 bg-white border-2 border-b-4 border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-2.5">
+              <div aria-hidden="true" class="absolute -left-2.5 top-6 w-4 h-4 bg-white border-l-2 border-b-2 border-slate-200 rotate-45"></div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-1.5 shrink-0 pt-0.5">
+                  <button type="button" id="speak-play-normal" data-testid="speak-play-normal" aria-label="അറബി ഉച്ചാരണം കേൾക്കുക" title="അറബി ഉച്ചാരണം കേൾക്കുക" class="btn-3d w-11 h-11 rounded-2xl bg-[#1CB0F6] hover:bg-[#1899D6] border-b-4 border-[#1177A8] text-white text-xl flex items-center justify-center transition">🔊</button>
+                  <button type="button" id="speak-play-slow" data-testid="speak-play-slow" aria-label="പതുക്കെ കേൾക്കുക (0.65x)" title="പതുക്കെ കേൾക്കുക (0.65x)" class="btn-3d w-10 h-11 rounded-2xl bg-white border-2 border-b-4 border-slate-200 text-slate-700 hover:bg-slate-50 text-base flex items-center justify-center transition">🐢</button>
+                </div>
+                <div id="speak-target-arabic" data-testid="speak-target-arabic" dir="rtl" lang="ar" class="flex-1 text-right font-arabic text-2xl sm:text-3xl font-bold leading-relaxed flex flex-wrap justify-start gap-x-2 gap-y-1">
+                  ${displayWords.map((w, idx) => `<span data-word-idx="${idx}" class="speak-target-word text-slate-900 transition-colors duration-200">${w}</span>`).join("")}
+                </div>
+              </div>
+              <div class="pt-2 border-t border-slate-100 space-y-0.5 text-left">
+                ${!hideTranslit && q.translit ? `<p data-translit="true" class="text-xs sm:text-sm font-bold text-[#0369A1]">${q.translit}</p>` : ""}
+                <p class="text-xs sm:text-sm font-extrabold text-slate-700">${q.meaningMl || ""}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col items-center gap-4 pt-1">
+            <div class="relative w-full sm:max-w-md flex items-center justify-center">
+              <div id="speak-mic-ring" aria-hidden="true" class="hidden animate-mic-ring pointer-events-none absolute inset-0 rounded-2xl border-4 border-[#1CB0F6]"></div>
+              <button type="button" id="speak-mic-btn" data-testid="speak-mic-btn" aria-pressed="false" ${speechSupported ? "" : "disabled"} class="btn-3d relative w-full min-h-[64px] px-6 py-4 rounded-2xl border-b-4 font-extrabold text-base sm:text-lg flex items-center justify-center gap-3 transition ${
+                speechSupported
+                  ? "bg-[#1CB0F6] hover:bg-[#0EA5E9] border-[#1177A8] text-white shadow-sm cursor-pointer"
+                  : "bg-slate-200 border-slate-300 text-slate-500 cursor-not-allowed"
+              }">
+                <span id="speak-sound-wave" data-testid="speak-sound-wave" class="hidden inline-flex items-center gap-1 h-7" aria-hidden="true">
+                  <span style="animation-delay:0s" class="animate-sound-wave w-1.5 h-6 rounded-full bg-white"></span>
+                  <span style="animation-delay:0.14s" class="animate-sound-wave w-1.5 h-6 rounded-full bg-white"></span>
+                  <span style="animation-delay:0.28s" class="animate-sound-wave w-1.5 h-6 rounded-full bg-white"></span>
+                  <span style="animation-delay:0.18s" class="animate-sound-wave w-1.5 h-6 rounded-full bg-white"></span>
+                  <span style="animation-delay:0.08s" class="animate-sound-wave w-1.5 h-6 rounded-full bg-white"></span>
+                </span>
+                <span id="speak-mic-label" class="whitespace-nowrap">${speechSupported ? "🎤 സംസാരിക്കുക" : "🎙️ മൈക്രോഫോൺ ലഭ്യമല്ല"}</span>
+              </button>
+            </div>
+
+            <div id="speak-live-transcript" data-testid="speak-live-transcript" class="hidden w-full rounded-2xl border-2 bg-sky-50/70 border-sky-200 p-4 text-center space-y-1.5 transition">
+              <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-500">
+                <span>നിങ്ങൾ പറഞ്ഞത് (Recognized Arabic)</span>
+                <span id="speak-match-ratio" class="font-latin tabular-nums text-[#0369A1]"></span>
+              </div>
+              <div id="speak-transcript-text" dir="rtl" lang="ar" class="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 min-h-[2.25rem]">...</div>
+            </div>
+
+            <div id="speak-retry-notice" role="status" data-testid="speak-retry-notice" class="hidden w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs sm:text-sm font-bold text-amber-900"></div>
+
+            <div id="speak-fallback-notice" role="status" data-testid="speak-fallback-notice" class="${speechSupported ? "hidden" : ""} w-full rounded-2xl border-2 border-amber-200 bg-amber-50/90 p-4 text-left space-y-1.5">
+              <div id="speak-fallback-title" class="text-xs sm:text-sm font-extrabold text-amber-900">ഈ ബ്രൗസറിൽ സ്പീച്ച് റെക്കഗ്നിഷൻ ലഭ്യമല്ല</div>
+              <p class="text-xs sm:text-sm font-medium text-amber-800 leading-relaxed">മുകളിലെ 🔊 ബട്ടൺ അമർത്തി ഉച്ചാരണം കേട്ട് സ്വയം പരിശീലിക്കാം. തുടരാൻ താഴെയുള്ള "ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല" ബട്ടൺ അമർത്തുക — ഹാർട്ട് നഷ്ടപ്പെടില്ല.</p>
+            </div>
+          </div>`;
+
+        body.appendChild(wrap);
+
+        setTimeout(() => {
+          if (!activeSession || activeSession.currentIndex !== renderIdx) return;
+          const normalBtn = document.getElementById("speak-play-normal");
+          const slowBtn = document.getElementById("speak-play-slow");
+          const micBtn = document.getElementById("speak-mic-btn");
+          const micRing = document.getElementById("speak-mic-ring");
+          const soundWave = document.getElementById("speak-sound-wave");
+          const micLabel = document.getElementById("speak-mic-label");
+          const liveBox = document.getElementById("speak-live-transcript");
+          const ratioEl = document.getElementById("speak-match-ratio");
+          const transcriptEl = document.getElementById("speak-transcript-text");
+          const retryNotice = document.getElementById("speak-retry-notice");
+          const fallbackNotice = document.getElementById("speak-fallback-notice");
+          const fallbackTitle = document.getElementById("speak-fallback-title");
+
+          let isListening = false;
+          let speakSettled = false;
+          let latestTranscript = "";
+          let unavailable = !speechSupported;
+
+          const setListeningVisual = (listening, retryMode = false) => {
+            isListening = listening;
+            if (!micBtn) return;
+            micBtn.setAttribute("aria-pressed", listening ? "true" : "false");
+            if (unavailable) {
+              micBtn.disabled = true;
+              micBtn.className = "btn-3d relative w-full min-h-[64px] px-6 py-4 rounded-2xl border-b-4 font-extrabold text-base sm:text-lg flex items-center justify-center gap-3 transition bg-slate-200 border-slate-300 text-slate-500 cursor-not-allowed";
+              micRing?.classList.add("hidden");
+              soundWave?.classList.add("hidden");
+              if (micLabel) micLabel.textContent = "🎙️ മൈക്രോഫോൺ ലഭ്യമല്ല";
+              return;
+            }
+            if (listening) {
+              micBtn.className = "btn-3d relative w-full min-h-[64px] px-6 py-4 rounded-2xl border-b-4 font-extrabold text-base sm:text-lg flex items-center justify-center gap-3 transition bg-[#0284C7] border-[#0369A1] text-white shadow-lg ring-4 ring-sky-200 cursor-pointer";
+              micRing?.classList.remove("hidden");
+              soundWave?.classList.remove("hidden");
+              if (micLabel) micLabel.textContent = "കേൾക്കുന്നു... സംസാരിക്കൂ";
+              liveBox?.classList.remove("hidden");
+            } else {
+              micBtn.className = "btn-3d relative w-full min-h-[64px] px-6 py-4 rounded-2xl border-b-4 font-extrabold text-base sm:text-lg flex items-center justify-center gap-3 transition bg-[#1CB0F6] hover:bg-[#0EA5E9] border-[#1177A8] text-white shadow-sm cursor-pointer";
+              micRing?.classList.add("hidden");
+              soundWave?.classList.add("hidden");
+              if (micLabel) micLabel.textContent = retryMode ? "🎤 വീണ്ടും സംസാരിക്കുക" : "🎤 സംസാരിക്കുക";
+            }
+          };
+
+          const updateTargetWordHighlights = (matchedIndices) => {
+            const matchedSet = new Set(matchedIndices || []);
+            const spans = wrap.querySelectorAll(".speak-target-word");
+            let normPos = 0;
+            spans.forEach(span => {
+              const wordNorm = normalizeArabicSpeech(span.textContent || "");
+              const isMatched = Boolean(wordNorm) && matchedSet.has(normPos);
+              if (wordNorm) normPos += 1;
+              span.className = `speak-target-word transition-colors duration-200 ${isMatched ? "text-[#357A00]" : "text-slate-900"}`;
+            });
+          };
+
+          const markSpeakPassed = (bestTranscript, bestEval) => {
+            if (speakSettled || !activeSession || activeSession.isAnswered) return;
+            speakSettled = true;
+            activeSession.isAnswered = true;
+            stopSpeechRecognition();
+            setListeningVisual(false, false);
+            if (micBtn) micBtn.disabled = true;
+            retryNotice?.classList.add("hidden");
+            if (liveBox) {
+              liveBox.classList.remove("hidden", "bg-sky-50/70", "border-sky-200", "bg-slate-50", "border-slate-200");
+              liveBox.classList.add("bg-emerald-50", "border-emerald-300");
+            }
+            if (transcriptEl) transcriptEl.textContent = bestTranscript || q.arabic;
+            if (ratioEl && bestEval) {
+              ratioEl.textContent = `${bestEval.matchedCount} / ${bestEval.totalWords} വാക്കുകൾ (${Math.round(bestEval.ratio * 100)}%)`;
+            }
+            updateTargetWordHighlights(bestEval ? bestEval.matchedIndices : []);
+            activeSession.score += 1;
+            playTone("correct");
+            showFeedback(true, "മികച്ച ഉച്ചാരണം! 👏 ശരിയായി വായിച്ചു.");
+          };
+
+          const startListening = () => {
+            if (activeSession.isAnswered || speakSettled || unavailable) return;
+            const SpeechCtor = getSpeechRecognitionCtor();
+            if (!SpeechCtor) {
+              unavailable = true;
+              setListeningVisual(false);
+              if (fallbackTitle) fallbackTitle.textContent = "ഈ ബ്രൗസറിൽ സ്പീച്ച് റെക്കഗ്നിഷൻ ലഭ്യമല്ല";
+              fallbackNotice?.classList.remove("hidden");
+              return;
+            }
+            stopArabicAudio();
+            stopSpeechRecognition();
+            playTone("tap");
+            latestTranscript = "";
+            retryNotice?.classList.add("hidden");
+            if (transcriptEl) transcriptEl.textContent = "...";
+            if (ratioEl) ratioEl.textContent = "";
+            updateTargetWordHighlights([]);
+
+            try {
+              const recognition = new SpeechCtor();
+              recognition.lang = "ar-SA";
+              recognition.interimResults = true;
+              recognition.continuous = false;
+              recognition.maxAlternatives = 3;
+              activeSpeechRecognition = recognition;
+              setListeningVisual(true);
+
+              recognition.onstart = () => {
+                if (activeSpeechRecognition !== recognition) return;
+                setListeningVisual(true);
+              };
+
+              recognition.onresult = (event) => {
+                if (activeSpeechRecognition !== recognition || speakSettled) return;
+                let primaryTranscript = "";
+                const candidateTranscripts = [];
+                for (let i = 0; i < event.results.length; i++) {
+                  const res = event.results[i];
+                  if (res && res[0] && res[0].transcript) {
+                    primaryTranscript += `${res[0].transcript} `;
+                  }
+                }
+                primaryTranscript = primaryTranscript.trim();
+                if (primaryTranscript) candidateTranscripts.push(primaryTranscript);
+                const lastResult = event.results[event.results.length - 1];
+                if (lastResult && lastResult.length > 1) {
+                  let prefix = "";
+                  for (let i = 0; i < event.results.length - 1; i++) {
+                    if (event.results[i]?.[0]?.transcript) prefix += `${event.results[i][0].transcript} `;
+                  }
+                  for (let alt = 1; alt < lastResult.length; alt++) {
+                    const altText = `${prefix}${lastResult[alt]?.transcript || ""}`.trim();
+                    if (altText) candidateTranscripts.push(altText);
+                  }
+                }
+
+                let bestTranscript = primaryTranscript;
+                let bestEval = evaluateSpeechMatch(primaryTranscript, q.arabic);
+                for (const cand of candidateTranscripts) {
+                  const ev = evaluateSpeechMatch(cand, q.arabic);
+                  if (ev.ratio > bestEval.ratio) {
+                    bestEval = ev;
+                    bestTranscript = cand;
+                  }
+                }
+
+                latestTranscript = bestTranscript;
+                if (liveBox) liveBox.classList.remove("hidden");
+                if (transcriptEl) transcriptEl.textContent = bestTranscript || "...";
+                if (ratioEl) {
+                  ratioEl.textContent = `${bestEval.matchedCount} / ${bestEval.totalWords} വാക്കുകൾ (${Math.round(bestEval.ratio * 100)}%)`;
+                }
+                updateTargetWordHighlights(bestEval.matchedIndices);
+
+                if (bestEval.isMatch) {
+                  markSpeakPassed(bestTranscript, bestEval);
+                }
+              };
+
+              recognition.onerror = (event) => {
+                if (activeSpeechRecognition !== recognition || speakSettled) return;
+                const code = event?.error || "";
+                stopSpeechRecognition();
+                if (code === "not-allowed" || code === "service-not-allowed" || code === "audio-capture") {
+                  unavailable = true;
+                  setListeningVisual(false);
+                  if (fallbackTitle) fallbackTitle.textContent = "മൈക്രോഫോൺ അനുമതി ലഭിച്ചില്ല";
+                  fallbackNotice?.classList.remove("hidden");
+                } else if (code === "no-speech") {
+                  setListeningVisual(false, true);
+                  if (retryNotice) {
+                    retryNotice.textContent = "ശബ്ദം കേട്ടില്ല — മൈക്ക് അമർത്തി ഒരിക്കൽ കൂടി ഉറക്കെ വായിക്കൂ, അല്ലെങ്കിൽ താഴെ ഒഴിവാക്കാം.";
+                    retryNotice.classList.remove("hidden");
+                  }
+                } else if (code !== "aborted") {
+                  setListeningVisual(false, true);
+                  if (retryNotice) {
+                    retryNotice.textContent = 'കുറച്ചുകൂടി വ്യക്തമായി വീണ്ടും ശ്രമിക്കാം — അല്ലെങ്കിൽ താഴെ "ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല" അമർത്താം.';
+                    retryNotice.classList.remove("hidden");
+                  }
+                }
+              };
+
+              recognition.onend = () => {
+                if (activeSpeechRecognition !== recognition) return;
+                activeSpeechRecognition = null;
+                if (speakSettled) return;
+                if (latestTranscript) {
+                  const finalEval = evaluateSpeechMatch(latestTranscript, q.arabic);
+                  if (finalEval.isMatch) {
+                    markSpeakPassed(latestTranscript, finalEval);
+                    return;
+                  }
+                  setListeningVisual(false, true);
+                  if (retryNotice) {
+                    retryNotice.textContent = 'കുറച്ചുകൂടി വ്യക്തമായി വീണ്ടും ശ്രമിക്കാം — അല്ലെങ്കിൽ താഴെ "ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല" അമർത്താം.';
+                    retryNotice.classList.remove("hidden");
+                  }
+                } else {
+                  setListeningVisual(false, true);
+                  if (retryNotice) {
+                    retryNotice.textContent = "ശബ്ദം കേട്ടില്ല — മൈക്ക് അമർത്തി ഒരിക്കൽ കൂടി ഉറക്കെ വായിക്കൂ, അല്ലെങ്കിൽ താഴെ ഒഴിവാക്കാം.";
+                    retryNotice.classList.remove("hidden");
+                  }
+                }
+              };
+
+              recognition.start();
+            } catch (_) {
+              stopSpeechRecognition();
+              unavailable = true;
+              setListeningVisual(false);
+              if (fallbackTitle) fallbackTitle.textContent = "ഈ ബ്രൗസറിൽ സ്പീച്ച് റെക്കഗ്നിഷൻ ലഭ്യമല്ല";
+              fallbackNotice?.classList.remove("hidden");
+            }
+          };
+
+          micBtn?.addEventListener("click", () => {
+            if (isListening) {
+              const rec = activeSpeechRecognition;
+              try { rec?.stop(); } catch (_) { stopSpeechRecognition(); setListeningVisual(false, true); }
+              return;
+            }
+            startListening();
+          });
+
+          normalBtn?.addEventListener("click", () => {
+            stopSpeechRecognition();
+            setListeningVisual(false);
+            speakArabic(q.arabic, 1.0, normalBtn);
+          });
+          slowBtn?.addEventListener("click", () => {
+            stopSpeechRecognition();
+            setListeningVisual(false);
+            speakArabic(q.arabic, 0.65, slowBtn);
+          });
+
+          speakArabic(q.arabic, 1.0, normalBtn);
+        }, 80);
       }
 
       container.appendChild(body);
@@ -6476,6 +6980,7 @@
 
     function showFeedback(isCorrect, detailText) {
       document.getElementById("check-area").classList.add("hidden");
+      document.getElementById("speak-skip-area")?.classList.add("hidden");
       const d = document.getElementById("feedback-drawer");
       const ic = document.getElementById("feedback-icon");
       const tt = document.getElementById("feedback-title");
@@ -6637,8 +7142,22 @@
       }
     });
 
+    document.getElementById("speak-skip-btn")?.addEventListener("click", () => {
+      if (!activeSession || activeSession.isAnswered) return;
+      playTone("tap");
+      stopSpeechRecognition();
+      stopArabicAudio();
+      if (activeSession.currentIndex + 1 < activeSession.questions.length) {
+        activeSession.currentIndex += 1;
+        renderCurrentQuestion();
+      } else {
+        finishSession();
+      }
+    });
+
     document.getElementById("continue-lesson-btn").addEventListener("click", () => {
       playTone("tap");
+      stopSpeechRecognition();
       if (activeSession.hearts === 0) return;
       if (activeSession.currentIndex + 1 < activeSession.questions.length) {
         activeSession.currentIndex += 1; renderCurrentQuestion();
@@ -6652,8 +7171,10 @@
     }
 
     function finishSession() {
+      stopSpeechRecognition();
       document.getElementById("lesson-modal").classList.add("hidden");
       document.getElementById("feedback-drawer").classList.add("hidden");
+      document.getElementById("speak-skip-area")?.classList.add("hidden");
       playTone("complete");
       let xp = activeSession.xpReward || 15, title = "പാഠം പൂർത്തിയായി!", sub = "മികച്ച പ്രകടനം! അടുത്ത ഘട്ടം അൺലോക്ക് ആയിരിക്കുന്നു.", emoji = "🎉";
 

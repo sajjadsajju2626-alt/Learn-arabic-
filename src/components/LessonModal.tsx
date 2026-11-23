@@ -243,8 +243,11 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       }, 140);
       return () => {
         window.clearTimeout(timer);
+        stopArabicAudio();
       };
     }
+    stopArabicAudio();
+    return undefined;
   }, [currentIndex, question, showArabicPromptCard, isPodcast, isDictation, isSpeak, soundEnabled]);
 
   // Detect SpeechRecognition support upfront when a Speaking question loads
@@ -263,13 +266,6 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       }
     };
   }, [currentIndex, isSpeak]);
-        window.clearTimeout(timer);
-        stopArabicAudio();
-      };
-    }
-    stopArabicAudio();
-    return undefined;
-  }, [question, showArabicPromptCard, isPodcast, isDictation, soundEnabled]);
 
   const deductHeart = () => {
     const next = Math.max(0, hearts - 1);

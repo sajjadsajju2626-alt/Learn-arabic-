@@ -1218,7 +1218,17 @@ export function buildLessonSessionQuestions(
         if (removableIdx >= 0) {
           reinforcements.splice(removableIdx, 1);
         } else {
-          break;
+          let swappedHandcrafted = false;
+          for (let i = handcrafted.length - 1; i >= 1; i--) {
+            const item = handcrafted[i];
+            if (item.type === 'speak' || isPodcastQuestion(item)) continue;
+            if ((countsByType[item.type] ?? 0) > 1) {
+              handcrafted.splice(i, 1);
+              swappedHandcrafted = true;
+              break;
+            }
+          }
+          if (!swappedHandcrafted) break;
         }
       }
 
@@ -1381,15 +1391,34 @@ export function buildLegendarySessionQuestions(
   const ranked = [...combined].sort((a, b) => difficultyRank(a) - difficultyRank(b));
   const seen = new Set<string>();
   const picked: LessonQuestion[] = [];
+  const counts: Record<string, number> = {};
+  const maxForType = (t: LessonQuestion['type']): number => {
+    if (t === 'dictation' || t === 'speak') return 2;
+    return 3;
+  };
   for (const q of ranked) {
     if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
+    if ((counts[q.type] ?? 0) >= maxForType(q.type)) continue;
     const fp = getQuestionFingerprint(q);
     if (seen.has(fp)) continue;
     seen.add(fp);
+    counts[q.type] = (counts[q.type] ?? 0) + 1;
     const clone = JSON.parse(JSON.stringify(q)) as LessonQuestion;
     delete clone.isReview;
     delete clone.isSpacedRepetition;
     picked.push(clone);
+  }
+  if (picked.length < LEGENDARY_QUESTION_COUNT) {
+    for (const q of ranked) {
+      if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
+      const fp = getQuestionFingerprint(q);
+      if (seen.has(fp)) continue;
+      seen.add(fp);
+      const clone = JSON.parse(JSON.stringify(q)) as LessonQuestion;
+      delete clone.isReview;
+      delete clone.isSpacedRepetition;
+      picked.push(clone);
+    }
   }
   return prepareSessionQuestions(picked.slice(0, LEGENDARY_QUESTION_COUNT), rng);
 }
