@@ -374,7 +374,7 @@ export function collectQuestionArabicTexts(question: LessonQuestion): string[] {
   if (question.type === 'wordbank' && question.isArabicWords) {
     question.words.forEach(add);
   }
-  if (question.type === 'pairs') {
+  if (question.type === 'pairs' || question.type === 'audio_pairs') {
     question.pairs.forEach((pair) => add(pair.ar));
   }
   if (question.type === 'fill_blank') {

@@ -41,6 +41,7 @@ import {
   getQuestionFingerprint,
   hydratePersistedUserState,
   isLessonUnlocked,
+  isPairsQuestion,
   isPodcastQuestion,
   isUnitUnlocked,
   LEGENDARY_HEARTS,
@@ -58,6 +59,7 @@ import {
   prepareSessionQuestions,
   prepareStorySteps,
   resolveCurrentUnitId,
+  resolvePairTapSelection,
   REVIEW_QUESTION_COUNT,
   REVIEW_XP_REWARD,
   shouldShowArabicPromptCard,
@@ -2016,4 +2018,110 @@ test('Dynamic Video Call Smart Arabic Conversational Engine detects intents, mir
   assert.equal(canUseServerGeminiEndpoint({ protocol: 'http:', hostname: 'localhost' }), true);
   assert.equal(canUseServerGeminiEndpoint({ protocol: 'https:', hostname: 'myapp.run.app' }), true);
 });
+
+test('Matching Pairs (pairs & audio_pairs) selection switches cleanly within a column, deselects on re-tap, matches pairs, and recovers from mismatch flash', () => {
+  const baseState = {
+    selectedLeft: null,
+    selectedRight: null,
+    matchedPairIndices: [] as number[],
+    wrongPairFlash: null,
+  };
+
+  // 1. Selecting a left card highlights it and speaks Arabic
+  const t1 = resolvePairTapSelection(baseState, 'left', 0, 4);
+  assert.equal(t1.action, 'select');
+  assert.equal(t1.selectedLeft, 0);
+  assert.equal(t1.selectedRight, null);
+  assert.equal(t1.shouldSpeakArabic, true);
+
+  // 2. Tapping another card in the SAME column switches cleanly
+  const t2 = resolvePairTapSelection(t1, 'left', 2, 4);
+  assert.equal(t2.action, 'switch');
+  assert.equal(t2.selectedLeft, 2);
+  assert.equal(t2.selectedRight, null);
+  assert.equal(t2.shouldSpeakArabic, true);
+
+  // 3. Tapping the already-selected left card again deselects it without re-speaking
+  const t3 = resolvePairTapSelection(t2, 'left', 2, 4);
+  assert.equal(t3.action, 'deselect');
+  assert.equal(t3.selectedLeft, null);
+  assert.equal(t3.selectedRight, null);
+  assert.equal(t3.shouldSpeakArabic, false);
+
+  // 4. Right column: select -> switch -> deselect
+  const r1 = resolvePairTapSelection(t3, 'right', 1, 4);
+  assert.equal(r1.action, 'select');
+  assert.equal(r1.selectedRight, 1);
+  assert.equal(r1.shouldSpeakArabic, false);
+
+  const r2 = resolvePairTapSelection(r1, 'right', 3, 4);
+  assert.equal(r2.action, 'switch');
+  assert.equal(r2.selectedRight, 3);
+  assert.equal(r2.selectedLeft, null);
+
+  const r3 = resolvePairTapSelection(r2, 'right', 3, 4);
+  assert.equal(r3.action, 'deselect');
+  assert.equal(r3.selectedRight, null);
+
+  // 5. Matching pair marks index as matched and clears both selections
+  const mStart = resolvePairTapSelection(r3, 'left', 1, 4);
+  const mDone = resolvePairTapSelection(mStart, 'right', 1, 4);
+  assert.equal(mDone.action, 'match');
+  assert.deepEqual(mDone.matchedPairIndices, [1]);
+  assert.equal(mDone.selectedLeft, null);
+  assert.equal(mDone.selectedRight, null);
+  assert.equal(mDone.allMatched, false);
+
+  // 6. Tapping an already-matched card is a no-op
+  const noopTap = resolvePairTapSelection(mDone, 'left', 1, 4);
+  assert.equal(noopTap.action, 'noop');
+  assert.deepEqual(noopTap.matchedPairIndices, [1]);
+
+  // 7. Mismatch flashes wrongPairFlash; tapping a new card mid-flash clears flash and selects cleanly
+  const wStart = resolvePairTapSelection(mDone, 'left', 0, 4);
+  const wFlash = resolvePairTapSelection(wStart, 'right', 2, 4);
+  assert.equal(wFlash.action, 'mismatch');
+  assert.deepEqual(wFlash.wrongPairFlash, { left: 0, right: 2 });
+
+  const recover = resolvePairTapSelection(wFlash, 'left', 3, 4);
+  assert.equal(recover.action, 'select');
+  assert.equal(recover.wrongPairFlash, null);
+  assert.equal(recover.selectedLeft, 3);
+  assert.equal(recover.selectedRight, null);
+
+  // 8. Final pair completes the question
+  const almostDone = {
+    selectedLeft: 3,
+    selectedRight: null,
+    matchedPairIndices: [0, 1, 2],
+    wrongPairFlash: null,
+  };
+  const finalMatch = resolvePairTapSelection(almostDone, 'right', 3, 4);
+  assert.equal(finalMatch.action, 'match');
+  assert.equal(finalMatch.allMatched, true);
+  assert.deepEqual(finalMatch.matchedPairIndices, [0, 1, 2, 3]);
+
+  // 9. Both `pairs` and `audio_pairs` are recognized and preload Arabic audio cleanly
+  const pairsQ = {
+    type: 'pairs' as const,
+    prompt: 'ജോഡികൾ യോജിപ്പിക്കുക',
+    pairs: [
+      { ar: 'بَابٌ', tr: 'ബാബുൻ', ml: 'വാതിൽ' },
+      { ar: 'كِتَابٌ', tr: 'കിതാബുൻ', ml: 'പുസ്തകം' },
+    ],
+  };
+  const audioPairsQ = {
+    type: 'audio_pairs' as const,
+    prompt: 'ശബ്ദവും അർത്ഥവും യോജിപ്പിക്കുക',
+    pairs: [
+      { ar: 'بَابٌ', tr: 'ബാബുൻ', ml: 'വാതിൽ' },
+      { ar: 'كِتَابٌ', tr: 'കിതാബുൻ', ml: 'പുസ്തകം' },
+    ],
+  };
+  assert.equal(isPairsQuestion(pairsQ), true);
+  assert.equal(isPairsQuestion(audioPairsQ), true);
+  assert.notEqual(getQuestionFingerprint(pairsQ), getQuestionFingerprint(audioPairsQ));
+  assert.deepEqual(collectQuestionArabicTexts(audioPairsQ), ['بَابٌ', 'كِتَابٌ']);
+});
+
 

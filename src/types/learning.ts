@@ -66,6 +66,14 @@ export interface PairsQuestion {
   isSpacedRepetition?: boolean;
 }
 
+export interface AudioPairsQuestion {
+  type: 'audio_pairs';
+  prompt: string;
+  pairs: PairItem[];
+  isReview?: boolean;
+  isSpacedRepetition?: boolean;
+}
+
 export interface FillBlankQuestion {
   type: 'fill_blank';
   prompt: string;
@@ -163,6 +171,7 @@ export type LessonQuestion =
   | ListenQuestion
   | WordBankQuestion
   | PairsQuestion
+  | AudioPairsQuestion
   | FillBlankQuestion
   | RadioTfQuestion
   | RadioSelect3Question

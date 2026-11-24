@@ -2,9 +2,11 @@ import { COMMUNITY_LEARNERS, UNITS } from '../data/curriculum';
 import type {
   AppTab,
   ArabicLetter,
+  AudioPairsQuestion,
   LeaderboardEntry,
   Lesson,
   LessonQuestion,
+  PairsQuestion,
   SessionMode,
   SessionResult,
   SessionVariant,
@@ -309,6 +311,160 @@ export function isPodcastQuestion(question: LessonQuestion): boolean {
     question.type === 'radio_select3' ||
     question.type === 'radio_mcq'
   );
+}
+
+export function isPairsQuestion(
+  question: LessonQuestion
+): question is PairsQuestion | AudioPairsQuestion {
+  return question.type === 'pairs' || question.type === 'audio_pairs';
+}
+
+export interface PairSelectionState {
+  selectedLeft: number | null;
+  selectedRight: number | null;
+  matchedPairIndices: readonly number[];
+  wrongPairFlash: { left: number; right: number } | null;
+}
+
+export type PairTapAction = 'noop' | 'select' | 'switch' | 'deselect' | 'match' | 'mismatch';
+
+export interface PairSelectionTransition {
+  action: PairTapAction;
+  selectedLeft: number | null;
+  selectedRight: number | null;
+  matchedPairIndices: number[];
+  wrongPairFlash: { left: number; right: number } | null;
+  shouldSpeakArabic: boolean;
+  allMatched: boolean;
+}
+
+/**
+ * Pure state transition for Matching Pairs (`pairs` and `audio_pairs`):
+ * - Ignores taps on already-matched cards.
+ * - Cancels an active mismatch flash immediately so a fresh tap starts cleanly.
+ * - Tapping an already-selected card in the same column deselects it.
+ * - Tapping another card in the same column switches selection cleanly.
+ * - Tapping a card in the opposite column evaluates match vs. mismatch.
+ */
+export function resolvePairTapSelection(
+  state: PairSelectionState,
+  side: 'left' | 'right',
+  pairIdx: number,
+  totalPairs: number
+): PairSelectionTransition {
+  const matched = [...state.matchedPairIndices];
+  if (matched.includes(pairIdx)) {
+    return {
+      action: 'noop',
+      selectedLeft: state.selectedLeft,
+      selectedRight: state.selectedRight,
+      matchedPairIndices: matched,
+      wrongPairFlash: state.wrongPairFlash,
+      shouldSpeakArabic: false,
+      allMatched: matched.length >= totalPairs,
+    };
+  }
+
+  // If a mismatch flash was in progress, clear it and begin a fresh selection on the tapped card
+  if (state.wrongPairFlash !== null) {
+    return {
+      action: 'select',
+      selectedLeft: side === 'left' ? pairIdx : null,
+      selectedRight: side === 'right' ? pairIdx : null,
+      matchedPairIndices: matched,
+      wrongPairFlash: null,
+      shouldSpeakArabic: side === 'left',
+      allMatched: false,
+    };
+  }
+
+  // Tapping the currently selected card in the same column deselects it
+  if (side === 'left' && state.selectedLeft === pairIdx) {
+    return {
+      action: 'deselect',
+      selectedLeft: null,
+      selectedRight: state.selectedRight,
+      matchedPairIndices: matched,
+      wrongPairFlash: null,
+      shouldSpeakArabic: false,
+      allMatched: false,
+    };
+  }
+  if (side === 'right' && state.selectedRight === pairIdx) {
+    return {
+      action: 'deselect',
+      selectedLeft: state.selectedLeft,
+      selectedRight: null,
+      matchedPairIndices: matched,
+      wrongPairFlash: null,
+      shouldSpeakArabic: false,
+      allMatched: false,
+    };
+  }
+
+  const nextLeft = side === 'left' ? pairIdx : state.selectedLeft;
+  const nextRight = side === 'right' ? pairIdx : state.selectedRight;
+
+  // Switching selection within the same column when the opposite column is unselected
+  if (side === 'left' && state.selectedLeft !== null && state.selectedRight === null) {
+    return {
+      action: 'switch',
+      selectedLeft: pairIdx,
+      selectedRight: null,
+      matchedPairIndices: matched,
+      wrongPairFlash: null,
+      shouldSpeakArabic: true,
+      allMatched: false,
+    };
+  }
+  if (side === 'right' && state.selectedRight !== null && state.selectedLeft === null) {
+    return {
+      action: 'switch',
+      selectedLeft: null,
+      selectedRight: pairIdx,
+      matchedPairIndices: matched,
+      wrongPairFlash: null,
+      shouldSpeakArabic: false,
+      allMatched: false,
+    };
+  }
+
+  // Single-side selection (waiting for the opposite column)
+  if (nextLeft === null || nextRight === null) {
+    return {
+      action: 'select',
+      selectedLeft: nextLeft,
+      selectedRight: nextRight,
+      matchedPairIndices: matched,
+      wrongPairFlash: null,
+      shouldSpeakArabic: side === 'left',
+      allMatched: false,
+    };
+  }
+
+  // Both sides selected: check match vs. mismatch
+  if (nextLeft === nextRight) {
+    const updatedMatched = [...matched, nextLeft];
+    return {
+      action: 'match',
+      selectedLeft: null,
+      selectedRight: null,
+      matchedPairIndices: updatedMatched,
+      wrongPairFlash: null,
+      shouldSpeakArabic: side === 'left',
+      allMatched: updatedMatched.length === totalPairs,
+    };
+  }
+
+  return {
+    action: 'mismatch',
+    selectedLeft: nextLeft,
+    selectedRight: nextRight,
+    matchedPairIndices: matched,
+    wrongPairFlash: { left: nextLeft, right: nextRight },
+    shouldSpeakArabic: side === 'left',
+    allMatched: false,
+  };
 }
 
 export function areRadioSelect3AnswersEqual(
@@ -773,7 +929,7 @@ export function getQuestionFingerprint(q: LessonQuestion): string {
     .map((p) => norm(p.ar))
     .sort()
     .join(',');
-  return `pairs|${pairSig}`;
+  return `${q.type}|${pairSig}`;
 }
 
 interface VocabEntry {
@@ -806,7 +962,7 @@ function collectUnitVocabPool(unit: Unit): VocabEntry[] {
   }
   for (const l of unit.lessons) {
     for (const q of l.questions) {
-      if (q.type === 'pairs') {
+      if (isPairsQuestion(q)) {
         for (const p of q.pairs) {
           pushEntry(p.ar, p.tr ?? '', p.ml);
         }
@@ -987,7 +1143,7 @@ function collectUnitSpeakPool(unit: Unit): VocabEntry[] {
       }
     }
     for (const q of l.questions) {
-      if (q.type === 'pairs') {
+      if (isPairsQuestion(q)) {
         for (const p of q.pairs) {
           pushCandidate(p.ar, p.tr ?? '', p.ml);
         }
@@ -1036,7 +1192,7 @@ function collectUnitDictationPool(unit: Unit): VocabEntry[] {
   for (const l of unit.lessons) {
     if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
     for (const q of l.questions) {
-      if (q.type === 'pairs') {
+      if (isPairsQuestion(q)) {
         for (const p of q.pairs) {
           pushCandidate(p.ar, p.tr ?? '', p.ml);
         }
@@ -1121,8 +1277,8 @@ export function buildLessonSessionQuestions(
     const srTarget = Math.min(2, Math.max(0, targetCount - handcrafted.length));
     // Prefer non-pairs first for crisp recall, fall back to any earlier question
     const preferredEarlier = [
-      ...shuffledEarlier.filter((q) => q.type !== 'pairs'),
-      ...shuffledEarlier.filter((q) => q.type === 'pairs'),
+      ...shuffledEarlier.filter((q) => !isPairsQuestion(q)),
+      ...shuffledEarlier.filter((q) => isPairsQuestion(q)),
     ];
     for (const q of preferredEarlier) {
       if (spacedRepetition.length >= srTarget) break;
@@ -1275,6 +1431,7 @@ export function buildLessonSessionQuestions(
     mcq: 0,
     listen: 0,
     pairs: 0,
+    audio_pairs: 0,
     wordbank: 0,
     fill_blank: 0,
     radio_tf: 0,
@@ -1510,7 +1667,7 @@ export function buildUnitJumpQuestions(
     for (const lesson of units[i].lessons) {
       if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call' || lesson.questions.length === 0) continue;
       for (const q of lesson.questions) {
-        if (q.type !== 'pairs') {
+        if (!isPairsQuestion(q)) {
           pool.push(q);
         }
       }

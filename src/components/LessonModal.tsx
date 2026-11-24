@@ -26,10 +26,12 @@ import {
   evaluateSessionOutcome,
   evaluateSpeechMatch,
   fisherYatesShuffle,
+  isPairsQuestion,
   isPodcastQuestion,
   MAX_HEARTS,
   MISTAKE_REVIEW_BANNER_TEXT,
   normalizeWordBankText,
+  resolvePairTapSelection,
   shouldShowArabicPromptCard,
   type SpeechEvaluationResult,
 } from '../utils/learningEngine';
@@ -121,6 +123,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
   const [selectedRight, setSelectedRight] = useState<number | null>(null);
   const [wrongPairFlash, setWrongPairFlash] = useState<{ left: number; right: number } | null>(null);
+  const wrongPairTimerRef = useRef<number | null>(null);
+  const pairCompleteTimerRef = useRef<number | null>(null);
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; detail: string } | null>(null);
   const [showOutOfHearts, setShowOutOfHearts] = useState(false);
   const [hintRevealed, setHintRevealed] = useState(false);
@@ -144,6 +148,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const hideTranslit = Boolean(session.hideTranslit);
   const isLegendary = session.variant === 'legendary';
   const isPodcast = isPodcastQuestion(question);
+  const isPairs = isPairsQuestion(question);
   const isDictation = question.type === 'dictation';
   const isSpeak = question.type === 'speak';
   const showArabicPromptCard = shouldShowArabicPromptCard(question);
@@ -180,6 +185,14 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     const unsub = subscribeArabicAudioState(setAudioState);
     return () => {
       unsub();
+      if (wrongPairTimerRef.current !== null) {
+        window.clearTimeout(wrongPairTimerRef.current);
+        wrongPairTimerRef.current = null;
+      }
+      if (pairCompleteTimerRef.current !== null) {
+        window.clearTimeout(pairCompleteTimerRef.current);
+        pairCompleteTimerRef.current = null;
+      }
       stopArabicAudio();
       stopSpeechRecognition();
     };
@@ -209,7 +222,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   }, [question, currentIndex]);
 
   const shuffledPairs = useMemo(() => {
-    if (question.type !== 'pairs') return { left: [], right: [] };
+    if (!isPairsQuestion(question)) return { left: [], right: [] };
     const left = fisherYatesShuffle(
       question.pairs.map((p, idx) => ({ idx, text: p.ar, tr: p.tr }))
     );
@@ -289,6 +302,14 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     setSpokenTranscript('');
     setSpeechEval(null);
     setSpeechStatus('idle');
+    if (wrongPairTimerRef.current !== null) {
+      window.clearTimeout(wrongPairTimerRef.current);
+      wrongPairTimerRef.current = null;
+    }
+    if (pairCompleteTimerRef.current !== null) {
+      window.clearTimeout(pairCompleteTimerRef.current);
+      pairCompleteTimerRef.current = null;
+    }
     setMatchedPairIndices([]);
     setSelectedLeft(null);
     setSelectedRight(null);
@@ -491,48 +512,66 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   };
 
   const handlePairSelection = (side: 'left' | 'right', pairIdx: number) => {
-    if (question.type !== 'pairs' || feedback || matchedPairIndices.includes(pairIdx)) return;
+    if (!isPairsQuestion(question) || feedback) return;
 
-    const nextLeft = side === 'left' ? pairIdx : selectedLeft;
-    const nextRight = side === 'right' ? pairIdx : selectedRight;
+    const transition = resolvePairTapSelection(
+      {
+        selectedLeft,
+        selectedRight,
+        matchedPairIndices,
+        wrongPairFlash,
+      },
+      side,
+      pairIdx,
+      question.pairs.length
+    );
 
-    if (side === 'left') {
-      setSelectedLeft(pairIdx);
-      const pairObj = question.pairs[pairIdx];
-      if (pairObj) speakArabic(pairObj.ar, soundEnabled, 1.0, 'lesson-pair');
-    } else {
-      setSelectedRight(pairIdx);
+    if (transition.action === 'noop') return;
+
+    if (wrongPairTimerRef.current !== null) {
+      window.clearTimeout(wrongPairTimerRef.current);
+      wrongPairTimerRef.current = null;
     }
-    playTone('tap', soundEnabled);
 
-    if (nextLeft !== null && nextRight !== null) {
-      if (nextLeft === nextRight) {
-        playTone('correct', soundEnabled);
-        const updatedMatched = [...matchedPairIndices, nextLeft];
-        setMatchedPairIndices(updatedMatched);
+    setSelectedLeft(transition.selectedLeft);
+    setSelectedRight(transition.selectedRight);
+    setWrongPairFlash(transition.wrongPairFlash);
+
+    if (transition.shouldSpeakArabic) {
+      const pairObj = question.pairs[pairIdx];
+      if (pairObj) speakArabic(pairObj.ar, soundEnabled, 1.0, `lesson-pair-${pairIdx}`);
+    }
+
+    if (transition.action === 'match') {
+      playTone('correct', soundEnabled);
+      setMatchedPairIndices(transition.matchedPairIndices);
+
+      if (transition.allMatched) {
+        setScore((s) => s + 1);
+        pairCompleteTimerRef.current = window.setTimeout(() => {
+          pairCompleteTimerRef.current = null;
+          setFeedback({
+            isCorrect: true,
+            detail: 'എല്ലാ ജോഡികളും കൃത്യമായി യോജിപ്പിച്ചു!',
+          });
+        }, 220);
+      }
+      return;
+    }
+
+    if (transition.action === 'mismatch') {
+      playTone('wrong', soundEnabled);
+      deductHeart();
+      wrongPairTimerRef.current = window.setTimeout(() => {
+        wrongPairTimerRef.current = null;
+        setWrongPairFlash(null);
         setSelectedLeft(null);
         setSelectedRight(null);
-
-        if (updatedMatched.length === question.pairs.length) {
-          setScore((s) => s + 1);
-          window.setTimeout(() => {
-            setFeedback({
-              isCorrect: true,
-              detail: 'എല്ലാ ജോഡികളും കൃത്യമായി യോജിപ്പിച്ചു!',
-            });
-          }, 220);
-        }
-      } else {
-        playTone('wrong', soundEnabled);
-        setWrongPairFlash({ left: nextLeft, right: nextRight });
-        deductHeart();
-        window.setTimeout(() => {
-          setWrongPairFlash(null);
-          setSelectedLeft(null);
-          setSelectedRight(null);
-        }, 420);
-      }
+      }, 420);
+      return;
     }
+
+    playTone('tap', soundEnabled);
   };
 
   const canCheck =
@@ -1088,66 +1127,123 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               </div>
             )}
 
-            {question.type === 'pairs' && (
-              <div className="grid grid-cols-2 gap-3.5 sm:gap-5">
-                <div className="space-y-3">
-                  {shuffledPairs.left.map((item) => {
+            {isPairs && (
+              <div
+                data-testid="pairs-grid"
+                data-pairs-mode={question.type}
+                className="grid grid-cols-2 gap-3.5 sm:gap-5"
+              >
+                <div data-testid="pairs-left-col" className="space-y-3">
+                  {shuffledPairs.left.map((item, pos) => {
                     const isMatched = matchedPairIndices.includes(item.idx);
                     const isSelected = selectedLeft === item.idx;
                     const isWrong = wrongPairFlash?.left === item.idx;
+                    const isAudioPair = question.type === 'audio_pairs';
+                    const pairAudioPlaying =
+                      audioState.sourceId === `lesson-pair-${item.idx}` &&
+                      (audioState.status === 'playing' || audioState.status === 'loading');
+                    const cardState = isMatched
+                      ? 'matched'
+                      : isWrong
+                        ? 'wrong'
+                        : isSelected
+                          ? 'selected'
+                          : 'idle';
                     return (
                       <button
                         key={`ar-${item.idx}`}
                         type="button"
                         disabled={isMatched}
+                        aria-pressed={isSelected}
+                        aria-label={
+                          isAudioPair && !isMatched
+                            ? `അറബി ശബ്ദം ${pos + 1} കേൾക്കുക`
+                            : undefined
+                        }
+                        data-pair-side="left"
+                        data-pair-idx={item.idx}
+                        data-pair-state={cardState}
                         onClick={() => handlePairSelection('left', item.idx)}
-                        className={`btn-3d w-full px-3 py-3 min-h-[76px] rounded-2xl border-2 border-b-4 font-bold transition flex flex-col items-center justify-center gap-0.5 ${
+                        className={`btn-3d w-full px-3 py-3 min-h-[76px] rounded-2xl border-b-4 font-bold transition flex flex-col items-center justify-center gap-0.5 ${
                           isMatched
-                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700 opacity-55 cursor-default'
+                            ? 'bg-[#D7FFB8] border-2 border-[#58CC02] text-[#3B8700] opacity-75 cursor-default'
                             : isWrong
-                              ? 'border-rose-500 bg-rose-50 text-rose-700 animate-shake'
+                              ? 'bg-[#FFDFE0] border-2 border-[#FF4B4B] text-[#EA2B2B] animate-shake'
                               : isSelected
-                                ? 'border-[#0284C7] bg-sky-50 text-[#0369A1]'
-                                : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'
+                                ? 'bg-[#DDF4FF] border-2 border-[#1CB0F6] text-[#1899D6] shadow-xs'
+                                : 'bg-white border-2 border-slate-200 text-slate-900 hover:bg-slate-50'
                         }`}
                       >
-                        <span className="font-arabic text-xl sm:text-2xl leading-snug">
-                          {item.text}
-                        </span>
-                        {!hideTranslit && item.tr && (
-                          <span
-                            dir="ltr"
-                            className={`text-[11px] font-bold ${
-                              isMatched ? 'text-emerald-700' : 'text-[#0369A1]'
-                            }`}
-                          >
-                            {item.tr}
+                        {isAudioPair && !isMatched ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Volume2
+                              className={`w-6 h-6 shrink-0 ${
+                                pairAudioPlaying ? 'animate-pulse' : ''
+                              }`}
+                              aria-hidden="true"
+                            />
+                            <span className="text-sm sm:text-base font-extrabold">
+                              ശബ്ദം {pos + 1}
+                            </span>
                           </span>
+                        ) : (
+                          <>
+                            <span className="font-arabic text-xl sm:text-2xl leading-snug">
+                              {item.text}
+                            </span>
+                            {!hideTranslit && item.tr && (
+                              <span
+                                dir="ltr"
+                                className={`text-[11px] font-bold ${
+                                  isMatched
+                                    ? 'text-[#3B8700]'
+                                    : isWrong
+                                      ? 'text-[#EA2B2B]'
+                                      : isSelected
+                                        ? 'text-[#1899D6]'
+                                        : 'text-[#0369A1]'
+                                }`}
+                              >
+                                {item.tr}
+                              </span>
+                            )}
+                          </>
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="space-y-3">
+                <div data-testid="pairs-right-col" className="space-y-3">
                   {shuffledPairs.right.map((item) => {
                     const isMatched = matchedPairIndices.includes(item.idx);
                     const isSelected = selectedRight === item.idx;
                     const isWrong = wrongPairFlash?.right === item.idx;
+                    const cardState = isMatched
+                      ? 'matched'
+                      : isWrong
+                        ? 'wrong'
+                        : isSelected
+                          ? 'selected'
+                          : 'idle';
                     return (
                       <button
                         key={`ml-${item.idx}`}
                         type="button"
                         disabled={isMatched}
+                        aria-pressed={isSelected}
+                        data-pair-side="right"
+                        data-pair-idx={item.idx}
+                        data-pair-state={cardState}
                         onClick={() => handlePairSelection('right', item.idx)}
-                        className={`btn-3d w-full p-4 min-h-[72px] rounded-2xl border-2 border-b-4 text-sm sm:text-base font-extrabold transition ${
+                        className={`btn-3d w-full p-4 min-h-[76px] rounded-2xl border-b-4 text-sm sm:text-base font-extrabold transition ${
                           isMatched
-                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700 opacity-55 cursor-default'
+                            ? 'bg-[#D7FFB8] border-2 border-[#58CC02] text-[#3B8700] opacity-75 cursor-default'
                             : isWrong
-                              ? 'border-rose-500 bg-rose-50 text-rose-700 animate-shake'
+                              ? 'bg-[#FFDFE0] border-2 border-[#FF4B4B] text-[#EA2B2B] animate-shake'
                               : isSelected
-                                ? 'border-[#0284C7] bg-sky-50 text-[#0369A1]'
-                                : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50'
+                                ? 'bg-[#DDF4FF] border-2 border-[#1CB0F6] text-[#1899D6] shadow-xs'
+                                : 'bg-white border-2 border-slate-200 text-slate-800 hover:bg-slate-50'
                         }`}
                       >
                         {item.text}
@@ -2114,7 +2210,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           </div>
         </div>
       ) : (
-        question.type !== 'pairs' && (
+        !isPairs && (
           <div className="border-t border-slate-200 bg-white">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex justify-end">
               <button

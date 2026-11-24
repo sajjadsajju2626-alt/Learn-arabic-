@@ -5310,6 +5310,10 @@
       return Boolean(q && (q.type === "radio_tf" || q.type === "radio_select3" || q.type === "radio_mcq"));
     }
 
+    function isPairsQuestion(q) {
+      return Boolean(q && (q.type === "pairs" || q.type === "audio_pairs"));
+    }
+
     function areRadioSelect3AnswersEqual(selectedWords, expectedWords) {
       if (!Array.isArray(selectedWords) || !Array.isArray(expectedWords)) return false;
       if (selectedWords.length !== 3 || expectedWords.length !== 3) return false;
@@ -5358,7 +5362,7 @@
       if (q.type === "radio_select3") return `radio_select3|${norm(q.arabic)}|${(q.answers || []).map(norm).sort().join(",")}`;
       if (q.type === "radio_mcq") return `radio_mcq|${norm(q.arabic)}|${norm(q.answer)}`;
       const pairSig = (q.pairs || []).map(p => norm(p.ar)).sort().join(",");
-      return `pairs|${pairSig}`;
+      return `${q.type}|${pairSig}`;
     }
 
     function collectUnitVocabPool(unit) {
@@ -5380,7 +5384,7 @@
       (unit.guidebook || []).forEach(g => pushEntry(g.ar, g.tr, g.ml));
       (unit.lessons || []).forEach(l => {
         (l.questions || []).forEach(q => {
-          if (q.type === "pairs") {
+          if (isPairsQuestion(q)) {
             (q.pairs || []).forEach(p => pushEntry(p.ar, p.tr, p.ml));
           }
         });
@@ -5516,7 +5520,7 @@
       (unit.lessons || []).forEach(l => {
         if (l.nodeType === "chest" || l.nodeType === "video_call") return;
         (l.questions || []).forEach(q => {
-          if (q.type === "pairs") {
+          if (isPairsQuestion(q)) {
             (q.pairs || []).forEach(p => pushCandidate(p.ar, p.tr, p.ml));
           } else if ((q.type === "mcq" || q.type === "listen") && q.arabic && !q.isArabicOption) {
             pushCandidate(q.arabic, q.translit, q.answer);
@@ -5552,7 +5556,7 @@
       (unit.lessons || []).forEach(l => {
         if (l.nodeType === "chest" || l.nodeType === "video_call") return;
         (l.questions || []).forEach(q => {
-          if (q.type === "pairs") {
+          if (isPairsQuestion(q)) {
             (q.pairs || []).forEach(p => pushCandidate(p.ar, p.tr, p.ml));
           } else if ((q.type === "mcq" || q.type === "listen") && q.arabic && !q.isArabicOption) {
             pushCandidate(q.arabic, q.translit, q.answer);
@@ -5603,8 +5607,8 @@
         const shuffledEarlier = shuffleArray(earlierPool);
         const srTarget = Math.min(2, Math.max(0, targetCount - handcrafted.length));
         const preferredEarlier = [
-          ...shuffledEarlier.filter(q => q.type !== "pairs"),
-          ...shuffledEarlier.filter(q => q.type === "pairs")
+          ...shuffledEarlier.filter(q => !isPairsQuestion(q)),
+          ...shuffledEarlier.filter(q => isPairsQuestion(q))
         ];
         for (const q of preferredEarlier) {
           if (spacedRepetition.length >= srTarget) break;
@@ -5722,7 +5726,7 @@
         effectiveTargetCount = Math.min(maxSessionCount, currentTotal());
       }
 
-      const typeCounts = { mcq: 0, listen: 0, pairs: 0, wordbank: 0, fill_blank: 0, radio_tf: 0, radio_select3: 0, radio_mcq: 0, dictation: 0, speak: 0 };
+      const typeCounts = { mcq: 0, listen: 0, pairs: 0, audio_pairs: 0, wordbank: 0, fill_blank: 0, radio_tf: 0, radio_select3: 0, radio_mcq: 0, dictation: 0, speak: 0 };
       [...handcrafted, ...spacedRepetition, ...reinforcements].forEach(q => { typeCounts[q.type] = (typeCounts[q.type] || 0) + 1; });
 
       const fillTypes = speakAllowed ? [...ALL_QUESTION_TYPES, "dictation", "speak"] : [...ALL_QUESTION_TYPES, "dictation"];
@@ -6144,7 +6148,7 @@
       for (let i = 0; i < targetUnitIndex; i++) {
         UNITS[i].lessons.forEach(l => {
           if (l.nodeType === "chest" || l.nodeType === "video_call" || !Array.isArray(l.questions)) return;
-          l.questions.forEach(q => { if (q.type !== "pairs") pool.push(q); });
+          l.questions.forEach(q => { if (!isPairsQuestion(q)) pool.push(q); });
         });
       }
       const picked = shuffleArray(pool).slice(0, 5);
@@ -6443,69 +6447,180 @@
           if (activeSession.wordBankSelected.length > 0) enableCheckBtn(); else disableCheckBtn();
         }
         body.appendChild(tray); body.appendChild(removeHint); body.appendChild(bank); refreshWB();
-      } else if (q.type === "pairs") {
+      } else if (isPairsQuestion(q)) {
         document.getElementById("check-area").classList.add("hidden");
-        const grid = document.createElement("div"); grid.className = "grid grid-cols-2 gap-3.5";
-        const lCol = document.createElement("div"); lCol.className = "space-y-3";
-        const rCol = document.createElement("div"); rCol.className = "space-y-3";
-        const lItems = q.pairs.map((p, idx) => ({ idx, ar: p.ar, tr: p.tr })).sort(() => 0.5 - Math.random());
-        const rItems = q.pairs.map((p, idx) => ({ idx, ml: p.ml })).sort(() => 0.5 - Math.random());
+        const isAudioPairs = q.type === "audio_pairs";
+        const grid = document.createElement("div");
+        grid.className = "grid grid-cols-2 gap-3.5 sm:gap-5";
+        grid.dataset.testid = "pairs-grid";
+        grid.dataset.pairsMode = q.type;
+        const lCol = document.createElement("div");
+        lCol.className = "space-y-3";
+        lCol.dataset.testid = "pairs-left-col";
+        const rCol = document.createElement("div");
+        rCol.className = "space-y-3";
+        rCol.dataset.testid = "pairs-right-col";
+
+        const lItems = shuffleArray(q.pairs.map((p, idx) => ({ idx, ar: p.ar, tr: p.tr })));
+        const rItems = shuffleArray(q.pairs.map((p, idx) => ({ idx, ml: p.ml })));
+
+        let wrongFlashTimer = null;
+        let wrongFlashEls = null;
+
+        function applyPairCardState(btn, side, state) {
+          const base = side === "left"
+            ? "btn-3d w-full px-3 py-3 min-h-[76px] rounded-2xl border-b-4 font-bold transition flex flex-col items-center justify-center gap-0.5"
+            : "btn-3d w-full p-4 min-h-[76px] rounded-2xl border-b-4 text-sm sm:text-base font-extrabold transition";
+          let tone = side === "left"
+            ? "bg-white border-2 border-slate-200 text-slate-900 hover:bg-slate-50"
+            : "bg-white border-2 border-slate-200 text-slate-800 hover:bg-slate-50";
+          if (state === "selected") {
+            tone = "bg-[#DDF4FF] border-2 border-[#1CB0F6] text-[#1899D6] shadow-xs";
+          } else if (state === "matched") {
+            tone = "bg-[#D7FFB8] border-2 border-[#58CC02] text-[#3B8700] opacity-75 cursor-default";
+          } else if (state === "wrong") {
+            tone = "bg-[#FFDFE0] border-2 border-[#FF4B4B] text-[#EA2B2B] animate-shake";
+          }
+          btn.className = `${base} ${tone}`;
+          btn.setAttribute("aria-pressed", state === "selected" ? "true" : "false");
+          btn.dataset.pairState = state;
+
+          const trEl = btn.querySelector('[data-translit="true"]');
+          if (trEl) {
+            trEl.className = `text-[11px] font-bold ${
+              state === "matched"
+                ? "text-[#3B8700]"
+                : state === "wrong"
+                  ? "text-[#EA2B2B]"
+                  : state === "selected"
+                    ? "text-[#1899D6]"
+                    : "text-[#0369A1]"
+            }`;
+          }
+        }
+
+        function clearWrongFlashNow() {
+          if (wrongFlashTimer !== null) {
+            clearTimeout(wrongFlashTimer);
+            wrongFlashTimer = null;
+          }
+          if (wrongFlashEls) {
+            if (!wrongFlashEls.l.disabled) applyPairCardState(wrongFlashEls.l, "left", "idle");
+            if (!wrongFlashEls.r.disabled) applyPairCardState(wrongFlashEls.r, "right", "idle");
+            wrongFlashEls = null;
+          }
+        }
 
         function checkPair() {
           if (activeSession.selectedLeft && activeSession.selectedRight) {
             const l = activeSession.selectedLeft, r = activeSession.selectedRight;
             if (l.idx === r.idx) {
               playTone("correct");
-              l.el.disabled = true; r.el.disabled = true;
-              l.el.className = "w-full px-3 py-3 min-h-[76px] rounded-2xl border-2 border-emerald-300 bg-emerald-50 text-emerald-700 font-bold opacity-55 flex flex-col items-center justify-center";
-              r.el.className = "w-full p-4 min-h-[76px] rounded-2xl border-2 border-emerald-300 bg-emerald-50 text-emerald-700 text-sm font-extrabold opacity-55";
-              activeSession.pairsMatched += 1; activeSession.selectedLeft = null; activeSession.selectedRight = null;
+              l.el.disabled = true;
+              r.el.disabled = true;
+              if (isAudioPairs) {
+                l.el.innerHTML = `<span class="font-arabic text-xl sm:text-2xl leading-snug">${l.item.ar}</span>${!hideTranslit && l.item.tr ? `<span dir="ltr" data-translit="true" class="text-[11px] font-bold text-[#3B8700]">${l.item.tr}</span>` : ""}`;
+              }
+              applyPairCardState(l.el, "left", "matched");
+              applyPairCardState(r.el, "right", "matched");
+              activeSession.pairsMatched += 1;
+              activeSession.selectedLeft = null;
+              activeSession.selectedRight = null;
               if (activeSession.pairsMatched === q.pairs.length) {
                 activeSession.score += 1;
-                setTimeout(() => showFeedback(true, "എല്ലാ ജോഡികളും കൃത്യമായി യോജിപ്പിച്ചു!"), 260);
+                setTimeout(() => showFeedback(true, "എല്ലാ ജോഡികളും കൃത്യമായി യോജിപ്പിച്ചു!"), 220);
               }
             } else {
               playTone("wrong");
-              l.el.classList.add("border-rose-500", "bg-rose-50", "animate-shake");
-              r.el.classList.add("border-rose-500", "bg-rose-50", "animate-shake");
+              applyPairCardState(l.el, "left", "wrong");
+              applyPairCardState(r.el, "right", "wrong");
               deductHeart();
-              setTimeout(() => {
-                l.el.classList.remove("border-rose-500", "bg-rose-50", "border-[#1CB0F6]", "bg-sky-50", "animate-shake");
-                r.el.classList.remove("border-rose-500", "bg-rose-50", "border-[#1CB0F6]", "bg-sky-50", "animate-shake");
+              wrongFlashEls = { l: l.el, r: r.el };
+              activeSession.selectedLeft = null;
+              activeSession.selectedRight = null;
+              wrongFlashTimer = setTimeout(() => {
+                clearWrongFlashNow();
               }, 420);
-              activeSession.selectedLeft = null; activeSession.selectedRight = null;
             }
           }
         }
 
-        lItems.forEach(item => {
-          const b = document.createElement("button"); b.type = "button";
-          b.className = "btn-3d w-full px-3 py-3 min-h-[76px] rounded-2xl border-2 border-b-4 border-slate-200 bg-white font-bold text-slate-900 flex flex-col items-center justify-center gap-0.5";
-          b.innerHTML = `<span class="font-arabic text-xl sm:text-2xl leading-snug">${item.ar}</span>${!hideTranslit && item.tr ? `<span dir="ltr" data-translit="true" class="text-[11px] font-bold text-[#0369A1]">${item.tr}</span>` : ""}`;
-          b.addEventListener("click", () => {
-            if (b.disabled) return;
-            playTone("tap"); speakArabic(item.ar, 1.0);
-            lCol.querySelectorAll("button:not(:disabled)").forEach(x => x.classList.remove("border-[#1CB0F6]", "bg-sky-50"));
-            b.classList.add("border-[#1CB0F6]", "bg-sky-50");
-            activeSession.selectedLeft = { idx: item.idx, el: b }; checkPair();
-          });
+        function handlePairCardTap(side, item, btn) {
+          if (btn.disabled || activeSession.isAnswered) return;
+
+          // If a mismatch flash is still active, clear it cleanly before handling this tap
+          if (wrongFlashEls) {
+            clearWrongFlashNow();
+            activeSession.selectedLeft = null;
+            activeSession.selectedRight = null;
+          }
+
+          // Tapping an already-selected card in the same column deselects it
+          if (side === "left" && activeSession.selectedLeft && activeSession.selectedLeft.el === btn) {
+            playTone("tap");
+            applyPairCardState(btn, "left", "idle");
+            activeSession.selectedLeft = null;
+            return;
+          }
+          if (side === "right" && activeSession.selectedRight && activeSession.selectedRight.el === btn) {
+            playTone("tap");
+            applyPairCardState(btn, "right", "idle");
+            activeSession.selectedRight = null;
+            return;
+          }
+
+          // Switch cleanly if another card in the same column was selected
+          if (side === "left") {
+            if (activeSession.selectedLeft && !activeSession.selectedLeft.el.disabled) {
+              applyPairCardState(activeSession.selectedLeft.el, "left", "idle");
+            }
+            applyPairCardState(btn, "left", "selected");
+            activeSession.selectedLeft = { idx: item.idx, el: btn, item };
+            speakArabic(item.ar, 1.0);
+          } else {
+            if (activeSession.selectedRight && !activeSession.selectedRight.el.disabled) {
+              applyPairCardState(activeSession.selectedRight.el, "right", "idle");
+            }
+            applyPairCardState(btn, "right", "selected");
+            activeSession.selectedRight = { idx: item.idx, el: btn, item };
+          }
+
+          if (activeSession.selectedLeft && activeSession.selectedRight) {
+            checkPair();
+          } else {
+            playTone("tap");
+          }
+        }
+
+        lItems.forEach((item, pos) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.dataset.pairSide = "left";
+          b.dataset.pairIdx = String(item.idx);
+          if (isAudioPairs) {
+            b.setAttribute("aria-label", `അറബി ശബ്ദം ${pos + 1} കേൾക്കുക`);
+            b.innerHTML = `<span class="inline-flex items-center gap-2"><span class="text-xl leading-none" aria-hidden="true">🔊</span><span class="text-sm sm:text-base font-extrabold">ശബ്ദം ${pos + 1}</span></span>`;
+          } else {
+            b.innerHTML = `<span class="font-arabic text-xl sm:text-2xl leading-snug">${item.ar}</span>${!hideTranslit && item.tr ? `<span dir="ltr" data-translit="true" class="text-[11px] font-bold text-[#0369A1]">${item.tr}</span>` : ""}`;
+          }
+          applyPairCardState(b, "left", "idle");
+          b.addEventListener("click", () => handlePairCardTap("left", item, b));
           lCol.appendChild(b);
         });
 
         rItems.forEach(item => {
-          const b = document.createElement("button"); b.type = "button";
-          b.className = "btn-3d w-full p-4 min-h-[76px] rounded-2xl border-2 border-b-4 border-slate-200 bg-white text-sm font-extrabold text-slate-800";
+          const b = document.createElement("button");
+          b.type = "button";
+          b.dataset.pairSide = "right";
+          b.dataset.pairIdx = String(item.idx);
           b.textContent = item.ml;
-          b.addEventListener("click", () => {
-            if (b.disabled) return;
-            playTone("tap");
-            rCol.querySelectorAll("button:not(:disabled)").forEach(x => x.classList.remove("border-[#1CB0F6]", "bg-sky-50"));
-            b.classList.add("border-[#1CB0F6]", "bg-sky-50");
-            activeSession.selectedRight = { idx: item.idx, el: b }; checkPair();
-          });
+          applyPairCardState(b, "right", "idle");
+          b.addEventListener("click", () => handlePairCardTap("right", item, b));
           rCol.appendChild(b);
         });
-        grid.appendChild(lCol); grid.appendChild(rCol); body.appendChild(grid);
+        grid.appendChild(lCol);
+        grid.appendChild(rCol);
+        body.appendChild(grid);
       } else if (isPodcastQuestion(q)) {
         const callerAvatar = q.callerAvatar || "🧕";
         const callerNameMl = q.callerNameMl || "അതിഥി";
