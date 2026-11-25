@@ -73,7 +73,7 @@ export const CompleteModal: React.FC<CompleteModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="complete-modal-title"
-      className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 text-center"
+      className="fixed inset-0 z-50 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col items-center justify-center p-6 text-center transition-colors"
     >
       <canvas
         ref={canvasRef}
@@ -88,27 +88,27 @@ export const CompleteModal: React.FC<CompleteModalProps> = ({
           </div>
           <h2
             id="complete-modal-title"
-            className="text-2xl sm:text-3xl font-extrabold text-[#357A00] text-balance"
+            className="text-2xl sm:text-3xl font-extrabold text-[#357A00] dark:text-emerald-400 text-balance"
           >
             {result.title}
           </h2>
-          <p className="text-sm sm:text-base text-slate-600 mt-2 leading-relaxed">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
             {result.subtitle}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4">
-            <div className="text-xs font-bold text-amber-700">നേടിയ XP</div>
-            <div className="text-2xl font-extrabold text-amber-600 font-latin tabular-nums mt-1.5 flex items-center justify-center gap-1.5">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-800/70 rounded-2xl p-4">
+            <div className="text-xs font-bold text-amber-700 dark:text-amber-300">നേടിയ XP</div>
+            <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-latin tabular-nums mt-1.5 flex items-center justify-center gap-1.5">
               <span>+{result.earnedXp}</span>
               <Star className="w-5 h-5 fill-amber-500 text-amber-500" aria-hidden="true" />
             </div>
           </div>
 
-          <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4">
-            <div className="text-xs font-bold text-orange-700">സ്ട്രീക്ക്</div>
-            <div className="text-2xl font-extrabold text-orange-600 font-latin tabular-nums mt-1.5 flex items-center justify-center gap-1.5">
+          <div className="bg-orange-50 dark:bg-orange-950/40 border-2 border-orange-200 dark:border-orange-800/70 rounded-2xl p-4">
+            <div className="text-xs font-bold text-orange-700 dark:text-orange-300">സ്ട്രീക്ക്</div>
+            <div className="text-2xl font-extrabold text-orange-600 dark:text-orange-400 font-latin tabular-nums mt-1.5 flex items-center justify-center gap-1.5">
               <span>{streak}</span>
               <Flame className="w-5 h-5 fill-orange-500 text-orange-500" aria-hidden="true" />
             </div>

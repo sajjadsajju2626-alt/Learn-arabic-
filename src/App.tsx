@@ -33,6 +33,13 @@ import { LessonModal } from './components/LessonModal';
 import { StoryModal } from './components/StoryModal';
 import { VideoCallModal } from './components/VideoCallModal';
 import { CompleteModal } from './components/CompleteModal';
+import {
+  applyThemeToDocument,
+  persistTheme,
+  readPersistedTheme,
+  toggleThemeMode,
+  type ThemeMode,
+} from './utils/theme';
 
 const STORAGE_KEY = 'arabic_ml_app_state_v2';
 
@@ -92,6 +99,22 @@ export default function App() {
   const [activeVideoCallLesson, setActiveVideoCallLesson] = useState<Lesson | null>(null);
   const [completeResult, setCompleteResult] = useState<SessionResult | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const initial = readPersistedTheme(getSafeLocalStorage());
+    if (typeof document !== 'undefined') {
+      applyThemeToDocument(document.documentElement, initial);
+    }
+    return initial;
+  });
+
+  useEffect(() => {
+    applyThemeToDocument(document.documentElement, theme);
+    persistTheme(getSafeLocalStorage(), theme);
+  }, [theme]);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme((prev) => toggleThemeMode(prev));
+  }, []);
 
   const updateUserSync = useCallback((updater: (prev: UserState) => UserState) => {
     setUser((prev) => {
@@ -307,6 +330,8 @@ export default function App() {
     return (
       <OnboardingScreen
         soundEnabled={user.soundEnabled}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         onComplete={handleOnboardingComplete}
       />
     );
@@ -318,6 +343,8 @@ export default function App() {
         activeTab={activeTab}
         user={user}
         leaderboard={leaderboard}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         onSelectTab={handleSelectTab}
         onStartLesson={startLesson}
         onStartPlacement={startPlacementTest}
@@ -418,7 +445,7 @@ export default function App() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-50 bg-slate-900 text-white text-sm font-bold px-4 py-3 rounded-xl shadow-lg animate-pop"
+          className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-50 bg-slate-900 dark:bg-slate-800 text-white border border-transparent dark:border-slate-700 text-sm font-bold px-4 py-3 rounded-xl shadow-lg animate-pop"
         >
           {toast}
         </div>

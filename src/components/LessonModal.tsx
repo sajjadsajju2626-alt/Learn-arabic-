@@ -665,10 +665,10 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={session.bannerText || session.lessonTitle || 'പാഠം'}
-      className="fixed inset-0 z-50 bg-white flex flex-col"
+      className="fixed inset-0 z-50 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col"
     >
       {/* Top Progress & Hearts Bar */}
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
           <button
             type="button"
@@ -679,7 +679,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               onClose();
             }}
             aria-label="പാഠം അടയ്ക്കുക"
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-100 transition-colors"
           >
             <X className="w-6 h-6" aria-hidden="true" />
           </button>
@@ -690,7 +690,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="പാഠ പുരോഗതി"
-            className="flex-1 bg-slate-200 h-3.5 rounded-full overflow-hidden"
+            className="flex-1 bg-slate-200 dark:bg-slate-800 h-3.5 rounded-full overflow-hidden"
           >
             <div
               className="bg-[#4AA802] h-full rounded-full transition-all duration-300"
@@ -700,13 +700,13 @@ export const LessonModal: React.FC<LessonModalProps> = ({
 
           <span
             data-testid="lesson-progress-count"
-            className="text-xs font-extrabold text-slate-600 font-latin tabular-nums shrink-0"
+            className="text-xs font-extrabold text-slate-600 dark:text-slate-300 font-latin tabular-nums shrink-0"
           >
             {currentIndex + 1} / {questionQueue.length}
           </span>
 
           <div
-            className="flex items-center gap-1.5 font-extrabold text-rose-600 text-sm font-latin tabular-nums shrink-0"
+            className="flex items-center gap-1.5 font-extrabold text-rose-600 dark:text-rose-400 text-sm font-latin tabular-nums shrink-0"
             aria-label={`ശേഷിക്കുന്ന ഹാർട്ടുകൾ: ${hearts}`}
           >
             <Heart className="w-5 h-5 fill-rose-500 text-rose-500" aria-hidden="true" />
@@ -727,7 +727,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               className={
                 isLegendary
                   ? 'bg-gradient-to-r from-purple-700 via-violet-600 to-amber-500 text-white text-xs sm:text-sm font-extrabold text-center py-2 px-4 border-t border-purple-800/30'
-                  : 'bg-sky-50 text-[#0369A1] text-xs font-extrabold text-center py-1.5 border-t border-sky-100'
+                  : 'bg-sky-50 dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-300 text-xs font-extrabold text-center py-1.5 border-t border-sky-100 dark:border-sky-900/60'
               }
             >
               {session.bannerText}
@@ -740,28 +740,28 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       <div data-scroll-container="true" className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-h-full flex flex-col justify-between gap-6">
           <div className="space-y-5">
-            <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-500 font-latin tabular-nums">
+            <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 font-latin tabular-nums">
               <span>
                 ചോദ്യം {currentIndex + 1} / {questionQueue.length}
               </span>
               {question.isReview ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-extrabold">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-[11px] font-extrabold">
                   🔄 തെറ്റിയ ചോദ്യം
                 </span>
               ) : question.isSpacedRepetition ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-extrabold">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-[11px] font-extrabold">
                   🧠 പുനരവലോകനം
                 </span>
               ) : null}
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 leading-snug">
               {question.prompt}
             </h2>
 
             {showArabicPromptCard && 'arabic' in question && question.arabic && (
               <div
                 data-testid="arabic-prompt-card"
-                className="bg-sky-50/70 border border-sky-200 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4"
+                className="bg-sky-50/70 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/70 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-2 shrink-0">
                   {(() => {
@@ -803,8 +803,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         }
                         className={`btn-3d w-11 h-11 rounded-xl border-2 border-b-4 flex items-center justify-center transition ${
                           slowBusy
-                            ? 'bg-sky-50 border-[#0284C7] text-[#0369A1] ring-4 ring-sky-200'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            ? 'bg-sky-50 dark:bg-sky-950/70 border-[#0284C7] dark:border-sky-400 text-[#0369A1] dark:text-sky-300 ring-4 ring-sky-200 dark:ring-sky-900'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
                         } ${slowPlaying ? 'animate-pulse' : ''}`}
                       >
                         {slowLoading ? (
@@ -818,13 +818,13 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                 </div>
 
                 <div className="text-right flex-1 min-w-0">
-                  <div className="font-arabic text-3xl sm:text-4xl font-bold text-slate-900">
+                  <div className="font-arabic text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100">
                     {question.arabic}
                   </div>
                   {!hideTranslit &&
                     question.translit &&
                     (!shouldGateTranslit || hintRevealed || Boolean(feedback) ? (
-                      <div className="text-sm font-bold text-[#0369A1] mt-1">
+                      <div className="text-sm font-bold text-[#0369A1] dark:text-sky-300 mt-1">
                         {question.translit}
                       </div>
                     ) : (
@@ -834,7 +834,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           playTone('tap', soundEnabled);
                           setHintRevealed(true);
                         }}
-                        className="mt-1.5 text-xs font-bold text-[#0369A1] hover:underline"
+                        className="mt-1.5 text-xs font-bold text-[#0369A1] dark:text-sky-300 hover:underline"
                       >
                         ഉച്ചാരണ സൂചന കാണുക
                       </button>
@@ -875,8 +875,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           : 'text-left text-base'
                       } ${
                         isSelected
-                          ? 'border-[#0284C7] bg-sky-50 text-[#0369A1]'
-                          : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50'
+                          ? 'border-[#0284C7] dark:border-sky-400 bg-sky-50 dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-200'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800'
                       }`}
                     >
                       <span
@@ -891,7 +891,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       {!hideTranslit && optTr && (
                         <span
                           dir="ltr"
-                          className="text-xs font-bold text-[#0369A1] leading-snug"
+                          className="text-xs font-bold text-[#0369A1] dark:text-sky-300 leading-snug"
                         >
                           {optTr}
                         </span>
@@ -909,11 +909,11 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               const selectedTr = selectedOption ? question.optionTranslits?.[selectedOption] : null;
               const slotTone = feedback
                 ? feedback.isCorrect
-                  ? 'border-[#4AA802] bg-emerald-50 text-[#2E7D00]'
-                  : 'border-rose-500 bg-rose-50 text-rose-700'
+                  ? 'border-[#4AA802] dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 text-[#2E7D00] dark:text-emerald-300'
+                  : 'border-rose-500 dark:border-rose-500 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
                 : selectedOption
-                  ? 'border-[#0284C7] bg-sky-50 text-[#0369A1]'
-                  : 'border-slate-300 bg-slate-50/70 text-slate-400';
+                  ? 'border-[#0284C7] dark:border-sky-400 bg-sky-50 dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-200'
+                  : 'border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500';
 
               return (
                 <div className="space-y-6">
@@ -921,24 +921,24 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   <div className="flex items-start gap-3 sm:gap-4">
                     <div
                       aria-hidden="true"
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-emerald-50 to-sky-50 border-2 border-b-4 border-sky-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/70 dark:to-sky-950/70 border-2 border-b-4 border-sky-200 dark:border-sky-800 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
                     >
                       {question.avatar ?? '🦉'}
                     </div>
 
                     <div
                       data-testid="fill-blank-bubble"
-                      className="relative flex-1 bg-white border-2 border-b-4 border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs"
+                      className="relative flex-1 bg-white dark:bg-slate-900 border-2 border-b-4 border-slate-200 dark:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-xs"
                     >
                       {/* Speech bubble pointer */}
                       <div
                         aria-hidden="true"
-                        className="absolute -left-2.5 top-6 w-4 h-4 bg-white border-l-2 border-b-2 border-slate-200 rotate-45"
+                        className="absolute -left-2.5 top-6 w-4 h-4 bg-white dark:bg-slate-900 border-l-2 border-b-2 border-slate-200 dark:border-slate-700 rotate-45"
                       />
 
                       <div
                         dir="rtl"
-                        className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 leading-[2.1] flex flex-wrap items-baseline gap-x-2.5 gap-y-2"
+                        className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 leading-[2.1] flex flex-wrap items-baseline gap-x-2.5 gap-y-2"
                       >
                         {beforeBlank.trim() && <span>{beforeBlank.trim()}</span>}
                         <span
@@ -960,8 +960,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         {afterBlank.trim() && <span>{afterBlank.trim()}</span>}
                       </div>
 
-                      <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <p className="text-xs sm:text-sm font-bold text-slate-600 leading-snug">
+                      <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 leading-snug">
                           💡 {question.hintMl}
                         </p>
                         {feedback?.isCorrect && (
@@ -976,7 +976,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                                 'lesson-filled'
                               )
                             }
-                            className="btn-3d w-9 h-9 rounded-xl bg-emerald-100 border-b-2 border-emerald-300 text-emerald-700 flex items-center justify-center shrink-0"
+                            className="btn-3d w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 border-b-2 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0"
                           >
                             <Volume2 className="w-4 h-4" aria-hidden="true" />
                           </button>
@@ -1006,8 +1006,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           }}
                           className={`btn-3d w-full py-4 px-2.5 rounded-2xl border-2 border-b-4 font-bold flex flex-col items-center justify-center gap-1 transition ${
                             isSelected
-                              ? 'border-[#0284C7] bg-sky-50 text-[#0369A1]'
-                              : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'
+                              ? 'border-[#0284C7] dark:border-sky-400 bg-sky-50 dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-200'
+                              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800'
                           }`}
                         >
                           <span className="font-arabic text-2xl sm:text-3xl leading-normal">
@@ -1016,7 +1016,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           {!hideTranslit && optTr && (
                             <span
                               dir="ltr"
-                              className="text-xs font-bold text-[#0369A1] leading-snug"
+                              className="text-xs font-bold text-[#0369A1] dark:text-sky-300 leading-snug"
                             >
                               {optTr}
                             </span>
@@ -1034,10 +1034,10 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                 <div
                   dir={question.isArabicWords ? 'rtl' : 'ltr'}
                   data-testid="wordbank-tray"
-                  className="min-h-[82px] p-3.5 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-wrap gap-2.5 items-center"
+                  className="min-h-[82px] p-3.5 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex flex-wrap gap-2.5 items-center"
                 >
                   {wordBankSelected.length === 0 ? (
-                    <span className="text-xs sm:text-sm text-slate-500 font-semibold mx-auto">
+                    <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold mx-auto">
                       താഴെ കാണുന്ന വാക്കുകളിൽ തൊട്ട് വാക്യം നിർമ്മിക്കുക
                     </span>
                   ) : (
@@ -1054,7 +1054,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                             playTone('tap', soundEnabled);
                             setWordBankSelected((prev) => prev.filter((_, idx) => idx !== i));
                           }}
-                          className="btn-3d group relative px-4 py-2 rounded-xl bg-white border-2 border-b-4 border-[#0284C7] hover:border-rose-400 hover:bg-rose-50/40 text-slate-900 font-bold flex flex-col items-center transition"
+                          className="btn-3d group relative px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border-2 border-b-4 border-[#0284C7] dark:border-sky-400 hover:border-rose-400 hover:bg-rose-50/40 dark:hover:bg-rose-950/40 text-slate-900 dark:text-slate-100 font-bold flex flex-col items-center transition"
                         >
                           <span
                             className={
@@ -1066,7 +1066,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                             {chip.text}
                           </span>
                           {!hideTranslit && chipTr && (
-                            <span dir="ltr" className="text-[11px] font-bold text-[#0369A1]">
+                            <span dir="ltr" className="text-[11px] font-bold text-[#0369A1] dark:text-sky-300">
                               {chipTr}
                             </span>
                           )}
@@ -1076,7 +1076,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   )}
                 </div>
                 {wordBankSelected.length > 0 && !feedback && (
-                  <p className="text-[11px] text-slate-500 font-semibold text-center -mt-3">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold text-center -mt-3">
                     വാക്ക് മാറ്റാൻ മുകളിലുള്ള ബോക്സിൽ തൊടുക
                   </p>
                 )}
@@ -1102,8 +1102,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         }}
                         className={`btn-3d px-4 py-2.5 rounded-xl border-2 border-b-4 font-bold transition flex flex-col items-center ${
                           isUsed
-                            ? 'bg-slate-200 border-slate-200 text-transparent cursor-default'
-                            : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-50'
+                            ? 'bg-slate-200 dark:bg-slate-800 border-slate-200 dark:border-slate-800 text-transparent cursor-default'
+                            : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         <span
@@ -1119,7 +1119,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           <span
                             dir="ltr"
                             className={`text-[11px] font-bold ${
-                              isUsed ? 'text-transparent' : 'text-[#0369A1]'
+                              isUsed ? 'text-transparent' : 'text-[#0369A1] dark:text-sky-300'
                             }`}
                           >
                             {chipTr}
@@ -1171,12 +1171,12 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         onClick={() => handlePairSelection('left', item.idx)}
                         className={`btn-3d w-full px-3 py-3 min-h-[76px] rounded-2xl border-b-4 font-bold transition flex flex-col items-center justify-center gap-0.5 ${
                           isMatched
-                            ? 'bg-[#D7FFB8] border-2 border-[#58CC02] text-[#3B8700] opacity-75 cursor-default'
+                            ? 'bg-[#D7FFB8] dark:bg-emerald-950/60 border-2 border-[#58CC02] dark:border-emerald-500 text-[#3B8700] dark:text-emerald-300 opacity-75 cursor-default'
                             : isWrong
-                              ? 'bg-[#FFDFE0] border-2 border-[#FF4B4B] text-[#EA2B2B] animate-shake'
+                              ? 'bg-[#FFDFE0] dark:bg-rose-950/60 border-2 border-[#FF4B4B] dark:border-rose-500 text-[#EA2B2B] dark:text-rose-300 animate-shake'
                               : isSelected
-                                ? 'bg-[#DDF4FF] border-2 border-[#1CB0F6] text-[#1899D6] shadow-xs'
-                                : 'bg-white border-2 border-slate-200 text-slate-900 hover:bg-slate-50'
+                                ? 'bg-[#DDF4FF] dark:bg-sky-950/70 border-2 border-[#1CB0F6] dark:border-sky-400 text-[#1899D6] dark:text-sky-200 shadow-xs'
+                                : 'bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         {isAudioPair && !isMatched ? (
@@ -1201,12 +1201,12 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                                 dir="ltr"
                                 className={`text-[11px] font-bold ${
                                   isMatched
-                                    ? 'text-[#3B8700]'
+                                    ? 'text-[#3B8700] dark:text-emerald-300'
                                     : isWrong
-                                      ? 'text-[#EA2B2B]'
+                                      ? 'text-[#EA2B2B] dark:text-rose-300'
                                       : isSelected
-                                        ? 'text-[#1899D6]'
-                                        : 'text-[#0369A1]'
+                                        ? 'text-[#1899D6] dark:text-sky-300'
+                                        : 'text-[#0369A1] dark:text-sky-300'
                                 }`}
                               >
                                 {item.tr}
@@ -1243,12 +1243,12 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         onClick={() => handlePairSelection('right', item.idx)}
                         className={`btn-3d w-full p-4 min-h-[76px] rounded-2xl border-b-4 text-sm sm:text-base font-extrabold transition ${
                           isMatched
-                            ? 'bg-[#D7FFB8] border-2 border-[#58CC02] text-[#3B8700] opacity-75 cursor-default'
+                            ? 'bg-[#D7FFB8] dark:bg-emerald-950/60 border-2 border-[#58CC02] dark:border-emerald-500 text-[#3B8700] dark:text-emerald-300 opacity-75 cursor-default'
                             : isWrong
-                              ? 'bg-[#FFDFE0] border-2 border-[#FF4B4B] text-[#EA2B2B] animate-shake'
+                              ? 'bg-[#FFDFE0] dark:bg-rose-950/60 border-2 border-[#FF4B4B] dark:border-rose-500 text-[#EA2B2B] dark:text-rose-300 animate-shake'
                               : isSelected
-                                ? 'bg-[#DDF4FF] border-2 border-[#1CB0F6] text-[#1899D6] shadow-xs'
-                                : 'bg-white border-2 border-slate-200 text-slate-800 hover:bg-slate-50'
+                                ? 'bg-[#DDF4FF] dark:bg-sky-950/70 border-2 border-[#1CB0F6] dark:border-sky-400 text-[#1899D6] dark:text-sky-200 shadow-xs'
+                                : 'bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         {item.text}
@@ -1290,20 +1290,20 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               return (
                 <div className="space-y-5" data-testid="podcast-studio">
                   {/* Shared Podcast Studio Header & Playback Bar */}
-                  <div className="rounded-3xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 sm:p-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200/80">
+                  <div className="rounded-3xl border-2 border-slate-200 dark:border-slate-800 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/90 p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200/80 dark:border-slate-800">
                       <div className="flex items-center gap-2">
                         <span
                           className={`w-2.5 h-2.5 rounded-full ${
-                            isPlayingPodcast ? 'bg-rose-500 animate-pulse' : 'bg-slate-300'
+                            isPlayingPodcast ? 'bg-rose-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'
                           }`}
                           aria-hidden="true"
                         />
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                           ARABIC RADIO STUDIO · ഇദാഅത്തുൽ അറബിയ്യ
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-[#0369A1]">
+                      <span className="text-[11px] font-bold text-[#0369A1] dark:text-sky-300">
                         {isPlayingPodcast ? 'ഓൺ എയർ' : isPausedPodcast ? 'താൽക്കാലികമായി നിർത്തി' : 'കേൾക്കൂ'}
                       </span>
                     </div>
@@ -1331,12 +1331,12 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       </div>
 
                       {/* Caller / Guest Speech Bubble with Animated Sound Dots */}
-                      <div className="flex-1 rounded-2xl rounded-bl-sm bg-sky-50 border-2 border-sky-200 px-3.5 py-3 flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-white border-2 border-sky-200 flex items-center justify-center text-2xl shrink-0">
+                      <div className="flex-1 rounded-2xl rounded-bl-sm bg-sky-50 dark:bg-sky-950/50 border-2 border-sky-200 dark:border-sky-800/80 px-3.5 py-3 flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-900 border-2 border-sky-200 dark:border-sky-800 flex items-center justify-center text-2xl shrink-0">
                           <span aria-hidden="true">{callerAvatar}</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-extrabold text-slate-800 truncate">
+                          <div className="text-xs font-extrabold text-slate-800 dark:text-slate-100 truncate">
                             {callerNameMl} · കോളർ
                           </div>
                           <div
@@ -1352,11 +1352,11 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                                     ? 'bg-[#1899D6] animate-bounce'
                                     : isPausedPodcast
                                       ? 'bg-amber-400'
-                                      : 'bg-sky-300'
+                                      : 'bg-sky-300 dark:bg-sky-700'
                                 }`}
                               />
                             ))}
-                            <span className="ml-1.5 text-[11px] font-bold text-slate-500">
+                            <span className="ml-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
                               {feedback ? 'ട്രാൻസ്ക്രിപ്റ്റ് ലഭ്യമാണ്' : 'ശ്രദ്ധിച്ച് കേൾക്കൂ'}
                             </span>
                           </div>
@@ -1365,7 +1365,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                     </div>
 
                     {/* Interactive Audio Waveform Playback Bar */}
-                    <div className="rounded-2xl border-2 border-slate-200 bg-white p-2.5 flex items-center gap-2 sm:gap-3">
+                    <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 p-2.5 flex items-center gap-2 sm:gap-3">
                       <button
                         type="button"
                         onClick={handlePlayPauseToggle}
@@ -1386,7 +1386,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         onClick={handleReplay}
                         aria-label="വീണ്ടും കേൾക്കുക"
                         title="വീണ്ടും കേൾക്കുക"
-                        className="btn-3d w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border-b-2 border-slate-300 text-slate-700 flex items-center justify-center shrink-0"
+                        className="btn-3d w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border-b-2 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0"
                       >
                         <RotateCcw className="w-4 h-4" aria-hidden="true" />
                       </button>
@@ -1396,9 +1396,9 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         type="button"
                         onClick={handlePlayPauseToggle}
                         aria-label="ഓഡിയോ വേവ്ഫോം"
-                        className="flex-1 h-10 px-2 rounded-xl bg-slate-50 hover:bg-sky-50/70 flex items-center justify-center gap-1 transition overflow-hidden"
+                        className="flex-1 h-10 px-2 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-sky-50/70 dark:hover:bg-sky-950/50 flex items-center justify-center gap-1 transition overflow-hidden"
                       >
-                        <Volume2 className="w-4 h-4 text-[#1899D6] shrink-0 mr-1" aria-hidden="true" />
+                        <Volume2 className="w-4 h-4 text-[#1899D6] dark:text-sky-400 shrink-0 mr-1" aria-hidden="true" />
                         {waveBars.map((barHeight, idx) => (
                           <span
                             key={idx}
@@ -1411,7 +1411,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                                 ? 'bg-[#1CB0F6] animate-pulse'
                                 : isPausedPodcast
                                   ? 'bg-amber-400'
-                                  : 'bg-slate-300'
+                                  : 'bg-slate-300 dark:bg-slate-700'
                             }`}
                           />
                         ))}
@@ -1430,10 +1430,10 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         title={feedback ? 'ട്രാൻസ്ക്രിപ്റ്റ് കാണുക/മറയ്ക്കുക' : 'പരിശോധിച്ച ശേഷം മാത്രം തുറക്കും'}
                         className={`btn-3d px-3 h-10 rounded-xl border-2 border-b-4 text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition ${
                           !feedback
-                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                            ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                             : podcastTranscriptOpen
-                              ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
-                              : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-400 dark:border-emerald-600 text-emerald-800 dark:text-emerald-300'
+                              : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         {!feedback && <Lock className="w-3.5 h-3.5" aria-hidden="true" />}
@@ -1445,23 +1445,23 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                     {feedback && podcastTranscriptOpen && (
                       <div
                         data-testid="podcast-transcript"
-                        className="mt-3.5 rounded-2xl border-2 border-amber-200 bg-amber-50/90 p-4 text-center space-y-1.5 animate-pop"
+                        className="mt-3.5 rounded-2xl border-2 border-amber-200 dark:border-amber-800/70 bg-amber-50/90 dark:bg-amber-950/40 p-4 text-center space-y-1.5 animate-pop"
                       >
-                        <div className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">
+                        <div className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
                           ട്രാൻസ്ക്രിപ്റ്റ് · TRANSCRIPT
                         </div>
                         <p
                           dir="rtl"
-                          className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 leading-loose"
+                          className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 leading-loose"
                         >
                           {question.transcriptAr}
                         </p>
                         {!hideTranslit && question.translit && (
-                          <p className="text-xs font-bold text-amber-800">
+                          <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
                             {question.translit}
                           </p>
                         )}
-                        <p className="text-sm font-extrabold text-slate-700 pt-1">
+                        <p className="text-sm font-extrabold text-slate-700 dark:text-slate-200 pt-1">
                           {question.transcriptMl}
                         </p>
                       </div>
@@ -1471,8 +1471,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   {/* Format 1: Podcast True / False (radio_tf) */}
                   {question.type === 'radio_tf' && (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 sm:p-5 text-center">
-                        <p className="text-base sm:text-lg font-extrabold text-slate-900 leading-relaxed">
+                      <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-5 text-center">
+                        <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 leading-relaxed">
                           {question.statementMl}
                         </p>
                       </div>
@@ -1484,15 +1484,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           const isSelected = selectedOption === item.val;
                           const isCorrectOption = String(question.answer) === item.val;
                           let styleClass =
-                            'border-slate-200 bg-white text-slate-900 hover:bg-slate-50';
+                            'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800';
                           if (feedback) {
                             if (isCorrectOption) {
-                              styleClass = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+                              styleClass = 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200';
                             } else if (isSelected) {
-                              styleClass = 'border-rose-500 bg-rose-50 text-rose-900';
+                              styleClass = 'border-rose-500 bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200';
                             }
                           } else if (isSelected) {
-                            styleClass = 'border-[#1899D6] bg-sky-50 text-[#0369A1]';
+                            styleClass = 'border-[#1899D6] dark:border-sky-400 bg-sky-50 dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-200';
                           }
                           return (
                             <button
@@ -1522,15 +1522,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   {question.type === 'radio_select3' && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-1">
-                        <span className="text-xs sm:text-sm font-bold text-slate-500">
+                        <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">
                           5 വാക്കുകളിൽ നിന്ന് 3 എണ്ണം തൊടുക
                         </span>
                         <span
                           data-testid="radio-select3-counter"
                           className={`text-xs sm:text-sm font-extrabold tabular-nums ${
                             podcastSelectedWords.length === 3
-                              ? 'text-[#1899D6]'
-                              : 'text-slate-600'
+                              ? 'text-[#1899D6] dark:text-sky-400'
+                              : 'text-slate-600 dark:text-slate-300'
                           }`}
                         >
                           തിരഞ്ഞെടുത്തവ: {podcastSelectedWords.length} / 3
@@ -1548,14 +1548,14 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                             (ans) => normalizeWordBankText(ans) === normalizeWordBankText(word)
                           );
                           let chipStyle =
-                            'bg-white border-slate-200 text-slate-900 hover:bg-slate-50';
+                            'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800';
                           if (feedback) {
                             if (isSpokenAnswer) {
-                              chipStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900';
+                              chipStyle = 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-900 dark:text-emerald-200';
                             } else if (isPicked) {
-                              chipStyle = 'bg-rose-50 border-rose-500 text-rose-900';
+                              chipStyle = 'bg-rose-50 dark:bg-rose-950/60 border-rose-500 text-rose-900 dark:text-rose-200';
                             } else {
-                              chipStyle = 'bg-slate-50 border-slate-200 text-slate-400';
+                              chipStyle = 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600';
                             }
                           } else if (isPicked) {
                             chipStyle = 'bg-[#1899D6] border-[#1177A8] text-white';
@@ -1606,15 +1606,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         const isSelected = selectedOption === opt;
                         const isCorrectOpt = opt === question.answer;
                         let optStyle =
-                          'border-slate-200 bg-white text-slate-800 hover:bg-slate-50';
+                          'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800';
                         if (feedback) {
                           if (isCorrectOpt) {
-                            optStyle = 'border-emerald-500 bg-emerald-50 text-emerald-900';
+                            optStyle = 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200';
                           } else if (isSelected) {
-                            optStyle = 'border-rose-500 bg-rose-50 text-rose-900';
+                            optStyle = 'border-rose-500 bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200';
                           }
                         } else if (isSelected) {
-                          optStyle = 'border-[#1899D6] bg-sky-50 text-[#0369A1]';
+                          optStyle = 'border-[#1899D6] dark:border-sky-400 bg-sky-50 dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-200';
                         }
 
                         return (
@@ -1636,10 +1636,10 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                                     ? 'border-emerald-600 bg-emerald-600 text-white'
                                     : isSelected
                                       ? 'border-rose-600 bg-rose-600 text-white'
-                                      : 'border-slate-200 bg-slate-100 text-slate-400'
+                                      : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
                                   : isSelected
                                     ? 'border-[#1899D6] bg-[#1899D6] text-white'
-                                    : 'border-slate-200 bg-slate-50 text-slate-500'
+                                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                               }`}
                             >
                               {feedback ? (isCorrectOpt ? '✓' : isSelected ? '✕' : idx + 1) : idx + 1}
@@ -1664,9 +1664,9 @@ export const LessonModal: React.FC<LessonModalProps> = ({
 
               const inputTone = feedback
                 ? feedback.isCorrect
-                  ? 'border-[#4AA802] bg-emerald-50/70 text-emerald-950'
-                  : 'border-rose-500 bg-rose-50/70 text-rose-950'
-                : 'border-slate-300 bg-white text-slate-900 focus:border-[#0284C7] focus:ring-4 focus:ring-sky-100';
+                  ? 'border-[#4AA802] dark:border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-200'
+                  : 'border-rose-500 bg-rose-50/70 dark:bg-rose-950/50 text-rose-950 dark:text-rose-200'
+                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#0284C7] dark:focus:border-sky-400 focus:ring-4 focus:ring-sky-100 dark:focus:ring-sky-900/50';
 
               return (
                 <div className="space-y-5" data-testid="dictation-exercise">
@@ -1674,15 +1674,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div
                       aria-hidden="true"
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-emerald-50 border-2 border-b-4 border-sky-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-sky-950/70 dark:to-emerald-950/70 border-2 border-b-4 border-sky-200 dark:border-sky-800 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
                     >
                       {question.avatar ?? '🧕'}
                     </div>
 
-                    <div className="relative flex-1 rounded-2xl border-2 border-b-4 border-sky-200 bg-sky-50/60 p-3.5 sm:p-4">
+                    <div className="relative flex-1 rounded-2xl border-2 border-b-4 border-sky-200 dark:border-sky-800/80 bg-sky-50/60 dark:bg-sky-950/40 p-3.5 sm:p-4">
                       <div
                         aria-hidden="true"
-                        className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 bg-sky-50 border-l-2 border-b-2 border-sky-200 rotate-45"
+                        className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 bg-sky-50 dark:bg-slate-900 border-l-2 border-b-2 border-sky-200 dark:border-sky-800/80 rotate-45"
                       />
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                         <button
@@ -1716,8 +1716,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           }
                           className={`btn-3d h-11 sm:h-12 px-3 sm:px-4 rounded-2xl border-2 border-b-4 font-extrabold text-sm flex items-center gap-1.5 whitespace-nowrap transition ${
                             slowBusy
-                              ? 'bg-sky-100 border-[#0284C7] text-[#0369A1] ring-4 ring-sky-200'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                              ? 'bg-sky-100 dark:bg-sky-950/70 border-[#0284C7] dark:border-sky-400 text-[#0369A1] dark:text-sky-300 ring-4 ring-sky-200 dark:ring-sky-900'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
                           } ${slowPlaying ? 'animate-pulse' : ''}`}
                         >
                           {slowLoading ? (
@@ -1728,7 +1728,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           <span className="font-latin tabular-nums">0.65x</span>
                         </button>
                       </div>
-                      <p className="text-xs font-bold text-slate-600 mt-2">
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-2">
                         ശ്രദ്ധിച്ച് കേട്ട് അറബിയിൽ ടൈപ്പ് ചെയ്യുക · ഹറകത്ത് നിർബന്ധമില്ല
                       </p>
                     </div>
@@ -1759,7 +1759,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         }
                       }}
                       placeholder={'കേട്ട അറബി വാക്ക് ഇവിടെ ടൈപ്പ് ചെയ്യുക...\u200E'}
-                      className={`w-full rounded-2xl border-2 border-b-4 px-5 py-4 pl-12 font-arabic text-2xl sm:text-3xl font-bold placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:font-semibold placeholder:text-slate-400 focus:outline-none transition ${inputTone}`}
+                      className={`w-full rounded-2xl border-2 border-b-4 px-5 py-4 pl-12 font-arabic text-2xl sm:text-3xl font-bold placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition ${inputTone}`}
                     />
                     {dictationInput.length > 0 && !feedback && (
                       <button
@@ -1770,7 +1770,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           setDictationInput('');
                           dictationInputRef.current?.focus();
                         }}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition"
                       >
                         <X className="w-4 h-4" aria-hidden="true" />
                       </button>
@@ -1783,14 +1783,14 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       data-testid="dictation-reveal"
                       className={`rounded-2xl border-2 p-4 sm:p-5 animate-pop space-y-2.5 ${
                         feedback.isCorrect
-                          ? 'bg-emerald-50/90 border-emerald-300'
-                          : 'bg-amber-50/95 border-amber-300'
+                          ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700'
+                          : 'bg-amber-50/95 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-black/5">
+                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/10">
                         <div
                           className={`text-xs font-extrabold ${
-                            feedback.isCorrect ? 'text-emerald-800' : 'text-amber-900'
+                            feedback.isCorrect ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-900 dark:text-amber-300'
                           }`}
                         >
                           {feedback.isCorrect
@@ -1804,7 +1804,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           onClick={() =>
                             speakArabic(question.arabic, soundEnabled, 1.0, 'dictation-normal')
                           }
-                          className="btn-3d w-9 h-9 rounded-xl bg-white border-2 border-b-4 border-slate-200 text-[#0284C7] hover:bg-sky-50 flex items-center justify-center shrink-0"
+                          className="btn-3d w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border-2 border-b-4 border-slate-200 dark:border-slate-700 text-[#0284C7] dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-slate-700 flex items-center justify-center shrink-0"
                         >
                           <Volume2 className="w-4 h-4" aria-hidden="true" />
                         </button>
@@ -1813,16 +1813,16 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       <div className="text-center space-y-1 pt-0.5">
                         <div
                           dir="rtl"
-                          className="font-arabic text-3xl sm:text-4xl font-bold text-slate-900 leading-relaxed"
+                          className="font-arabic text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 leading-relaxed"
                         >
                           {question.arabic}
                         </div>
                         {!hideTranslit && question.translit && (
-                          <p className="text-xs sm:text-sm font-bold text-[#0369A1]">
+                          <p className="text-xs sm:text-sm font-bold text-[#0369A1] dark:text-sky-300">
                             {question.translit}
                           </p>
                         )}
-                        <p className="text-sm sm:text-base font-extrabold text-slate-800 pt-0.5">
+                        <p className="text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-200 pt-0.5">
                           {question.meaningMl}
                         </p>
                       </div>
@@ -1833,7 +1833,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   {!feedback && (
                     <div
                       data-testid="arabic-quick-keys"
-                      className="rounded-2xl border-2 border-slate-200 bg-slate-50/90 overflow-hidden"
+                      className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900 overflow-hidden"
                     >
                       <button
                         type="button"
@@ -1843,18 +1843,18 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                           playTone('tap', soundEnabled);
                           setQuickKeysOpen((open) => !open);
                         }}
-                        className="w-full px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 text-left text-xs font-extrabold text-slate-700 hover:bg-slate-100/80 transition"
+                        className="w-full px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2 text-left text-xs font-extrabold text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition"
                       >
                         <span className="inline-flex items-center gap-2 min-w-0">
-                          <Keyboard className="w-4 h-4 text-[#0284C7] shrink-0" aria-hidden="true" />
+                          <Keyboard className="w-4 h-4 text-[#0284C7] dark:text-sky-400 shrink-0" aria-hidden="true" />
                           <span className="truncate">
                             അറബി ക്വിക്ക് കീബോർഡ്{' '}
-                            <span className="hidden sm:inline font-semibold text-slate-500">
+                            <span className="hidden sm:inline font-semibold text-slate-500 dark:text-slate-400">
                               (Arabic Quick Keys)
                             </span>
                           </span>
                         </span>
-                        <span className="inline-flex items-center gap-1 text-slate-500 shrink-0 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 shrink-0 whitespace-nowrap">
                           <span>{quickKeysOpen ? 'മറയ്ക്കുക' : 'തുറക്കുക'}</span>
                           {quickKeysOpen ? (
                             <ChevronUp className="w-4 h-4" aria-hidden="true" />
@@ -1865,7 +1865,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       </button>
 
                       {quickKeysOpen && (
-                        <div className="px-3 pb-3 pt-1.5 border-t border-slate-200/80 space-y-2">
+                        <div className="px-3 pb-3 pt-1.5 border-t border-slate-200/80 dark:border-slate-800 space-y-2">
                           <div
                             dir="rtl"
                             className="flex flex-wrap justify-center gap-1.5"
@@ -1877,7 +1877,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                                 data-ar-key={ch}
                                 aria-label={`അറബി അക്ഷരം ${ch}`}
                                 onClick={() => insertDictationText(ch)}
-                                className="btn-3d min-w-[38px] sm:min-w-[42px] h-10 sm:h-11 px-2 rounded-xl bg-white hover:bg-sky-50 border border-b-[3px] border-slate-300 hover:border-[#0284C7] font-arabic text-xl sm:text-2xl font-bold text-slate-900 flex items-center justify-center transition"
+                                className="btn-3d min-w-[38px] sm:min-w-[42px] h-10 sm:h-11 px-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-950/60 border border-b-[3px] border-slate-300 dark:border-slate-700 hover:border-[#0284C7] dark:hover:border-sky-400 font-arabic text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center justify-center transition"
                               >
                                 {ch}
                               </button>
@@ -1890,7 +1890,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                               data-testid="arabic-key-space"
                               aria-label="സ്പേസ് (Space)"
                               onClick={() => insertDictationText(' ')}
-                              className="btn-3d flex-1 h-10 rounded-xl bg-white hover:bg-sky-50 border border-b-[3px] border-slate-300 hover:border-[#0284C7] text-xs font-extrabold text-slate-700 flex items-center justify-center gap-1.5 transition"
+                              className="btn-3d flex-1 h-10 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-950/60 border border-b-[3px] border-slate-300 dark:border-slate-700 hover:border-[#0284C7] dark:hover:border-sky-400 text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 transition"
                             >
                               <span>␣</span>
                               <span>സ്പേസ് (Space)</span>
@@ -1900,7 +1900,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                               data-testid="arabic-key-backspace"
                               aria-label="മായ്ക്കുക (Backspace)"
                               onClick={handleDictationBackspace}
-                              className="btn-3d px-4 h-10 rounded-xl bg-rose-50 hover:bg-rose-100 border border-b-[3px] border-rose-200 text-xs font-extrabold text-rose-700 flex items-center justify-center gap-1.5 transition"
+                              className="btn-3d px-4 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-950 border border-b-[3px] border-rose-200 dark:border-rose-800 text-xs font-extrabold text-rose-700 dark:text-rose-300 flex items-center justify-center gap-1.5 transition"
                             >
                               <Delete className="w-4 h-4" aria-hidden="true" />
                               <span>മായ്ക്കുക</span>
@@ -1936,15 +1936,15 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   <div className="flex items-start gap-3 sm:gap-4">
                     <div
                       aria-hidden="true"
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-emerald-50 border-2 border-b-4 border-sky-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-sky-950/70 dark:to-emerald-950/70 border-2 border-b-4 border-sky-200 dark:border-sky-800 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-xs select-none"
                     >
                       {avatarEmoji}
                     </div>
 
-                    <div className="relative flex-1 rounded-2xl border-2 border-b-4 border-sky-200 bg-white p-4 sm:p-5 shadow-xs space-y-2.5">
+                    <div className="relative flex-1 rounded-2xl border-2 border-b-4 border-sky-200 dark:border-sky-800/80 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs space-y-2.5">
                       <div
                         aria-hidden="true"
-                        className="absolute -left-2.5 top-6 w-4 h-4 bg-white border-l-2 border-b-2 border-sky-200 rotate-45"
+                        className="absolute -left-2.5 top-6 w-4 h-4 bg-white dark:bg-slate-900 border-l-2 border-b-2 border-sky-200 dark:border-sky-800/80 rotate-45"
                       />
 
                       <div className="flex items-start justify-between gap-3">
@@ -1979,8 +1979,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                             }}
                             className={`btn-3d w-10 h-11 rounded-2xl border-2 border-b-4 flex items-center justify-center transition ${
                               slowBusy
-                                ? 'bg-sky-100 border-[#0284C7] text-[#0369A1]'
-                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                ? 'bg-sky-100 dark:bg-sky-950/70 border-[#0284C7] dark:border-sky-400 text-[#0369A1] dark:text-sky-300'
+                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                             } ${slowPlaying ? 'animate-pulse' : ''}`}
                           >
                             {slowLoading ? (
@@ -2001,7 +2001,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                             <span
                               key={`${item.word}-${idx}`}
                               className={`transition-colors duration-200 ${
-                                item.matched ? 'text-[#357A00]' : 'text-slate-900'
+                                item.matched ? 'text-[#357A00] dark:text-emerald-400' : 'text-slate-900 dark:text-slate-100'
                               }`}
                             >
                               {item.word}
@@ -2010,16 +2010,16 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-100 space-y-0.5 text-left">
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-0.5 text-left">
                         {!hideTranslit && question.translit && (
                           <p
                             data-translit="true"
-                            className="text-xs sm:text-sm font-bold text-[#0369A1]"
+                            className="text-xs sm:text-sm font-bold text-[#0369A1] dark:text-sky-300"
                           >
                             {question.translit}
                           </p>
                         )}
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-700">
+                        <p className="text-xs sm:text-sm font-extrabold text-slate-700 dark:text-slate-200">
                           {question.meaningMl}
                         </p>
                       </div>
@@ -2043,9 +2043,9 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         onClick={handleToggleSpeakMic}
                         className={`btn-3d relative w-full min-h-[64px] px-6 py-4 rounded-2xl border-b-4 font-extrabold text-base sm:text-lg flex items-center justify-center gap-3 transition ${
                           isUnavailable
-                            ? 'bg-slate-200 border-slate-300 text-slate-500 cursor-not-allowed'
+                            ? 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'
                             : isListening
-                              ? 'bg-[#0284C7] border-[#0369A1] text-white shadow-lg ring-4 ring-sky-200'
+                              ? 'bg-[#0284C7] border-[#0369A1] text-white shadow-lg ring-4 ring-sky-200 dark:ring-sky-900'
                               : 'bg-[#1CB0F6] hover:bg-[#0EA5E9] border-[#1177A8] text-white shadow-sm'
                         }`}
                       >
@@ -2090,16 +2090,16 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         data-testid="speak-live-transcript"
                         className={`w-full rounded-2xl border-2 p-4 text-center space-y-1.5 transition ${
                           feedback?.isCorrect
-                            ? 'bg-emerald-50 border-emerald-300'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700'
                             : isListening
-                              ? 'bg-sky-50/70 border-sky-200'
-                              : 'bg-slate-50 border-slate-200'
+                              ? 'bg-sky-50/70 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800'
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-500">
+                        <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
                           <span>നിങ്ങൾ പറഞ്ഞത് (Recognized Arabic)</span>
                           {speechEval && (
-                            <span className="font-latin tabular-nums text-[#0369A1]">
+                            <span className="font-latin tabular-nums text-[#0369A1] dark:text-sky-300">
                               {speechEval.matchedCount} / {speechEval.totalWords} വാക്കുകൾ (
                               {Math.round(speechEval.ratio * 100)}%)
                             </span>
@@ -2108,7 +2108,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                         <div
                           dir="rtl"
                           lang="ar"
-                          className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 min-h-[2.25rem]"
+                          className="font-arabic text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 min-h-[2.25rem]"
                         >
                           {spokenTranscript || '...'}
                         </div>
@@ -2120,7 +2120,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       <div
                         role="status"
                         data-testid="speak-retry-notice"
-                        className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs sm:text-sm font-bold text-amber-900"
+                        className="w-full rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50 px-4 py-3 text-center text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200"
                       >
                         {speechStatus === 'no-speech'
                           ? 'ശബ്ദം കേട്ടില്ല — മൈക്ക് അമർത്തി ഒരിക്കൽ കൂടി ഉറക്കെ വായിക്കൂ, അല്ലെങ്കിൽ താഴെ ഒഴിവാക്കാം.'
@@ -2133,14 +2133,14 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                       <div
                         role="status"
                         data-testid="speak-fallback-notice"
-                        className="w-full rounded-2xl border-2 border-amber-200 bg-amber-50/90 p-4 text-left space-y-1.5"
+                        className="w-full rounded-2xl border-2 border-amber-200 dark:border-amber-800 bg-amber-50/90 dark:bg-amber-950/50 p-4 text-left space-y-1.5"
                       >
-                        <div className="text-xs sm:text-sm font-extrabold text-amber-900">
+                        <div className="text-xs sm:text-sm font-extrabold text-amber-900 dark:text-amber-200">
                           {speechStatus === 'denied'
                             ? 'മൈക്രോഫോൺ അനുമതി ലഭിച്ചില്ല'
                             : 'ഈ ബ്രൗസറിൽ സ്പീച്ച് റെക്കഗ്നിഷൻ ലഭ്യമല്ല'}
                         </div>
-                        <p className="text-xs sm:text-sm font-medium text-amber-800 leading-relaxed">
+                        <p className="text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
                           മുകളിലെ 🔊 ബട്ടൺ അമർത്തി ഉച്ചാരണം കേട്ട് സ്വയം പരിശീലിക്കാം. തുടരാൻ താഴെയുള്ള
                           &ldquo;ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല&rdquo; ബട്ടൺ അമർത്തുക — ഹാർട്ട് നഷ്ടപ്പെടില്ല.
                         </p>
@@ -2163,8 +2163,8 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           aria-live="polite"
           className={`border-t-2 animate-pop ${
             feedback.isCorrect
-              ? 'bg-[#E9F9D9] border-[#B6E68B] text-[#245700]'
-              : 'bg-rose-50 border-rose-200 text-rose-900'
+              ? 'bg-[#E9F9D9] dark:bg-emerald-950/90 border-[#B6E68B] dark:border-emerald-800 text-[#245700] dark:text-emerald-200'
+              : 'bg-rose-50 dark:bg-rose-950/90 border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200'
           }`}
         >
           <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2202,13 +2202,13 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           </div>
         </div>
       ) : question.type === 'speak' ? (
-        <div className="border-t border-slate-200 bg-white">
+        <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-center">
             <button
               type="button"
               data-testid="speak-skip-btn"
               onClick={handleSkipSpeak}
-              className="btn-3d w-full sm:w-auto py-3 px-4 sm:px-6 rounded-2xl border-2 border-b-4 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-extrabold text-xs sm:text-sm leading-snug text-center transition"
+              className="btn-3d w-full sm:w-auto py-3 px-4 sm:px-6 rounded-2xl border-2 border-b-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 font-extrabold text-xs sm:text-sm leading-snug text-center transition"
             >
               ഇപ്പോൾ സംസാരിക്കാൻ കഴിയില്ല (CAN&apos;T SPEAK NOW)
             </button>
@@ -2216,7 +2216,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
         </div>
       ) : (
         !isPairs && (
-          <div className="border-t border-slate-200 bg-white">
+          <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex justify-end">
               <button
                 type="button"
@@ -2225,7 +2225,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                 className={`btn-3d w-full sm:w-auto sm:min-w-[200px] py-3.5 px-8 rounded-2xl font-extrabold text-base border-b-4 transition ${
                   canCheck
                     ? 'bg-[#4AA802] text-white border-[#388000] hover:bg-[#429602] cursor-pointer'
-                    : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed'
                 }`}
               >
                 പരിശോധിക്കുക
@@ -2241,16 +2241,16 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="out-of-hearts-title"
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-5"
+          className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs flex items-center justify-center p-5"
         >
-          <div className="bg-white rounded-3xl p-6 text-center max-w-sm w-full shadow-2xl animate-pop">
+          <div className="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-3xl p-6 text-center max-w-sm w-full shadow-2xl animate-pop">
             <div className="text-5xl mb-3" aria-hidden="true">
               💔
             </div>
-            <h3 id="out-of-hearts-title" className="text-xl font-extrabold text-slate-900">
+            <h3 id="out-of-hearts-title" className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
               {isJump ? 'പ്രവേശന ടെസ്റ്റ് പരാജയപ്പെട്ടു!' : 'ഹാർട്ടുകൾ തീർന്നു!'}
             </h3>
-            <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
               {isJump
                 ? '3 തെറ്റുകൾ ആയതിനാൽ ഹാർട്ടുകൾ തീർന്നിരിക്കുന്നു. 15-ൽ 12 ശരിയുത്തരം നേടാൻ വീണ്ടും ശ്രമിക്കുക.'
                 : 'തെറ്റായ ഉത്തരങ്ങൾ കാരണം നിങ്ങളുടെ ഹാർട്ടുകൾ തീർന്നിരിക്കുന്നു. ഹാർട്ടുകൾ നിറച്ച് വീണ്ടും തുടരാം.'}
@@ -2292,7 +2292,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                   setShowOutOfHearts(false);
                   onClose();
                 }}
-                className="w-full py-2.5 rounded-xl text-slate-500 font-bold text-sm hover:bg-slate-100"
+                className="w-full py-2.5 rounded-xl text-slate-500 dark:text-slate-400 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 പുറത്തുകടക്കുക
               </button>

@@ -85,24 +85,24 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
 
   const renderArabicWithAffixes = (form: ConjugationForm, tense: VerbTenseKey) => {
     if (!highlightAffixes) {
-      return <span>{form.ar}</span>;
+      return <span className="text-slate-900 dark:text-slate-50">{form.ar}</span>;
     }
 
     const affixTone =
       tense === 'future'
-        ? 'text-[#0284C7]'
+        ? 'text-[#0284C7] dark:text-sky-400'
         : tense === 'present'
-          ? 'text-[#059669]'
+          ? 'text-[#059669] dark:text-emerald-400'
           : tense === 'imperative'
-            ? 'text-[#BE123C]'
+            ? 'text-[#BE123C] dark:text-rose-400'
             : tense === 'passive'
-              ? 'text-[#6D28D9]'
-              : 'text-[#B45309]';
+              ? 'text-[#6D28D9] dark:text-violet-400'
+              : 'text-[#B45309] dark:text-amber-400';
 
     return (
       <>
         {form.prefix && <span className={affixTone}>{form.prefix}</span>}
-        <span className="text-slate-900">{form.stem}</span>
+        <span className="text-slate-900 dark:text-slate-100">{form.stem}</span>
         {form.suffix && <span className={affixTone}>{form.suffix}</span>}
       </>
     );
@@ -126,10 +126,10 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
     >
       {/* Clean Editorial Header */}
       <div className="space-y-1.5">
-        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight text-balance">
+        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-50 leading-tight text-balance">
           വ്യാകരണ സഹായി — ക്രിയാരൂപങ്ങൾ
         </h1>
-        <p className="text-xs sm:text-sm text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>ഭൂതകാലം (الْمَاضِي)</span>
           <span aria-hidden="true">·</span>
           <span>വർത്തമാനകാലം (الْمُضَارِع)</span>
@@ -140,18 +140,18 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
           <span aria-hidden="true">·</span>
           <span>കർമ്മണി (الْمَجْهُول)</span>
           <span aria-hidden="true">·</span>
-          <span className="text-slate-500">യൂണിറ്റ് 9, 18, 21–33</span>
+          <span className="text-slate-500 dark:text-slate-400">യൂണിറ്റ് 9, 18, 21–33</span>
         </p>
       </div>
 
       {/* Filter & Verb Selector Deck */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
           {/* Unit Group Segmented Filter */}
           <div
             role="group"
             aria-label="യൂണിറ്റ് ഫിൽട്ടർ"
-            className="grid grid-cols-3 w-full sm:w-auto sm:inline-flex items-center gap-1 p-1 bg-slate-100 rounded-xl"
+            className="grid grid-cols-3 w-full sm:w-auto sm:inline-flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl"
           >
             {UNIT_GROUPS.map((group) => {
               const active = unitGroup === group.id;
@@ -166,8 +166,8 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                   }}
                   className={`px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap text-center ${
                     active
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   {group.labelMl}
@@ -179,7 +179,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
           {/* Search Input */}
           <div className="relative flex-1 sm:max-w-xs">
             <Search
-              className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               aria-hidden="true"
             />
             <input
@@ -188,14 +188,14 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="ക്രിയ തിരയുക (ഉദാ: പോകുക, ذهب)"
               aria-label="ക്രിയ തിരയുക"
-              className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#0284C7] focus:bg-white transition-colors"
+              className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-[#0284C7] focus:bg-white dark:focus:bg-slate-900 transition-colors"
             />
             {searchQuery && (
               <button
                 type="button"
                 aria-label="തിരയൽ മായ്ക്കുക"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               >
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
@@ -205,8 +205,8 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
 
         {/* Verb Selector Grid */}
         {filteredVerbs.length === 0 ? (
-          <div className="py-8 text-center space-y-2 border-t border-slate-100">
-            <p className="text-sm font-bold text-slate-700">
+          <div className="py-8 text-center space-y-2 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
               തിരയലിന് യോജിച്ച ക്രിയ കണ്ടെത്താനായില്ല.
             </p>
             <button
@@ -215,7 +215,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                 setSearchQuery('');
                 setUnitGroup('all');
               }}
-              className="text-xs font-extrabold text-[#0284C7] hover:underline"
+              className="text-xs font-extrabold text-[#0284C7] dark:text-sky-400 hover:underline"
             >
               എല്ലാ ക്രിയകളും കാണിക്കുക
             </button>
@@ -241,23 +241,23 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                   }}
                   className={`min-h-[60px] px-3 py-2.5 rounded-xl border text-left transition-colors flex flex-col justify-between ${
                     selected
-                      ? 'bg-[#F0FBE6] border-[#4AA802] text-slate-900'
-                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                      ? 'bg-[#F0FBE6] dark:bg-emerald-950/60 border-[#4AA802] dark:border-emerald-500 text-slate-900 dark:text-slate-50'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
                   }`}
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <span
                       dir="rtl"
                       lang="ar"
-                      className="font-arabic text-xl font-bold leading-snug text-slate-900"
+                      className="font-arabic text-xl font-bold leading-snug text-slate-900 dark:text-slate-50"
                     >
                       {verb.baseAr}
                     </span>
-                    <span className="text-[11px] font-bold text-slate-500 font-latin tabular-nums shrink-0">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-latin tabular-nums shrink-0">
                       U{verb.unitNumbers[0]}
                     </span>
                   </div>
-                  <div className="text-xs font-bold text-slate-700 truncate mt-0.5">
+                  <div className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate mt-0.5">
                     {verb.meaningMl}
                   </div>
                 </button>
@@ -268,13 +268,13 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
       </div>
 
       {/* Active Verb Spotlight & Interactive Controls */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-200 space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden transition-colors">
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-slate-500">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
                 <span>മൂലാക്ഷരങ്ങൾ (Root):</span>
-                <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-slate-800">
+                <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-slate-800 dark:text-slate-100">
                   {activeVerb.rootAr}
                 </span>
                 <span aria-hidden="true">·</span>
@@ -286,18 +286,18 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                 <h2
                   dir="rtl"
                   lang="ar"
-                  className="font-arabic text-3xl font-bold text-slate-900 leading-tight"
+                  className="font-arabic text-3xl font-bold text-slate-900 dark:text-slate-50 leading-tight"
                 >
                   {activeVerb.baseAr}
                 </h2>
-                <span className="text-lg font-extrabold text-slate-900">
+                <span className="text-lg font-extrabold text-slate-900 dark:text-slate-50">
                   {activeVerb.meaningMl}
                 </span>
-                <span className="text-xs font-semibold text-slate-500 font-latin">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-latin">
                   {activeVerb.baseTr} / {activeVerb.meaningEn}
                 </span>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
                 {activeVerb.patternNoteMl}
               </p>
             </div>
@@ -319,7 +319,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
             <div
               role="group"
               aria-label="കാലം തിരഞ്ഞെടുക്കുക"
-              className="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto max-w-full"
+              className="inline-flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-x-auto max-w-full"
             >
               {TENSE_FILTERS.map((tf) => {
                 const active = tenseFilter === tf.id;
@@ -334,8 +334,8 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                     }}
                     className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                       active
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                   >
                     {tf.labelMl}
@@ -349,7 +349,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
               <div
                 role="group"
                 aria-label="ഭാവികാല സൂചകം"
-                className="inline-flex items-center gap-1 p-1 bg-sky-50 border border-sky-200 rounded-xl"
+                className="inline-flex items-center gap-1 p-1 bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 rounded-xl"
               >
                 <button
                   type="button"
@@ -361,7 +361,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                   className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap ${
                     futureMarker === 'sa'
                       ? 'bg-[#0284C7] text-white'
-                      : 'text-[#0369A1] hover:bg-sky-100'
+                      : 'text-[#0369A1] dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/60'
                   }`}
                 >
                   <span className="font-arabic text-sm">سَـ</span> സമീപം
@@ -376,7 +376,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                   className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap ${
                     futureMarker === 'sawfa'
                       ? 'bg-[#0284C7] text-white'
-                      : 'text-[#0369A1] hover:bg-sky-100'
+                      : 'text-[#0369A1] dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/60'
                   }`}
                 >
                   <span className="font-arabic text-sm">سَوْفَ</span> ദീർഘം
@@ -387,7 +387,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
               <div
                 role="group"
                 aria-label="കർമ്മണി കാലം"
-                className="inline-flex items-center gap-1 p-1 bg-violet-50 border border-violet-200 rounded-xl"
+                className="inline-flex items-center gap-1 p-1 bg-violet-50 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-800 rounded-xl"
               >
                 <button
                   type="button"
@@ -399,7 +399,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                   className={`px-2.5 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap ${
                     passiveTense === 'past'
                       ? 'bg-[#6D28D9] text-white'
-                      : 'text-[#5B21B6] hover:bg-violet-100'
+                      : 'text-[#5B21B6] dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/60'
                   }`}
                 >
                   <span className="font-arabic text-sm">فُعِلَ</span> ഭൂതം
@@ -414,7 +414,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                   className={`px-2.5 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap ${
                     passiveTense === 'present'
                       ? 'bg-[#6D28D9] text-white'
-                      : 'text-[#5B21B6] hover:bg-violet-100'
+                      : 'text-[#5B21B6] dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/60'
                   }`}
                 >
                   <span className="font-arabic text-sm">يُفْعَلُ</span> വർത്തമാനം
@@ -431,8 +431,8 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                 }}
                 className={`px-3 py-2 text-xs font-extrabold rounded-xl border transition-colors whitespace-nowrap ${
                   highlightAffixes
-                    ? 'bg-slate-900 text-white border-slate-900'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 border-slate-900 dark:border-slate-100'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
               >
                 പ്രത്യയ അടയാളം: {highlightAffixes ? 'ഓൺ' : 'ഓഫ്'}
@@ -445,33 +445,33 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
         <div className="overflow-x-auto">
           <div
             data-testid="conjugation-grid"
-            className={`${isAllColumns ? 'min-w-[660px]' : 'min-w-[380px]'} divide-y divide-slate-200`}
+            className={`${isAllColumns ? 'min-w-[660px]' : 'min-w-[380px]'} divide-y divide-slate-200 dark:divide-slate-800`}
           >
             {/* Matrix Header Row */}
             <div
-              className={`grid bg-slate-50 text-xs font-extrabold text-slate-700 ${
+              className={`grid bg-slate-50 dark:bg-slate-800/80 text-xs font-extrabold text-slate-700 dark:text-slate-200 ${
                 isAllColumns
                   ? 'grid-cols-[88px_repeat(5,minmax(114px,1fr))]'
                   : 'grid-cols-[170px_minmax(0,1fr)]'
               }`}
             >
-              <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 flex flex-col justify-center`}>
+              <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 dark:border-slate-800 flex flex-col justify-center`}>
                 <div className={isAllColumns ? 'text-[11px] leading-tight' : ''}>സർവ്വനാമം</div>
-                <div className="text-[10px] font-semibold text-slate-500 mt-0.5 font-latin">
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 font-latin">
                   Pronoun
                 </div>
               </div>
 
               {visibleTenses.includes('past') && (
-                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 last:border-r-0 bg-amber-50/50`}>
-                  <div className="text-[#92400E] text-[11px] sm:text-xs leading-tight whitespace-nowrap">
+                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 dark:border-slate-800 last:border-r-0 bg-amber-50/50 dark:bg-amber-950/30`}>
+                  <div className="text-[#92400E] dark:text-amber-300 text-[11px] sm:text-xs leading-tight whitespace-nowrap">
                     ഭൂതകാലം
                   </div>
                   <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                    <span className="text-[10px] font-semibold text-slate-500 whitespace-nowrap">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       Past
                     </span>
-                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#B45309] shrink-0">
+                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#B45309] dark:text-amber-400 shrink-0">
                       الْمَاضِي
                     </span>
                   </div>
@@ -479,15 +479,15 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
               )}
 
               {visibleTenses.includes('present') && (
-                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 last:border-r-0 bg-emerald-50/50`}>
-                  <div className="text-[#065F46] text-[11px] sm:text-xs leading-tight whitespace-nowrap">
+                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 dark:border-slate-800 last:border-r-0 bg-emerald-50/50 dark:bg-emerald-950/30`}>
+                  <div className="text-[#065F46] dark:text-emerald-300 text-[11px] sm:text-xs leading-tight whitespace-nowrap">
                     വർത്തമാനം
                   </div>
                   <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                    <span className="text-[10px] font-semibold text-slate-500 whitespace-nowrap">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       Present
                     </span>
-                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#059669] shrink-0">
+                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#059669] dark:text-emerald-400 shrink-0">
                       الْمُضَارِع
                     </span>
                   </div>
@@ -495,15 +495,15 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
               )}
 
               {visibleTenses.includes('future') && (
-                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 last:border-r-0 bg-sky-50/50`}>
-                  <div className="text-[#075985] text-[11px] sm:text-xs leading-tight whitespace-nowrap">
+                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 dark:border-slate-800 last:border-r-0 bg-sky-50/50 dark:bg-sky-950/30`}>
+                  <div className="text-[#075985] dark:text-sky-300 text-[11px] sm:text-xs leading-tight whitespace-nowrap">
                     ഭാവികാലം
                   </div>
                   <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                    <span className="text-[10px] font-semibold text-slate-500 whitespace-nowrap">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       {futureMarker === 'sawfa' ? 'سَوْفَ' : 'سَـ'}
                     </span>
-                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#0284C7] shrink-0">
+                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#0284C7] dark:text-sky-400 shrink-0">
                       الْمُسْتَقْبَل
                     </span>
                   </div>
@@ -511,15 +511,15 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
               )}
 
               {visibleTenses.includes('imperative') && (
-                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 last:border-r-0 bg-rose-50/50`}>
-                  <div className="text-[#9F1239] text-[11px] sm:text-xs leading-tight whitespace-nowrap">
+                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} border-r border-slate-200 dark:border-slate-800 last:border-r-0 bg-rose-50/50 dark:bg-rose-950/30`}>
+                  <div className="text-[#9F1239] dark:text-rose-300 text-[11px] sm:text-xs leading-tight whitespace-nowrap">
                     ആജ്ഞ
                   </div>
                   <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                    <span className="text-[10px] font-semibold text-slate-500 whitespace-nowrap">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       Imperative
                     </span>
-                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#BE123C] shrink-0">
+                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#BE123C] dark:text-rose-400 shrink-0">
                       الْأَمْر
                     </span>
                   </div>
@@ -527,15 +527,15 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
               )}
 
               {visibleTenses.includes('passive') && (
-                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} bg-violet-50/50`}>
-                  <div className="text-[#5B21B6] text-[11px] sm:text-xs leading-tight whitespace-nowrap">
+                <div className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3'} bg-violet-50/50 dark:bg-violet-950/30`}>
+                  <div className="text-[#5B21B6] dark:text-violet-300 text-[11px] sm:text-xs leading-tight whitespace-nowrap">
                     കർമ്മണി
                   </div>
                   <div className="flex items-baseline justify-between gap-1 mt-0.5">
-                    <span className="text-[10px] font-semibold text-slate-500 whitespace-nowrap">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       {passiveTense === 'present' ? 'يُفْعَلُ' : 'فُعِلَ'}
                     </span>
-                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#6D28D9] shrink-0">
+                    <span dir="rtl" lang="ar" className="font-arabic text-sm font-bold text-[#6D28D9] dark:text-violet-400 shrink-0">
                       الْمَجْهُول
                     </span>
                   </div>
@@ -586,7 +586,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                 <div
                   key={pronoun.key}
                   className={`grid transition-colors ${
-                    isRowFocused ? 'bg-slate-50/90' : 'bg-white'
+                    isRowFocused ? 'bg-slate-50/90 dark:bg-slate-800/60' : 'bg-white dark:bg-slate-900'
                   } ${
                     isAllColumns
                       ? 'grid-cols-[88px_repeat(5,minmax(114px,1fr))]'
@@ -601,26 +601,26 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                       handleSpeak(pronoun.ar, `pronoun-${pronoun.key}`, 0.9);
                     }}
                     aria-label={`${pronoun.ar} (${pronoun.ml}) കേൾക്കുക`}
-                    className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3.5'} border-r border-slate-200 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#0284C7] transition-colors flex flex-col justify-center min-w-0`}
+                    className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3.5'} border-r border-slate-200 dark:border-slate-800 text-left hover:bg-slate-50 dark:hover:bg-slate-800/80 focus-visible:outline-2 focus-visible:outline-[#0284C7] transition-colors flex flex-col justify-center min-w-0`}
                   >
                     <div className="flex items-baseline justify-between gap-1">
                       <span
                         dir="rtl"
                         lang="ar"
-                        className={`font-arabic ${isAllColumns ? 'text-base' : 'text-xl'} font-bold text-slate-900 leading-snug`}
+                        className={`font-arabic ${isAllColumns ? 'text-base' : 'text-xl'} font-bold text-slate-900 dark:text-slate-50 leading-snug`}
                       >
                         {pronoun.ar}
                       </span>
                       {!isAllColumns && (
-                        <span className="text-[10px] font-semibold text-slate-400 font-latin truncate">
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 font-latin truncate">
                           {pronoun.en}
                         </span>
                       )}
                     </div>
-                    <div className={`${isAllColumns ? 'text-[11px]' : 'text-xs'} font-extrabold text-slate-700 mt-0.5 truncate`}>
+                    <div className={`${isAllColumns ? 'text-[11px]' : 'text-xs'} font-extrabold text-slate-700 dark:text-slate-200 mt-0.5 truncate`}>
                       {pronoun.ml}
                     </div>
-                    <div className="text-[10px] text-slate-500 truncate">{pronoun.tr}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{pronoun.tr}</div>
                   </button>
 
                   {/* Conjugation Cells */}
@@ -629,12 +629,12 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                       return (
                         <div
                           key={tense}
-                          className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3.5'} border-r border-slate-200 last:border-r-0 bg-slate-50/40 flex flex-col justify-center items-start gap-0.5 text-slate-400 min-w-0`}
+                          className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3.5'} border-r border-slate-200 dark:border-slate-800 last:border-r-0 bg-slate-50/40 dark:bg-slate-950/40 flex flex-col justify-center items-start gap-0.5 text-slate-400 dark:text-slate-500 min-w-0`}
                         >
                           <span className="text-base font-bold leading-none" aria-hidden="true">
                             —
                           </span>
-                          <span className="text-[10px] font-semibold text-slate-400 leading-snug">
+                          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 leading-snug">
                             2-ാം പുരുഷന് മാത്രം
                           </span>
                         </div>
@@ -651,14 +651,14 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                     const isActiveAudio = activeAudioKey === cellAudioKey;
                     const activeBorderBg =
                       tense === 'past'
-                        ? 'bg-amber-50/90 ring-1 ring-inset ring-amber-300'
+                        ? 'bg-amber-50/90 dark:bg-amber-950/40 ring-1 ring-inset ring-amber-300 dark:ring-amber-700'
                         : tense === 'present'
-                          ? 'bg-emerald-50/90 ring-1 ring-inset ring-emerald-300'
+                          ? 'bg-emerald-50/90 dark:bg-emerald-950/40 ring-1 ring-inset ring-emerald-300 dark:ring-emerald-700'
                           : tense === 'imperative'
-                            ? 'bg-rose-50/90 ring-1 ring-inset ring-rose-300'
+                            ? 'bg-rose-50/90 dark:bg-rose-950/40 ring-1 ring-inset ring-rose-300 dark:ring-rose-700'
                             : tense === 'passive'
-                              ? 'bg-violet-50/90 ring-1 ring-inset ring-violet-300'
-                              : 'bg-sky-50/90 ring-1 ring-inset ring-sky-300';
+                              ? 'bg-violet-50/90 dark:bg-violet-950/40 ring-1 ring-inset ring-violet-300 dark:ring-violet-700'
+                              : 'bg-sky-50/90 dark:bg-sky-950/40 ring-1 ring-inset ring-sky-300 dark:ring-sky-700';
 
                     return (
                       <button
@@ -669,7 +669,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                           handleSpeak(form.ar, cellAudioKey, 0.92);
                         }}
                         aria-label={`${pronoun.ml} ${tense}: ${form.ar} (${form.ml}) കേൾക്കുക`}
-                        className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3.5'} border-r border-slate-200 last:border-r-0 text-left transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#0284C7] flex flex-col justify-between gap-1 min-w-0 ${
+                        className={`${isAllColumns ? 'px-2 py-2.5' : 'px-4 py-3.5'} border-r border-slate-200 dark:border-slate-800 last:border-r-0 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70 focus-visible:outline-2 focus-visible:outline-[#0284C7] flex flex-col justify-between gap-1 min-w-0 ${
                           isActiveAudio ? activeBorderBg : ''
                         }`}
                       >
@@ -683,16 +683,16 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                           </span>
                           <Volume2
                             className={`w-3.5 h-3.5 mt-1 shrink-0 ${
-                              isActiveAudio ? 'text-[#0284C7]' : 'text-slate-300'
+                              isActiveAudio ? 'text-[#0284C7] dark:text-sky-400' : 'text-slate-300 dark:text-slate-600'
                             }`}
                             aria-hidden="true"
                           />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[11px] font-extrabold text-slate-800 leading-snug line-clamp-2">
+                          <div className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 leading-snug line-clamp-2">
                             {form.ml}
                           </div>
-                          <div className="text-[10px] text-slate-500 flex items-center justify-between gap-1 mt-0.5">
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between gap-1 mt-0.5">
                             <span className="truncate">{form.tr}</span>
                             {highlightAffixes &&
                               affixHint &&
@@ -700,12 +700,12 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                                 <span
                                   dir="rtl"
                                   lang="ar"
-                                  className="font-arabic text-[11px] font-bold text-slate-500 shrink-0"
+                                  className="font-arabic text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0"
                                 >
                                   {affixHint}
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-semibold text-slate-400 shrink-0">
+                                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 shrink-0">
                                   {affixHint}
                                 </span>
                               ))}
@@ -721,12 +721,12 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
         </div>
 
         {/* Live 5-Form Example Sentence Strip */}
-        <div className="border-t border-slate-200 bg-slate-50/70 p-4 sm:p-5 space-y-3">
+        <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 p-4 sm:p-5 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-xs font-extrabold text-slate-700">
+            <h3 className="text-xs font-extrabold text-slate-700 dark:text-slate-200">
               ഉദാഹരണ വാക്യങ്ങൾ — {activeVerb.meaningMl} ({activeVerb.baseAr})
             </h3>
-            <span className="text-[11px] font-semibold text-slate-500">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               കേൾക്കാൻ വാക്യത്തിൽ തൊടുക
             </span>
           </div>
@@ -736,25 +736,25 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
               {
                 key: 'past' as VerbTenseKey,
                 label: 'ഭൂതകാലം · Past',
-                tone: 'text-[#92400E]',
+                tone: 'text-[#92400E] dark:text-amber-300',
                 ex: activeVerb.examples.past,
               },
               {
                 key: 'present' as VerbTenseKey,
                 label: 'വർത്തമാനകാലം · Present',
-                tone: 'text-[#065F46]',
+                tone: 'text-[#065F46] dark:text-emerald-300',
                 ex: activeVerb.examples.present,
               },
               {
                 key: 'future' as VerbTenseKey,
                 label: futureMarker === 'sawfa' ? 'ഭാവികാലം · سَوْفَ' : 'ഭാവികാലം · سَـ',
-                tone: 'text-[#075985]',
+                tone: 'text-[#075985] dark:text-sky-300',
                 ex: activeFutureExample,
               },
               {
                 key: 'imperative' as VerbTenseKey,
                 label: 'ആജ്ഞാരൂപം · Imperative',
-                tone: 'text-[#9F1239]',
+                tone: 'text-[#9F1239] dark:text-rose-300',
                 ex: activeVerb.examples.imperative,
               },
               {
@@ -763,7 +763,7 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                   passiveTense === 'present'
                     ? 'കർമ്മണി · يُفْعَلُ (വർത്തമാനം)'
                     : 'കർമ്മണി · فُعِلَ (ഭൂതം)',
-                tone: 'text-[#5B21B6]',
+                tone: 'text-[#5B21B6] dark:text-violet-300',
                 ex: activePassiveExample,
               },
             ].map((item) => {
@@ -776,26 +776,26 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
                   onClick={() => handleSpeak(item.ex.ar, exKey, 0.92)}
                   className={`p-3.5 rounded-xl border text-left transition-colors flex flex-col justify-between gap-2 ${
                     playing
-                      ? 'bg-sky-50 border-[#0284C7]'
-                      : 'bg-white border-slate-200 hover:border-slate-300'
+                      ? 'bg-sky-50 dark:bg-sky-950/50 border-[#0284C7] dark:border-sky-500'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className={`text-[11px] font-extrabold ${item.tone}`}>
                       {item.label}
                     </span>
-                    <Volume2 className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
+                    <Volume2 className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
                   </div>
                   <div
                     dir="rtl"
                     lang="ar"
-                    className="font-arabic text-lg font-bold text-slate-900 leading-relaxed"
+                    className="font-arabic text-lg font-bold text-slate-900 dark:text-slate-50 leading-relaxed"
                   >
                     {item.ex.ar}
                   </div>
                   <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-slate-800">{item.ex.ml}</div>
-                    <div className="text-[11px] text-slate-500">{item.ex.tr}</div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200">{item.ex.ml}</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">{item.ex.tr}</div>
                   </div>
                 </button>
               );
@@ -807,60 +807,60 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
       {/* Tense & Voice Formula Reference Grid */}
       <div className="space-y-3">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-base font-extrabold text-slate-900">
+          <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-50">
             കാല-പ്രയോഗ നിയമങ്ങളും നിഷേധരൂപങ്ങളും
           </h2>
-          <span className="text-xs text-slate-500">Tense, Imperative &amp; Passive Patterns</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">Tense, Imperative &amp; Passive Patterns</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {TENSE_FORMULAS.map((rule) => {
             const headerTone =
               rule.key === 'past'
-                ? 'text-[#92400E]'
+                ? 'text-[#92400E] dark:text-amber-300'
                 : rule.key === 'present'
-                  ? 'text-[#065F46]'
+                  ? 'text-[#065F46] dark:text-emerald-300'
                   : rule.key === 'imperative'
-                    ? 'text-[#9F1239]'
+                    ? 'text-[#9F1239] dark:text-rose-300'
                     : rule.key === 'passive'
-                      ? 'text-[#5B21B6]'
-                      : 'text-[#075985]';
+                      ? 'text-[#5B21B6] dark:text-violet-300'
+                      : 'text-[#075985] dark:text-sky-300';
             return (
               <div
                 key={rule.key}
-                className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2.5 flex flex-col justify-between"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-2.5 flex flex-col justify-between transition-colors"
               >
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between gap-2">
                     <div className={`text-sm font-extrabold ${headerTone}`}>
                       {rule.titleMl} · {rule.titleEn}
                     </div>
-                    <span dir="rtl" lang="ar" className="font-arabic text-base font-bold text-slate-800">
+                    <span dir="rtl" lang="ar" className="font-arabic text-base font-bold text-slate-800 dark:text-slate-200">
                       {rule.titleAr}
                     </span>
                   </div>
                   <div
                     dir="rtl"
                     lang="ar"
-                    className="font-arabic text-base font-bold text-slate-900 py-1.5 border-y border-slate-100"
+                    className="font-arabic text-base font-bold text-slate-900 dark:text-slate-50 py-1.5 border-y border-slate-100 dark:border-slate-800"
                   >
                     {rule.markerSummaryAr}
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">{rule.formulaMl}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{rule.formulaMl}</p>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 space-y-1">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
                   <div
                     dir="rtl"
                     lang="ar"
-                    className="font-arabic text-base font-bold text-slate-900"
+                    className="font-arabic text-base font-bold text-slate-900 dark:text-slate-50"
                   >
                     {rule.negationAr}
                   </div>
-                  <div className="text-[11px] font-semibold text-slate-600">
+                  <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                     {rule.negationMl}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-latin">{rule.unitsLabel}</div>
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 font-latin">{rule.unitsLabel}</div>
                 </div>
               </div>
             );
@@ -869,17 +869,17 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
       </div>
 
       {/* Live Verb Curriculum Mastery Bars (CSS Grid Visualization) */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 transition-colors">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-900">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-50">
               ക്രിയ-വ്യാകരണ യൂണിറ്റ് പുരോഗതി
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               ഭൂത, വർത്തമാന, ഭാവി, കർമ്മണി, നസ്ബ്, ജസ്മ് യൂണിറ്റുകളിലെ നിങ്ങളുടെ പുരോഗതി
             </p>
           </div>
-          <span className="text-xs font-extrabold text-slate-600 font-latin tabular-nums">
+          <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 font-latin tabular-nums">
             {verbMasteryRows.reduce((sum, r) => sum + r.completedCount, 0)} /{' '}
             {verbMasteryRows.reduce((sum, r) => sum + r.totalCount, 0)} ഘട്ടങ്ങൾ
           </span>
@@ -890,19 +890,19 @@ export const GrammarCheatSheetTab: React.FC<GrammarCheatSheetTabProps> = ({
             <div key={row.unitId} className="space-y-1.5">
               <div className="flex items-baseline justify-between gap-2 text-xs">
                 <div className="min-w-0 truncate">
-                  <span className="font-extrabold text-slate-900 font-latin tabular-nums">
+                  <span className="font-extrabold text-slate-900 dark:text-slate-100 font-latin tabular-nums">
                     യൂണിറ്റ് {row.unitNumber}
                   </span>
-                  <span className="text-slate-400 mx-1.5" aria-hidden="true">
+                  <span className="text-slate-400 dark:text-slate-600 mx-1.5" aria-hidden="true">
                     ·
                   </span>
-                  <span className="font-semibold text-slate-700">{row.shortTitleMl}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">{row.shortTitleMl}</span>
                 </div>
-                <span className="font-extrabold text-slate-700 font-latin tabular-nums shrink-0">
+                <span className="font-extrabold text-slate-700 dark:text-slate-300 font-latin tabular-nums shrink-0">
                   {row.completedCount}/{row.totalCount} ({row.percent}%)
                 </span>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#4AA802] rounded-full transition-all duration-300"
                   style={{ width: `${row.percent}%` }}

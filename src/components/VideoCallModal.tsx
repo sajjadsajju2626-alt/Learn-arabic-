@@ -1052,51 +1052,51 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
           data-scroll-container="true"
           className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 py-8 flex items-center justify-center"
         >
-          <div className="w-full max-w-md bg-white text-slate-900 rounded-3xl border-2 border-b-4 border-slate-200 p-6 sm:p-7 shadow-2xl space-y-5 animate-pop">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl border-2 border-b-4 border-slate-200 dark:border-slate-700 p-6 sm:p-7 shadow-2xl space-y-5 animate-pop">
             <div className="text-center space-y-2">
-              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-amber-100 to-sky-100 border-4 border-amber-300 flex items-center justify-center text-5xl shadow-md">
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-amber-100 to-sky-100 dark:from-amber-950/60 dark:to-sky-950/60 border-4 border-amber-300 dark:border-amber-600 flex items-center justify-center text-5xl shadow-md">
                 {scenario.characterAvatar}
               </div>
-              <div className="text-xs font-extrabold uppercase tracking-wide text-[#0284C7]">
+              <div className="text-xs font-extrabold uppercase tracking-wide text-[#0284C7] dark:text-sky-400">
                 📹 വീഡിയോ കോൾ പൂർത്തിയായി
               </div>
-              <h3 className="text-2xl font-extrabold text-slate-900">
+              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-slate-50">
                 ഗംഭീര സംഭാഷണം!
               </h3>
-              <p className="text-xs sm:text-sm font-medium text-slate-600">
+              <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">
                 {scenario.characterNameMl} ({scenario.characterNameEn}) ഉമായി {totalTurns} ഘട്ടങ്ങളും വിജയകരമായി പൂർത്തിയാക്കി.
               </p>
             </div>
 
             {/* Proportional XP Breakdown */}
             <div className="grid grid-cols-3 gap-2.5 text-center">
-              <div className="rounded-2xl bg-sky-50 border border-sky-200 p-3">
-                <div className="text-[11px] font-extrabold text-[#0369A1]">അറബി വാക്കുകൾ</div>
+              <div className="rounded-2xl bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 p-3">
+                <div className="text-[11px] font-extrabold text-[#0369A1] dark:text-sky-300">അറബി വാക്കുകൾ</div>
                 <div
                   data-testid="video-call-summary-words"
-                  className="text-2xl font-extrabold text-slate-900 font-latin tabular-nums mt-0.5"
+                  className="text-2xl font-extrabold text-slate-900 dark:text-slate-50 font-latin tabular-nums mt-0.5"
                 >
                   {xpStats.spokenWords}
                 </div>
               </div>
-              <div className="rounded-2xl bg-amber-50 border border-amber-200 p-3">
-                <div className="text-[11px] font-extrabold text-amber-700">വേഡ് ബോണസ്</div>
-                <div className="text-2xl font-extrabold text-amber-600 font-latin tabular-nums mt-0.5">
+              <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-3">
+                <div className="text-[11px] font-extrabold text-amber-700 dark:text-amber-300">വേഡ് ബോണസ്</div>
+                <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-latin tabular-nums mt-0.5">
                   +{xpStats.bonusXp}
                 </div>
               </div>
-              <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3">
-                <div className="text-[11px] font-extrabold text-[#357A00]">ആകെ XP</div>
+              <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-3">
+                <div className="text-[11px] font-extrabold text-[#357A00] dark:text-emerald-300">ആകെ XP</div>
                 <div
                   data-testid="video-call-summary-xp"
-                  className="text-2xl font-extrabold text-[#357A00] font-latin tabular-nums mt-0.5"
+                  className="text-2xl font-extrabold text-[#357A00] dark:text-emerald-400 font-latin tabular-nums mt-0.5"
                 >
                   +{xpStats.totalXp}
                 </div>
               </div>
             </div>
 
-            <div className="text-center text-xs font-bold text-slate-500 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200">
+            <div className="text-center text-xs font-bold text-slate-500 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700">
               ✨ കൂടുതൽ അറബി വാക്കുകൾ ഉപയോഗിക്കൂ, കൂടുതൽ XP നേടൂ! (Base +{xpStats.baseXp} XP + {xpStats.spokenWords} × 2 XP)
             </div>
 
@@ -1105,12 +1105,12 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
               {turnRecords.map((rec, i) => (
                 <div
                   key={i}
-                  className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 flex items-center justify-between gap-2"
+                  className="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 flex items-center justify-between gap-2"
                 >
-                  <span className="text-[11px] font-extrabold text-[#0284C7] font-latin tabular-nums shrink-0">
+                  <span className="text-[11px] font-extrabold text-[#0284C7] dark:text-sky-400 font-latin tabular-nums shrink-0">
                     #{i + 1} · {rec.wordCount}w
                   </span>
-                  <span dir="rtl" lang="ar" className="font-arabic text-base font-bold text-slate-800 truncate">
+                  <span dir="rtl" lang="ar" className="font-arabic text-base font-bold text-slate-800 dark:text-slate-100 truncate">
                     {rec.userReplyAr}
                   </span>
                 </div>

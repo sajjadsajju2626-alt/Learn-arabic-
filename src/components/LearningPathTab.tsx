@@ -201,7 +201,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
       <div
         data-testid="sticky-unit-banner"
         data-unit-number={stickyUnit.number}
-        className={`sticky top-14 lg:top-4 z-20 rounded-2xl px-4 py-3 sm:px-5 sm:py-4 text-white border-b-4 shadow-md transition-colors duration-200 ${stickyUnit.theme.bg} ${stickyUnit.theme.border}`}
+        className={`sticky top-14 lg:top-16 z-20 rounded-2xl px-4 py-3 sm:px-5 sm:py-4 text-white border-b-4 shadow-md transition-colors duration-200 ${stickyUnit.theme.bg} ${stickyUnit.theme.border}`}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -225,9 +225,9 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                   playTone('tap', soundEnabled);
                   onStartUnitJump(visibleUnitIndex);
                 }}
-                className="btn-3d inline-flex items-center gap-1.5 bg-white text-slate-900 font-extrabold text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-b-4 border-slate-200 hover:bg-slate-50 whitespace-nowrap"
+                className="btn-3d inline-flex items-center gap-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-extrabold text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-b-4 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 whitespace-nowrap"
               >
-                <Rocket className="w-4 h-4 text-[#0284C7]" aria-hidden="true" />
+                <Rocket className="w-4 h-4 text-[#0284C7] dark:text-sky-400" aria-hidden="true" />
                 <span>Jump Here?</span>
               </button>
             )}
@@ -272,19 +272,19 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
             ) : (
               <div className="pt-2">
                 <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-slate-200" aria-hidden="true" />
+                  <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" aria-hidden="true" />
                   <div className="text-center max-w-[78%]">
-                    <div className="text-[11px] font-extrabold text-slate-400 font-latin tabular-nums">
+                    <div className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 font-latin tabular-nums">
                       യൂണിറ്റ് {unit.number} · {unitCompletedCount}/{unit.lessons.length}
                     </div>
                     <h2
                       id={`unit-heading-${unit.id}`}
-                      className="text-xs sm:text-sm font-extrabold text-slate-700 leading-snug"
+                      className="text-xs sm:text-sm font-extrabold text-slate-700 dark:text-slate-200 leading-snug"
                     >
                       {unit.title}
                     </h2>
                   </div>
-                  <div className="h-px flex-1 bg-slate-200" aria-hidden="true" />
+                  <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" aria-hidden="true" />
                 </div>
                 {!unitUnlocked && (
                   <div className="mt-2.5 flex justify-center">
@@ -294,9 +294,9 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                         playTone('tap', soundEnabled);
                         onStartUnitJump(uIdx);
                       }}
-                      className="btn-3d inline-flex items-center gap-1.5 bg-white text-slate-800 font-extrabold text-xs px-3.5 py-2 rounded-xl border-2 border-b-4 border-slate-200 hover:bg-slate-50 whitespace-nowrap"
+                      className="btn-3d inline-flex items-center gap-1.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-extrabold text-xs px-3.5 py-2 rounded-xl border-2 border-b-4 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 whitespace-nowrap"
                     >
-                      <Rocket className="w-3.5 h-3.5 text-[#0284C7]" aria-hidden="true" />
+                      <Rocket className="w-3.5 h-3.5 text-[#0284C7] dark:text-sky-400" aria-hidden="true" />
                       <span>Jump Here?</span>
                     </button>
                   </div>
@@ -332,14 +332,14 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                     {isCurrent && (
                       <div
                         aria-hidden="true"
-                        className={`animate-bounce-slow mb-2 bg-white font-extrabold text-xs px-3.5 py-1 rounded-xl border-2 border-slate-200 shadow-sm tracking-wide ${
+                        className={`animate-bounce-slow mb-2 bg-white dark:bg-slate-900 font-extrabold text-xs px-3.5 py-1 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-sm tracking-wide ${
                           isChest
-                            ? 'text-amber-600'
+                            ? 'text-amber-600 dark:text-amber-400'
                             : isVideoCall
-                              ? 'text-[#0284C7]'
+                              ? 'text-[#0284C7] dark:text-sky-400'
                               : isStory
-                                ? 'text-violet-700'
-                                : 'text-[#357A00]'
+                                ? 'text-violet-700 dark:text-violet-300'
+                                : 'text-[#357A00] dark:text-emerald-400'
                         }`}
                       >
                         {isChest
@@ -386,19 +386,19 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                       } flex items-center justify-center text-3xl font-bold border-b-[7px] relative transition ${
                         isChest
                           ? isCompleted
-                            ? 'bg-amber-100 border-amber-400 text-amber-700'
+                            ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-400 dark:border-amber-700 text-amber-700 dark:text-amber-300'
                             : isUnlocked
-                              ? 'bg-amber-400 border-amber-600 text-white ring-8 ring-amber-200/80'
-                              : 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed'
+                              ? 'bg-amber-400 border-amber-600 text-white ring-8 ring-amber-200/80 dark:ring-amber-900/50'
+                              : 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                           : isLegendary
                             ? 'bg-gradient-to-b from-purple-500 via-violet-600 to-indigo-700 border-purple-900 text-amber-300 ring-4 ring-amber-300/85 shadow-lg shadow-purple-400/50'
                             : isCompleted
                               ? 'bg-amber-400 border-amber-600 text-white hover:bg-amber-400/95'
                               : isCurrent
                                 ? isVideoCall
-                                  ? 'bg-gradient-to-b from-[#0EA5E9] to-[#0284C7] border-[#0369A1] text-white ring-8 ring-sky-200/85'
+                                  ? 'bg-gradient-to-b from-[#0EA5E9] to-[#0284C7] border-[#0369A1] text-white ring-8 ring-sky-200/85 dark:ring-sky-900/60'
                                   : `${unit.theme.bg} ${unit.theme.border} text-white ring-8 ${unit.theme.ring}`
-                                : 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed'
+                                : 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                       }`}
                     >
                       {isChest ? (
@@ -420,13 +420,13 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                       ) : isVideoCall ? (
                         <span aria-hidden="true" className="opacity-55 text-2xl">📹</span>
                       ) : (
-                        <Lock className="w-7 h-7 text-slate-400" aria-hidden="true" />
+                        <Lock className="w-7 h-7 text-slate-400 dark:text-slate-500" aria-hidden="true" />
                       )}
 
                       {isCompleted && (
                         <span
                           aria-hidden="true"
-                          className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white ${
+                          className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center text-white ${
                             isLegendary ? 'bg-amber-400 text-purple-900 text-xs font-extrabold' : 'bg-[#4AA802]'
                           }`}
                         >
@@ -438,10 +438,10 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                     <span
                       className={`mt-2 text-xs sm:text-sm font-bold text-center max-w-[175px] leading-snug ${
                         isLegendary
-                          ? 'text-purple-800'
+                          ? 'text-purple-800 dark:text-purple-300'
                           : isUnlocked
-                            ? 'text-slate-800'
-                            : 'text-slate-400'
+                            ? 'text-slate-800 dark:text-slate-100'
+                            : 'text-slate-400 dark:text-slate-500'
                       }`}
                     >
                       {lesson.title}
@@ -452,18 +452,18 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                       <div
                         role="dialog"
                         aria-label={`${lesson.title} ഓപ്ഷനുകൾ`}
-                        className="mt-3 w-72 bg-white rounded-2xl border-2 border-b-4 border-slate-200 shadow-xl p-4 space-y-2.5 animate-pop relative"
+                        className="mt-3 w-72 bg-white dark:bg-slate-900 rounded-2xl border-2 border-b-4 border-slate-200 dark:border-slate-700 shadow-xl p-4 space-y-2.5 animate-pop relative"
                       >
                         <div
                           aria-hidden="true"
-                          className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-l-2 border-t-2 border-slate-200 rotate-45"
+                          className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-900 border-l-2 border-t-2 border-slate-200 dark:border-slate-700 rotate-45"
                         />
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400">
+                            <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 dark:text-slate-400">
                               {isLegendary ? '👑 ലെജൻഡറി മാസ്റ്ററി' : '✓ പൂർത്തിയായ ഘട്ടം'}
                             </div>
-                            <h4 className="text-sm font-extrabold text-slate-900 leading-snug mt-0.5">
+                            <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-50 leading-snug mt-0.5">
                               {lesson.title}
                             </h4>
                           </div>
@@ -471,7 +471,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                             type="button"
                             aria-label="പോപ്പ്ഓവർ അടയ്ക്കുക"
                             onClick={() => setActivePopoverId(null)}
-                            className="w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-100 flex items-center justify-center"
+                            className="w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -530,7 +530,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                                   setActivePopoverId(null);
                                   onStartLesson(lesson);
                                 }}
-                                className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs"
+                                className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs"
                               >
                                 📖 കഥ വീണ്ടും വായിക്കാം
                               </button>
@@ -592,9 +592,9 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="guidebook-title"
-          className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/75 flex items-center justify-center p-4"
         >
-          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-pop">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-transparent dark:border-slate-800 animate-pop">
             <div className={`${guidebookUnit.theme.bg} text-white p-5 flex items-start justify-between gap-3`}>
               <div>
                 <div className="text-xs font-bold text-white/90">
@@ -616,7 +616,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
 
             <div data-scroll-container="true" className="p-5 overflow-y-auto space-y-4">
               {guidebookUnit.guidebookTip && (
-                <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                <div className="bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 rounded-2xl p-4 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
                   {guidebookUnit.guidebookTip}
                 </div>
               )}
@@ -625,7 +625,7 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                 {(guidebookUnit.guidebook ?? []).map((entry, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between gap-3 p-3.5 rounded-2xl border border-slate-200 bg-white"
+                    className="flex items-center justify-between gap-3 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60"
                   >
                     <button
                       type="button"
@@ -636,11 +636,11 @@ export const LearningPathTab: React.FC<LearningPathTabProps> = ({
                       <Volume2 className="w-4 h-4" />
                     </button>
                     <div className="flex-1 min-w-0 text-right">
-                      <div className="font-arabic text-2xl font-bold text-slate-900">{entry.ar}</div>
-                      <div dir="ltr" className="text-xs font-bold text-[#0369A1]">
+                      <div className="font-arabic text-2xl font-bold text-slate-900 dark:text-slate-50">{entry.ar}</div>
+                      <div dir="ltr" className="text-xs font-bold text-[#0369A1] dark:text-sky-400">
                         {entry.tr}
                       </div>
-                      <div dir="ltr" className="text-xs font-bold text-slate-700 mt-0.5">
+                      <div dir="ltr" className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-0.5">
                         {entry.ml}
                       </div>
                     </div>

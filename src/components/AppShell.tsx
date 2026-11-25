@@ -1,14 +1,29 @@
 import React from 'react';
-import { BookOpen, Flame, Heart, Home, Rocket, Star, Table2, Trophy, User } from 'lucide-react';
+import {
+  BookOpen,
+  Flame,
+  Heart,
+  Home,
+  Moon,
+  Rocket,
+  Star,
+  Sun,
+  Table2,
+  Trophy,
+  User,
+} from 'lucide-react';
 import type { AppTab, LeaderboardEntry, Lesson, UserState } from '../types/learning';
 import { UNITS } from '../data/curriculum';
 import { getAllLessonIds, getNextActiveLesson, MAX_HEARTS } from '../utils/learningEngine';
 import { playTone } from '../utils/audio';
+import type { ThemeMode } from '../utils/theme';
 
 interface AppShellProps {
   activeTab: AppTab;
   user: UserState;
   leaderboard: LeaderboardEntry[];
+  theme: ThemeMode;
+  onToggleTheme: () => void;
   onSelectTab: (tab: AppTab) => void;
   onStartLesson: (lesson: Lesson) => void;
   onStartPlacement: () => void;
@@ -16,18 +31,20 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-const NAV_ITEMS: { id: AppTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'path', label: 'പഠനം', icon: Home },
-  { id: 'alphabet', label: 'അക്ഷരങ്ങൾ', icon: BookOpen },
-  { id: 'grammar', label: 'വ്യാകരണം', icon: Table2 },
-  { id: 'leaderboard', label: 'റാങ്ക്', icon: Trophy },
-  { id: 'profile', label: 'പ്രൊഫൈൽ', icon: User },
+const NAV_ITEMS: { id: AppTab; label: string; headerTitle: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'path', label: 'പഠനം', headerTitle: 'പഠന പാത · 35 യൂണിറ്റുകൾ', icon: Home },
+  { id: 'alphabet', label: 'അക്ഷരങ്ങൾ', headerTitle: 'അറബി അക്ഷരമാലയും ഹറകത്തുകളും', icon: BookOpen },
+  { id: 'grammar', label: 'വ്യാകരണം', headerTitle: 'വ്യാകരണ സഹായി · ക്രിയാരൂപങ്ങൾ', icon: Table2 },
+  { id: 'leaderboard', label: 'റാങ്ക്', headerTitle: 'ആഴ്ചതോറുമുള്ള ലീഡർബോർഡ്', icon: Trophy },
+  { id: 'profile', label: 'പ്രൊഫൈൽ', headerTitle: 'നിങ്ങളുടെ പ്രൊഫൈൽ', icon: User },
 ];
 
 export const AppShell: React.FC<AppShellProps> = ({
   activeTab,
   user,
   leaderboard,
+  theme,
+  onToggleTheme,
   onSelectTab,
   onStartLesson,
   onStartPlacement,
@@ -38,25 +55,32 @@ export const AppShell: React.FC<AppShellProps> = ({
   const completionPct = Math.round((user.completedLessons.length / totalLessons) * 100);
   const nextActive = getNextActiveLesson(user.completedLessons, UNITS);
   const topThree = leaderboard.slice(0, 3);
+  const isDark = theme === 'dark';
+  const activeNav = NAV_ITEMS.find((item) => item.id === activeTab) ?? NAV_ITEMS[0];
 
   const handleNav = (tab: AppTab) => {
     playTone('tap', user.soundEnabled);
     onSelectTab(tab);
   };
 
+  const handleThemeToggle = () => {
+    playTone('tap', user.soundEnabled);
+    onToggleTheme();
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col lg:flex-row transition-colors">
       {/* Desktop Left Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-72 lg:fixed lg:inset-y-0 bg-white border-r border-slate-200 px-5 py-6 z-30">
+      <aside className="hidden lg:flex lg:flex-col lg:w-72 lg:fixed lg:inset-y-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 px-5 py-6 z-30 transition-colors">
         <div className="px-2 mb-8 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[#4AA802] border-b-4 border-[#388000] flex items-center justify-center text-xl shrink-0">
             <span aria-hidden="true">🕌</span>
           </div>
           <div className="min-w-0">
-            <div className="font-extrabold text-base text-slate-900 leading-tight whitespace-nowrap">
+            <div className="font-extrabold text-base text-slate-900 dark:text-slate-50 leading-tight whitespace-nowrap">
               അറബി പഠിക്കാം
             </div>
-            <div className="text-xs font-semibold text-slate-500 font-latin">
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-latin">
               Learn Arabic
             </div>
           </div>
@@ -74,8 +98,8 @@ export const AppShell: React.FC<AppShellProps> = ({
                 onClick={() => handleNav(item.id)}
                 className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-extrabold text-sm transition-colors whitespace-nowrap ${
                   active
-                    ? 'bg-[#F0FBE6] text-[#2E6B00] border border-[#C5EB9E]'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
+                    ? 'bg-[#F0FBE6] dark:bg-emerald-950/60 text-[#2E6B00] dark:text-emerald-300 border border-[#C5EB9E] dark:border-emerald-800/80'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-50 border border-transparent'
                 }`}
               >
                 <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
@@ -85,13 +109,15 @@ export const AppShell: React.FC<AppShellProps> = ({
           })}
         </nav>
 
-        <div className="pt-4 border-t border-slate-200 px-2 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center text-xl shrink-0">
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 px-2 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 flex items-center justify-center text-xl shrink-0">
             <span aria-hidden="true">{user.avatar}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-extrabold text-slate-900 truncate">{user.name}</div>
-            <div className="text-xs text-slate-500 font-latin tabular-nums">
+            <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">
+              {user.name}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-latin tabular-nums">
               {user.xp} XP · {user.completedLessons.length}/{totalLessons} പാഠം
             </div>
           </div>
@@ -99,80 +125,138 @@ export const AppShell: React.FC<AppShellProps> = ({
       </aside>
 
       {/* Mobile Compact Sticky Top Bar (56px, within 15% mobile sticky cap with 64px bottom bar) */}
-      <header className="lg:hidden sticky top-0 z-30 h-14 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 flex items-center justify-between">
+      <header className="lg:hidden sticky top-0 z-30 h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3.5 flex items-center justify-between gap-2 transition-colors">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-lg" aria-hidden="true">
+          <span className="text-lg shrink-0" aria-hidden="true">
             🕌
           </span>
-          <span className="font-extrabold text-sm text-slate-900 truncate">
+          <span className="font-extrabold text-sm text-slate-900 dark:text-slate-50 truncate">
             അറബി പഠിക്കാം
           </span>
         </div>
 
-        <div className="flex items-center gap-4 font-extrabold text-sm font-latin tabular-nums shrink-0">
-          <div className="flex items-center gap-1 text-orange-600" aria-label={`സ്ട്രീക്ക് ${user.streak} ദിവസം`}>
+        <div className="flex items-center gap-3 font-extrabold text-sm font-latin tabular-nums shrink-0">
+          <div
+            className="flex items-center gap-1 text-orange-600 dark:text-orange-400"
+            aria-label={`സ്ട്രീക്ക് ${user.streak} ദിവസം`}
+          >
             <Flame className="w-4 h-4 fill-orange-500 text-orange-500" aria-hidden="true" />
             <span>{user.streak}</span>
           </div>
-          <div className="flex items-center gap-1 text-amber-600" aria-label={`ആകെ XP ${user.xp}`}>
+          <div
+            className="flex items-center gap-1 text-amber-600 dark:text-amber-400"
+            aria-label={`ആകെ XP ${user.xp}`}
+          >
             <Star className="w-4 h-4 fill-amber-500 text-amber-500" aria-hidden="true" />
             <span>{user.xp}</span>
           </div>
-          <div className="flex items-center gap-1 text-rose-600" aria-label={`ഹാർട്ടുകൾ ${user.hearts}`}>
+          <div
+            className="flex items-center gap-1 text-rose-600 dark:text-rose-400"
+            aria-label={`ഹാർട്ടുകൾ ${user.hearts}`}
+          >
             <Heart className="w-4 h-4 fill-rose-500 text-rose-500" aria-hidden="true" />
             <span>{user.hearts}</span>
           </div>
+          <button
+            type="button"
+            data-testid="mobile-theme-toggle-btn"
+            aria-pressed={isDark}
+            aria-label={isDark ? 'ലൈറ്റ് മോഡിലേക്ക് മാറ്റുക' : 'ഡാർക്ക് മോഡിലേക്ക് മാറ്റുക'}
+            title={isDark ? 'ലൈറ്റ് മോഡ്' : 'ഡാർക്ക് മോഡ്'}
+            onClick={handleThemeToggle}
+            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-300 flex items-center justify-center transition-colors shrink-0"
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <Moon className="w-4 h-4" aria-hidden="true" />
+            )}
+          </button>
         </div>
       </header>
 
-      {/* Main Content + Desktop Right Companion Rail */}
-      <div className="flex-1 lg:pl-72">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-10 grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+      {/* Main Content + Desktop Sticky Header + Desktop Right Companion Rail */}
+      <div className="flex-1 lg:pl-72 flex flex-col min-w-0">
+        {/* Desktop AppShell Header with Global Dark Mode Toggle */}
+        <header className="hidden lg:flex sticky top-0 z-20 h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 lg:px-8 items-center justify-between gap-4 transition-colors">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate">
+              {activeNav.headerTitle}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              data-testid="theme-toggle-btn"
+              aria-pressed={isDark}
+              aria-label={isDark ? 'ലൈറ്റ് മോഡിലേക്ക് മാറ്റുക' : 'ഡാർക്ക് മോഡിലേക്ക് മാറ്റുക'}
+              onClick={handleThemeToggle}
+              className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-100 font-bold text-xs transition-colors whitespace-nowrap"
+            >
+              {isDark ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+                  <span>ലൈറ്റ് മോഡ്</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-slate-600 shrink-0" aria-hidden="true" />
+                  <span>ഡാർക്ക് മോഡ്</span>
+                </>
+              )}
+            </button>
+          </div>
+        </header>
+
+        <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-10 grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
           {/* Primary Learning Canvas */}
           <main className="xl:col-span-8 min-w-0">{children}</main>
 
           {/* Desktop Right Companion Rail */}
-          <aside className="hidden xl:block xl:col-span-4 space-y-5 sticky top-6">
+          <aside className="hidden xl:block xl:col-span-4 space-y-5 sticky top-20">
             {/* Live Stats Strip */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 grid grid-cols-3 gap-2 text-center">
-              <div className="p-2 rounded-xl bg-orange-50/70">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 grid grid-cols-3 gap-2 text-center transition-colors">
+              <div className="p-2 rounded-xl bg-orange-50/70 dark:bg-orange-950/35">
                 <Flame className="w-5 h-5 fill-orange-500 text-orange-500 mx-auto" aria-hidden="true" />
-                <div className="font-extrabold text-lg text-slate-900 font-latin tabular-nums mt-1">
+                <div className="font-extrabold text-lg text-slate-900 dark:text-slate-100 font-latin tabular-nums mt-1">
                   {user.streak}
                 </div>
-                <div className="text-[11px] font-bold text-slate-500">സ്ട്രീക്ക്</div>
+                <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">സ്ട്രീക്ക്</div>
               </div>
-              <div className="p-2 rounded-xl bg-amber-50/70">
+              <div className="p-2 rounded-xl bg-amber-50/70 dark:bg-amber-950/35">
                 <Star className="w-5 h-5 fill-amber-500 text-amber-500 mx-auto" aria-hidden="true" />
-                <div className="font-extrabold text-lg text-slate-900 font-latin tabular-nums mt-1">
+                <div className="font-extrabold text-lg text-slate-900 dark:text-slate-100 font-latin tabular-nums mt-1">
                   {user.xp}
                 </div>
-                <div className="text-[11px] font-bold text-slate-500">XP</div>
+                <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">XP</div>
               </div>
-              <div className="p-2 rounded-xl bg-rose-50/70">
+              <div className="p-2 rounded-xl bg-rose-50/70 dark:bg-rose-950/35">
                 <Heart className="w-5 h-5 fill-rose-500 text-rose-500 mx-auto" aria-hidden="true" />
-                <div className="font-extrabold text-lg text-slate-900 font-latin tabular-nums mt-1">
+                <div className="font-extrabold text-lg text-slate-900 dark:text-slate-100 font-latin tabular-nums mt-1">
                   {user.hearts}/{MAX_HEARTS}
                 </div>
-                <div className="text-[11px] font-bold text-slate-500">ഹാർട്ട്</div>
+                <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">ഹാർട്ട്</div>
               </div>
             </div>
 
             {/* Course Progress & Next Lesson Card */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 transition-colors">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-extrabold text-slate-900">പഠന പുരോഗതി</h2>
-                <span className="text-xs font-extrabold text-[#357A00] font-latin tabular-nums">
+                <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  പഠന പുരോഗതി
+                </h2>
+                <span className="text-xs font-extrabold text-[#357A00] dark:text-emerald-400 font-latin tabular-nums">
                   {completionPct}%
                 </span>
               </div>
-              <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#4AA802] rounded-full transition-all duration-300"
                   style={{ width: `${completionPct}%` }}
                 />
               </div>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {user.completedLessons.length} / {totalLessons} പാഠങ്ങൾ പൂർത്തിയായി
               </p>
 
@@ -196,7 +280,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     playTone('correct', user.soundEnabled);
                     onRefillHearts();
                   }}
-                  className="w-full py-2.5 px-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 font-bold text-xs hover:bg-rose-100 transition-colors"
+                  className="w-full py-2.5 px-4 rounded-xl border border-rose-200 dark:border-rose-900/70 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-bold text-xs hover:bg-rose-100 dark:hover:bg-rose-950/70 transition-colors"
                 >
                   ഹാർട്ടുകൾ നിറയ്ക്കുക (സൗജന്യം)
                 </button>
@@ -204,14 +288,14 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
 
             {/* Placement Test Quick Card */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 transition-colors">
               <div className="flex items-center gap-2.5">
-                <Rocket className="w-5 h-5 text-[#0284C7] shrink-0" aria-hidden="true" />
-                <h2 className="text-sm font-extrabold text-slate-900">
+                <Rocket className="w-5 h-5 text-[#0284C7] dark:text-sky-400 shrink-0" aria-hidden="true" />
+                <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                   നിലവാര നിർണ്ണയ പരീക്ഷ
                 </h2>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 അറബി അടിസ്ഥാനം അറിയാമെങ്കിൽ 8 ചോദ്യങ്ങളുള്ള ടെസ്റ്റ് എഴുതി ഉയർന്ന യൂണിറ്റുകൾ അൺലോക്ക് ചെയ്യാം.
               </p>
               <button
@@ -220,7 +304,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   playTone('tap', user.soundEnabled);
                   onStartPlacement();
                 }}
-                className="btn-3d w-full py-2.5 px-4 rounded-xl border-2 border-b-4 border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#0369A1] font-extrabold text-xs"
+                className="btn-3d w-full py-2.5 px-4 rounded-xl border-2 border-b-4 border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100 dark:hover:bg-sky-950/80 text-[#0369A1] dark:text-sky-300 font-extrabold text-xs"
               >
                 ടെസ്റ്റ് എഴുതുക
               </button>
@@ -228,13 +312,15 @@ export const AppShell: React.FC<AppShellProps> = ({
 
             {/* Mini Leaderboard Preview */}
             {activeTab !== 'leaderboard' && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 transition-colors">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-extrabold text-slate-900">മുന്നിലുള്ളവർ</h2>
+                  <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                    മുന്നിലുള്ളവർ
+                  </h2>
                   <button
                     type="button"
                     onClick={() => handleNav('leaderboard')}
-                    className="text-xs font-bold text-[#0284C7] hover:underline"
+                    className="text-xs font-bold text-[#0284C7] dark:text-sky-400 hover:underline"
                   >
                     എല്ലാം കാണുക
                   </button>
@@ -249,11 +335,11 @@ export const AppShell: React.FC<AppShellProps> = ({
                         <span className="text-base" aria-hidden="true">
                           {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
                         </span>
-                        <span className="font-bold text-slate-800 truncate">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
                           {entry.name}
                         </span>
                       </div>
-                      <span className="font-extrabold text-amber-600 font-latin tabular-nums shrink-0">
+                      <span className="font-extrabold text-amber-600 dark:text-amber-400 font-latin tabular-nums shrink-0">
                         {entry.xp} XP
                       </span>
                     </div>
@@ -268,7 +354,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       {/* Mobile Fixed Bottom Thumb Navigation Bar (64px) */}
       <nav
         aria-label="മൊബൈൽ നാവിഗേഷൻ"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 grid grid-cols-5 items-center px-1.5"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 grid grid-cols-5 items-center px-1.5 transition-colors"
       >
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -280,7 +366,9 @@ export const AppShell: React.FC<AppShellProps> = ({
               aria-current={active ? 'page' : undefined}
               onClick={() => handleNav(item.id)}
               className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-xl transition-colors ${
-                active ? 'text-[#357A00] bg-[#F0FBE6]' : 'text-slate-500 hover:text-slate-800'
+                active
+                  ? 'text-[#357A00] dark:text-emerald-300 bg-[#F0FBE6] dark:bg-emerald-950/60'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <Icon className="w-5 h-5" aria-hidden="true" />

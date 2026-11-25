@@ -1,20 +1,26 @@
 import React, { useState } from 'react';
-import { BookOpen, Rocket, Sprout, Volume2 } from 'lucide-react';
+import { BookOpen, Moon, Rocket, Sprout, Sun, Volume2 } from 'lucide-react';
 import { AVATAR_OPTIONS } from '../data/curriculum';
 import { playTone } from '../utils/audio';
+import type { ThemeMode } from '../utils/theme';
 
 interface OnboardingScreenProps {
   soundEnabled: boolean;
+  theme?: ThemeMode;
+  onToggleTheme?: () => void;
   onComplete: (name: string, avatar: string, takePlacement: boolean) => void;
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   soundEnabled,
+  theme = 'light',
+  onToggleTheme,
   onComplete,
 }) => {
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string>(AVATAR_OPTIONS[0].emoji);
   const [error, setError] = useState<string | null>(null);
+  const isDark = theme === 'dark';
 
   const handleSubmit = (takePlacement: boolean) => {
     const trimmed = name.trim();
@@ -29,10 +35,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-5xl bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center p-4 sm:p-8 transition-colors">
+      <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
         {/* Left Cultural & Curriculum Preview Panel */}
-        <div className="lg:col-span-5 bg-[#4AA802] text-white p-7 sm:p-10 flex flex-col justify-between gap-8">
+        <div className="lg:col-span-5 bg-[#4AA802] dark:bg-[#3B8700] text-white p-7 sm:p-10 flex flex-col justify-between gap-8">
           <div>
             <div className="w-16 h-16 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-3xl mb-6">
               <span aria-hidden="true">🕌</span>
@@ -82,18 +88,38 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         {/* Right Setup Form */}
         <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-between">
           <div className="space-y-6">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                നിങ്ങളുടെ പഠന പ്രൊഫൈൽ തയ്യാറാക്കാം
-              </h2>
-              <p className="text-sm text-slate-600 mt-1">
-                പഠന പുരോഗതി നിങ്ങളുടെ ഉപകരണത്തിൽ സ്വയമേവ സേവ് ചെയ്യപ്പെടും.
-              </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-50">
+                  നിങ്ങളുടെ പഠന പ്രൊഫൈൽ തയ്യാറാക്കാം
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  പഠന പുരോഗതി നിങ്ങളുടെ ഉപകരണത്തിൽ സ്വയമേവ സേവ് ചെയ്യപ്പെടും.
+                </p>
+              </div>
+              {onToggleTheme && (
+                <button
+                  type="button"
+                  aria-pressed={isDark}
+                  aria-label={isDark ? 'ലൈറ്റ് മോഡിലേക്ക് മാറ്റുക' : 'ഡാർക്ക് മോഡിലേക്ക് മാറ്റുക'}
+                  onClick={() => {
+                    playTone('tap', soundEnabled);
+                    onToggleTheme();
+                  }}
+                  className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-300 flex items-center justify-center shrink-0 transition-colors"
+                >
+                  {isDark ? (
+                    <Sun className="w-4 h-4" aria-hidden="true" />
+                  ) : (
+                    <Moon className="w-4 h-4" aria-hidden="true" />
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Avatar Picker */}
             <div>
-              <span className="block text-sm font-bold text-slate-700 mb-2.5">
+              <span className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2.5">
                 അവതാർ തിരഞ്ഞെടുക്കുക
               </span>
               <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="അവതാർ തിരഞ്ഞെടുക്കുക">
@@ -112,8 +138,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                       }}
                       className={`btn-3d w-14 h-14 rounded-2xl text-2xl border-2 border-b-4 flex items-center justify-center ${
                         selected
-                          ? 'border-[#4AA802] bg-[#F0FBE6] ring-2 ring-[#4AA802]/25'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                          ? 'border-[#4AA802] bg-[#F0FBE6] dark:bg-emerald-950/60 ring-2 ring-[#4AA802]/25'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       {opt.emoji}
@@ -127,7 +153,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             <div>
               <label
                 htmlFor="onboarding-name-input"
-                className="block text-sm font-bold text-slate-700 mb-1.5"
+                className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5"
               >
                 നിങ്ങളുടെ പേര് നൽകുക
               </label>
@@ -146,17 +172,17 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                 placeholder="ഉദാ: അഹമ്മദ്, ഫാത്തിമ..."
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? 'onboarding-name-error' : undefined}
-                className={`w-full px-4 py-3.5 rounded-2xl border-2 text-base font-semibold bg-slate-50 text-slate-900 placeholder:text-slate-400 transition-colors focus:bg-white ${
+                className={`w-full px-4 py-3.5 rounded-2xl border-2 text-base font-semibold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors focus:bg-white dark:focus:bg-slate-900 ${
                   error
                     ? 'border-rose-500 focus:border-rose-500'
-                    : 'border-slate-200 focus:border-[#0284C7]'
+                    : 'border-slate-200 dark:border-slate-700 focus:border-[#0284C7]'
                 }`}
               />
               {error && (
                 <p
                   id="onboarding-name-error"
                   role="alert"
-                  className="text-xs text-rose-600 font-bold mt-1.5"
+                  className="text-xs text-rose-600 dark:text-rose-400 font-bold mt-1.5"
                 >
                   {error}
                 </p>
@@ -165,7 +191,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
             {/* Starting Level Selection */}
             <div className="pt-1 space-y-3">
-              <p className="text-sm font-bold text-slate-700">എവിടെ നിന്ന് തുടങ്ങണം?</p>
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">എവിടെ നിന്ന് തുടങ്ങണം?</p>
 
               <button
                 type="button"
@@ -186,16 +212,16 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
               <button
                 type="button"
                 onClick={() => handleSubmit(true)}
-                className="btn-3d w-full text-left p-4 rounded-2xl border-2 border-b-4 border-sky-300 bg-sky-50 hover:bg-sky-100/80 text-slate-900 flex items-center gap-4"
+                className="btn-3d w-full text-left p-4 rounded-2xl border-2 border-b-4 border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100/80 dark:hover:bg-sky-950/80 text-slate-900 dark:text-slate-100 flex items-center gap-4"
               >
                 <div className="w-12 h-12 rounded-xl bg-[#0284C7] flex items-center justify-center shrink-0">
                   <Rocket className="w-6 h-6 text-white" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
-                  <div className="font-extrabold text-[#0369A1] text-base">
+                  <div className="font-extrabold text-[#0369A1] dark:text-sky-300 text-base">
                     എനിക്ക് അറബി കുറച്ചൊക്കെ അറിയാം
                   </div>
-                  <div className="text-xs text-slate-600 mt-0.5">
+                  <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                     8 ചോദ്യങ്ങളുള്ള ചെറിയ ടെസ്റ്റ് എഴുതി നേരിട്ട് ഉയർന്ന ലെവലിലേക്ക് കടക്കാം
                   </div>
                 </div>
@@ -203,7 +229,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             </div>
           </div>
 
-          <p className="text-xs text-slate-400 mt-6">
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-6">
             സൗജന്യം · ഓഫ്‌ലൈനിലും പ്രവർത്തിക്കും · പരസ്യങ്ങളില്ല
           </p>
         </div>

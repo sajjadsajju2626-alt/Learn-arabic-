@@ -37,7 +37,7 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ entries }) => {
       </div>
 
       {/* Standings List */}
-      <div className="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden transition-colors">
         {entries.map((entry, idx) => {
           const rank = idx + 1;
           const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
@@ -47,7 +47,9 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ entries }) => {
               key={entry.id}
               data-testid={entry.isCurrentUser ? 'leaderboard-current-user' : undefined}
               className={`flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 transition-colors ${
-                entry.isCurrentUser ? 'bg-[#F0FBE6]' : 'bg-white'
+                entry.isCurrentUser
+                  ? 'bg-[#F0FBE6] dark:bg-emerald-950/45'
+                  : 'bg-white dark:bg-slate-900'
               }`}
             >
               <div className="flex items-center gap-3.5 min-w-0">
@@ -57,26 +59,26 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ entries }) => {
                       {medal}
                     </span>
                   ) : (
-                    <span className="font-extrabold text-sm text-slate-500 font-latin tabular-nums">
+                    <span className="font-extrabold text-sm text-slate-500 dark:text-slate-400 font-latin tabular-nums">
                       {rank}
                     </span>
                   )}
                 </div>
 
-                <div className="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shrink-0">
+                <div className="w-11 h-11 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xl shrink-0">
                   <span aria-hidden="true">{entry.avatar}</span>
                 </div>
 
                 <div className="min-w-0">
-                  <div className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
+                  <div className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100 truncate">
                     {entry.name}
                     {entry.isCurrentUser && (
-                      <span className="text-xs font-bold text-[#357A00] ml-2">
+                      <span className="text-xs font-bold text-[#357A00] dark:text-emerald-400 ml-2">
                         · നിങ്ങൾ
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 font-latin tabular-nums">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5 font-latin tabular-nums">
                     <span className="inline-flex items-center gap-1">
                       <Flame className="w-3.5 h-3.5 text-orange-500" aria-hidden="true" />
                       {entry.streak} ദിവസം
@@ -87,7 +89,7 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ entries }) => {
                 </div>
               </div>
 
-              <div className="font-extrabold text-amber-600 text-sm sm:text-base font-latin tabular-nums shrink-0">
+              <div className="font-extrabold text-amber-600 dark:text-amber-400 text-sm sm:text-base font-latin tabular-nums shrink-0">
                 {entry.xp} XP
               </div>
             </div>
