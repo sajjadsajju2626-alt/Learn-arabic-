@@ -31,6 +31,9 @@ export const LEGENDARY_XP_REWARD = 40;
 export const LEGENDARY_HEARTS = 3;
 export const REVIEW_QUESTION_COUNT = 5;
 export const LEGENDARY_QUESTION_COUNT = 10;
+export const JUMP_TEST_QUESTION_COUNT = 15;
+export const JUMP_TEST_PASS_SCORE = 12;
+export const JUMP_TEST_HEARTS = 3;
 export const TREASURE_CHEST_XP = 25;
 export const TREASURE_CHEST_HEARTS = 1;
 export const MISTAKE_REVIEW_BANNER_TEXT =
@@ -619,7 +622,11 @@ export function evaluateSessionOutcome(params: {
   }
 
   if (mode === 'jump' && targetUnitIndex !== null) {
-    if (score >= 4) {
+    const requiredScore =
+      totalQuestions === JUMP_TEST_QUESTION_COUNT
+        ? JUMP_TEST_PASS_SCORE
+        : Math.ceil(totalQuestions * 0.8);
+    if (score >= requiredScore) {
       return {
         mode,
         lessonId: null,
@@ -629,7 +636,7 @@ export function evaluateSessionOutcome(params: {
         earnedXp: 40,
         unlockedUpToUnitIndex: targetUnitIndex,
         title: `യൂണിറ്റ് ${targetUnitIndex + 1} അൺലോക്ക് ആയി!`,
-        subtitle: 'പ്രവേശന പരീക്ഷ നിങ്ങൾ വിജയിച്ചിരിക്കുന്നു!',
+        subtitle: `പ്രവേശന പരീക്ഷ നിങ്ങൾ വിജയിച്ചിരിക്കുന്നു! (${totalQuestions}-ൽ ${score} ശരി)`,
         emoji: '🚀',
       };
     }
@@ -642,7 +649,7 @@ export function evaluateSessionOutcome(params: {
       earnedXp: 5,
       unlockedUpToUnitIndex: null,
       title: 'കുറച്ചുകൂടി പരിശീലിക്കാം!',
-      subtitle: 'ഈ യൂണിറ്റിലേക്ക് കടക്കാൻ 5-ൽ 4 ശരിയുത്തരം ആവശ്യമാണ്.',
+      subtitle: `ഈ യൂണിറ്റിലേക്ക് കടക്കാൻ ${totalQuestions}-ൽ ${requiredScore} ശരിയുത്തരം ആവശ്യമാണ്.`,
       emoji: '💪',
     };
   }
@@ -1657,23 +1664,165 @@ export function collectStoryArabicTexts(story: UnitStory): string[] {
   return out;
 }
 
+type JumpBucket = 'multiple_choice' | 'translation_tiles' | 'audio_listening' | 'matching_pairs';
+
+function classifyJumpQuestionBucket(q: LessonQuestion): JumpBucket | null {
+  if (q.type === 'mcq' || q.type === 'fill_blank') return 'multiple_choice';
+  if (q.type === 'wordbank') return 'translation_tiles';
+  if (
+    q.type === 'listen' ||
+    q.type === 'radio_tf' ||
+    q.type === 'radio_mcq' ||
+    q.type === 'radio_select3'
+  ) {
+    return 'audio_listening';
+  }
+  if (q.type === 'pairs' || q.type === 'audio_pairs') return 'matching_pairs';
+  return null;
+}
+
 export function buildUnitJumpQuestions(
   targetUnitIndex: number,
   units: Unit[] = UNITS,
-  count = 5
+  count = JUMP_TEST_QUESTION_COUNT
 ): LessonQuestion[] {
-  const pool: LessonQuestion[] = [];
-  for (let i = 0; i < Math.min(targetUnitIndex, units.length); i++) {
+  const maxUnits = Math.min(targetUnitIndex, units.length);
+  if (maxUnits <= 0 || count <= 0) return [];
+
+  interface TaggedCandidate {
+    unitIndex: number;
+    bucket: JumpBucket;
+    fp: string;
+    question: LessonQuestion;
+  }
+
+  const seenGlobal = new Set<string>();
+  const buckets: Record<JumpBucket, TaggedCandidate[]> = {
+    multiple_choice: [],
+    translation_tiles: [],
+    audio_listening: [],
+    matching_pairs: [],
+  };
+
+  for (let i = 0; i < maxUnits; i++) {
     for (const lesson of units[i].lessons) {
-      if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call' || lesson.questions.length === 0) continue;
+      if (
+        lesson.nodeType === 'chest' ||
+        lesson.nodeType === 'video_call' ||
+        lesson.questions.length === 0
+      ) {
+        continue;
+      }
       for (const q of lesson.questions) {
-        if (!isPairsQuestion(q)) {
-          pool.push(q);
-        }
+        if (q.type === 'speak') continue;
+        const bucket = classifyJumpQuestionBucket(q);
+        if (!bucket) continue;
+        const fp = getQuestionFingerprint(q);
+        if (seenGlobal.has(fp)) continue;
+        seenGlobal.add(fp);
+        buckets[bucket].push({ unitIndex: i, bucket, fp, question: q });
       }
     }
   }
-  return prepareSessionQuestions(shuffleArray(pool).slice(0, count));
+
+  // Spread selections evenly across preceding units (prioritizing distinct units first)
+  const pickAcrossUnits = (
+    candidates: TaggedCandidate[],
+    quota: number,
+    usedFps: Set<string>,
+    preferPredicate?: (q: LessonQuestion) => boolean
+  ): LessonQuestion[] => {
+    if (quota <= 0 || candidates.length === 0) return [];
+    const byUnit = new Map<number, TaggedCandidate[]>();
+    for (const c of shuffleArray(candidates)) {
+      if (usedFps.has(c.fp)) continue;
+      const list = byUnit.get(c.unitIndex) ?? [];
+      list.push(c);
+      byUnit.set(c.unitIndex, list);
+    }
+
+    const picked: LessonQuestion[] = [];
+    const unitOrder = shuffleArray(Array.from(byUnit.keys()));
+
+    // Optional first pass to ensure grammar/particle fill_blank or primary listening items are represented
+    if (preferPredicate) {
+      const preferLimit = Math.min(2, Math.max(1, Math.floor(quota / 2)));
+      for (const uIdx of unitOrder) {
+        if (picked.length >= preferLimit) break;
+        const list = byUnit.get(uIdx);
+        if (!list) continue;
+        const matchIdx = list.findIndex((c) => !usedFps.has(c.fp) && preferPredicate(c.question));
+        if (matchIdx !== -1) {
+          const [chosen] = list.splice(matchIdx, 1);
+          usedFps.add(chosen.fp);
+          picked.push(chosen.question);
+        }
+      }
+    }
+
+    // Round-robin across distinct preceding units so vocabulary, verbs, particles & sentences span prior units
+    let progress = true;
+    while (picked.length < quota && progress) {
+      progress = false;
+      for (const uIdx of unitOrder) {
+        if (picked.length >= quota) break;
+        const list = byUnit.get(uIdx);
+        if (!list || list.length === 0) continue;
+        const next = list.shift();
+        if (next && !usedFps.has(next.fp)) {
+          usedFps.add(next.fp);
+          picked.push(next.question);
+          progress = true;
+        }
+      }
+    }
+
+    return picked;
+  };
+
+  // Balanced 15-question mix: 5 multiple choice (vocab/verbs/particles), 4 translation tiles (wordbank),
+  // 4 audio listening, 2 matching pairs (scales cleanly for custom counts)
+  const mcQuota = count === 15 ? 5 : Math.max(1, Math.round(count * 0.34));
+  const wbQuota = count === 15 ? 4 : Math.max(1, Math.round(count * 0.27));
+  const audioQuota = count === 15 ? 4 : Math.max(1, Math.round(count * 0.26));
+  const pairsQuota = Math.max(1, count - mcQuota - wbQuota - audioQuota);
+
+  const usedFps = new Set<string>();
+  const selected: LessonQuestion[] = [
+    ...pickAcrossUnits(buckets.multiple_choice, mcQuota, usedFps, (q) => q.type === 'fill_blank'),
+    ...pickAcrossUnits(buckets.translation_tiles, wbQuota, usedFps),
+    ...pickAcrossUnits(buckets.audio_listening, audioQuota, usedFps, (q) => q.type === 'listen'),
+    ...pickAcrossUnits(buckets.matching_pairs, pairsQuota, usedFps),
+  ];
+
+  // Top up from any remaining unused candidates across all buckets if a single bucket had fewer unique items (e.g., Unit 2)
+  if (selected.length < count) {
+    const remaining = [
+      ...buckets.multiple_choice,
+      ...buckets.audio_listening,
+      ...buckets.translation_tiles,
+      ...buckets.matching_pairs,
+    ].filter((c) => !usedFps.has(c.fp));
+    selected.push(...pickAcrossUnits(remaining, count - selected.length, usedFps));
+  }
+
+  // Shuffle final order and avoid placing two matching pairs back-to-back
+  const ordered = shuffleArray(selected.slice(0, count));
+  for (let i = 1; i < ordered.length; i++) {
+    if (isPairsQuestion(ordered[i]) && isPairsQuestion(ordered[i - 1])) {
+      const swapIdx = ordered.findIndex(
+        (q, idx) =>
+          !isPairsQuestion(q) &&
+          (idx === 0 || !isPairsQuestion(ordered[idx - 1])) &&
+          (idx === ordered.length - 1 || !isPairsQuestion(ordered[idx + 1]))
+      );
+      if (swapIdx !== -1) {
+        [ordered[i], ordered[swapIdx]] = [ordered[swapIdx], ordered[i]];
+      }
+    }
+  }
+
+  return prepareSessionQuestions(ordered);
 }
 
 export function deterministicShuffle<T>(items: T[], seed: number): T[] {
@@ -1776,7 +1925,7 @@ export function computeJumpButtonDirection(
   return null;
 }
 
-export const VALID_APP_TABS: readonly AppTab[] = ['path', 'alphabet', 'leaderboard', 'profile'];
+export const VALID_APP_TABS: readonly AppTab[] = ['path', 'alphabet', 'grammar', 'leaderboard', 'profile'];
 
 export interface StorageLike {
   getItem(key: string): string | null;

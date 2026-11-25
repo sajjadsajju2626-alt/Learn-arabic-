@@ -9,6 +9,9 @@ import {
   buildUnitJumpQuestions,
   claimTreasureChest,
   hydratePersistedUserState,
+  JUMP_TEST_HEARTS,
+  JUMP_TEST_PASS_SCORE,
+  JUMP_TEST_QUESTION_COUNT,
   LEGENDARY_HEARTS,
   LEGENDARY_XP_REWARD,
   MAX_HEARTS,
@@ -23,6 +26,7 @@ import { OnboardingScreen } from './components/OnboardingScreen';
 import { AppShell } from './components/AppShell';
 import { LearningPathTab } from './components/LearningPathTab';
 import { AlphabetTab } from './components/AlphabetTab';
+import { GrammarCheatSheetTab } from './components/GrammarCheatSheetTab';
 import { LeaderboardTab } from './components/LeaderboardTab';
 import { ProfileTab } from './components/ProfileTab';
 import { LessonModal } from './components/LessonModal';
@@ -253,15 +257,15 @@ export default function App() {
   };
 
   const startUnitJumpTest = (unitIndex: number) => {
-    const questions = buildUnitJumpQuestions(unitIndex, UNITS, 5);
+    const questions = buildUnitJumpQuestions(unitIndex, UNITS, JUMP_TEST_QUESTION_COUNT);
     setActiveSession({
       mode: 'jump',
       lessonId: null,
       lessonTitle: `യൂണിറ്റ് ${unitIndex + 1} പ്രവേശന ടെസ്റ്റ്`,
       targetUnitIndex: unitIndex,
-      bannerText: `യൂണിറ്റ് ${unitIndex + 1}-ലേക്കുള്ള പ്രവേശന ടെസ്റ്റ്`,
+      bannerText: `🚀 യൂണിറ്റ് ${unitIndex + 1}-ലേക്കുള്ള പ്രവേശന ടെസ്റ്റ് (${JUMP_TEST_QUESTION_COUNT}-ൽ ${JUMP_TEST_PASS_SCORE} ശരി ആവശ്യം)`,
       questions,
-      initialHearts: 3,
+      initialHearts: JUMP_TEST_HEARTS,
     });
   };
 
@@ -336,6 +340,13 @@ export default function App() {
 
         {activeTab === 'alphabet' && (
           <AlphabetTab soundEnabled={user.soundEnabled} />
+        )}
+
+        {activeTab === 'grammar' && (
+          <GrammarCheatSheetTab
+            completedLessons={user.completedLessons}
+            soundEnabled={user.soundEnabled}
+          />
         )}
 
         {activeTab === 'leaderboard' && (

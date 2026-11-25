@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Flame, Heart, Home, Rocket, Star, Trophy, User } from 'lucide-react';
+import { BookOpen, Flame, Heart, Home, Rocket, Star, Table2, Trophy, User } from 'lucide-react';
 import type { AppTab, LeaderboardEntry, Lesson, UserState } from '../types/learning';
 import { UNITS } from '../data/curriculum';
 import { getAllLessonIds, getNextActiveLesson, MAX_HEARTS } from '../utils/learningEngine';
@@ -19,6 +19,7 @@ interface AppShellProps {
 const NAV_ITEMS: { id: AppTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'path', label: 'പഠനം', icon: Home },
   { id: 'alphabet', label: 'അക്ഷരങ്ങൾ', icon: BookOpen },
+  { id: 'grammar', label: 'വ്യാകരണം', icon: Table2 },
   { id: 'leaderboard', label: 'റാങ്ക്', icon: Trophy },
   { id: 'profile', label: 'പ്രൊഫൈൽ', icon: User },
 ];
@@ -267,7 +268,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       {/* Mobile Fixed Bottom Thumb Navigation Bar (64px) */}
       <nav
         aria-label="മൊബൈൽ നാവിഗേഷൻ"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 grid grid-cols-4 items-center px-2"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 grid grid-cols-5 items-center px-1.5"
       >
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;

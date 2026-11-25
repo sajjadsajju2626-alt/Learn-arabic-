@@ -310,7 +310,7 @@ export interface Unit {
   lessons: Lesson[];
 }
 
-export type AppTab = 'path' | 'alphabet' | 'leaderboard' | 'profile';
+export type AppTab = 'path' | 'alphabet' | 'grammar' | 'leaderboard' | 'profile';
 
 export interface UserState {
   id: string;

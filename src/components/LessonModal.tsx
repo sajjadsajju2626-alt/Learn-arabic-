@@ -147,6 +147,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   const progressPct = Math.round((currentIndex / questionQueue.length) * 100);
   const hideTranslit = Boolean(session.hideTranslit);
   const isLegendary = session.variant === 'legendary';
+  const isJump = session.mode === 'jump';
   const isPodcast = isPodcastQuestion(question);
   const isPairs = isPairsQuestion(question);
   const isDictation = question.type === 'dictation';
@@ -2243,16 +2244,18 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               💔
             </div>
             <h3 id="out-of-hearts-title" className="text-xl font-extrabold text-slate-900">
-              ഹാർട്ടുകൾ തീർന്നു!
+              {isJump ? 'പ്രവേശന ടെസ്റ്റ് പരാജയപ്പെട്ടു!' : 'ഹാർട്ടുകൾ തീർന്നു!'}
             </h3>
             <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-              തെറ്റായ ഉത്തരങ്ങൾ കാരണം നിങ്ങളുടെ ഹാർട്ടുകൾ തീർന്നിരിക്കുന്നു. ഹാർട്ടുകൾ നിറച്ച് വീണ്ടും തുടരാം.
+              {isJump
+                ? '3 തെറ്റുകൾ ആയതിനാൽ ഹാർട്ടുകൾ തീർന്നിരിക്കുന്നു. 15-ൽ 12 ശരിയുത്തരം നേടാൻ വീണ്ടും ശ്രമിക്കുക.'
+                : 'തെറ്റായ ഉത്തരങ്ങൾ കാരണം നിങ്ങളുടെ ഹാർട്ടുകൾ തീർന്നിരിക്കുന്നു. ഹാർട്ടുകൾ നിറച്ച് വീണ്ടും തുടരാം.'}
             </p>
             <div className="mt-6 space-y-2.5">
               <button
                 type="button"
                 onClick={() => {
-                  if (isLegendary) {
+                  if (isLegendary || isJump) {
                     playTone('tap', soundEnabled);
                     setQuestionQueue([...session.questions]);
                     setCurrentIndex(0);
@@ -2270,10 +2273,14 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                 className={`btn-3d w-full py-3.5 rounded-2xl border-b-4 text-white font-extrabold text-sm ${
                   isLegendary
                     ? 'bg-purple-600 border-purple-800'
-                    : 'bg-[#4AA802] border-[#388000]'
+                    : isJump
+                      ? 'bg-[#1CB0F6] border-[#0284C7]'
+                      : 'bg-[#4AA802] border-[#388000]'
                 }`}
               >
-                {isLegendary ? 'വീണ്ടും ശ്രമിക്കുക (3 ❤️)' : 'ഹാർട്ടുകൾ നിറയ്ക്കുക (സൗജന്യം)'}
+                {isLegendary || isJump
+                  ? 'വീണ്ടും ശ്രമിക്കുക (3 ❤️)'
+                  : 'ഹാർട്ടുകൾ നിറയ്ക്കുക (സൗജന്യം)'}
               </button>
               <button
                 type="button"

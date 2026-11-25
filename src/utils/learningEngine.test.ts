@@ -8,6 +8,14 @@ import {
   VIDEO_CALL_NODE_TITLE_ML,
 } from '../data/unitVideoCalls';
 import {
+  buildFutureConjugation,
+  computeVerbUnitMastery,
+  filterVerbEntries,
+  PRONOUN_ROWS,
+  TENSE_FORMULAS,
+  VERB_CONJUGATIONS,
+} from '../data/verbConjugations';
+import {
   canUseServerGeminiEndpoint,
   detectArabicIntent,
   generateSmartArabicReply,
@@ -49,6 +57,9 @@ import {
   isPairsQuestion,
   isPodcastQuestion,
   isUnitUnlocked,
+  JUMP_TEST_HEARTS,
+  JUMP_TEST_PASS_SCORE,
+  JUMP_TEST_QUESTION_COUNT,
   LEGENDARY_HEARTS,
   LEGENDARY_QUESTION_COUNT,
   LEGENDARY_XP_REWARD,
@@ -283,32 +294,73 @@ test('placement test outcome unlocks up to Unit 5 for 7-8/8 and Unit 3 for 4-6/8
   assert.equal(isUnitUnlocked(5, updated.completedLessons), false);
 });
 
-test('unit jump test requires 4/5 to unlock target unit', () => {
+test('unit jump test requires 12/15 (80%) to unlock target unit with 3 hearts', () => {
+  assert.equal(JUMP_TEST_QUESTION_COUNT, 15);
+  assert.equal(JUMP_TEST_PASS_SCORE, 12);
+  assert.equal(JUMP_TEST_HEARTS, 3);
+
   const pass = evaluateSessionOutcome({
     mode: 'jump',
     lessonId: null,
     targetUnitIndex: 2,
-    score: 4,
-    totalQuestions: 5,
+    score: 12,
+    totalQuestions: 15,
   });
   assert.equal(pass.earnedXp, 40);
   assert.equal(pass.unlockedUpToUnitIndex, 2);
+  assert.ok(pass.subtitle.includes('15-ൽ 12 ശരി'));
+
+  const perfect = evaluateSessionOutcome({
+    mode: 'jump',
+    lessonId: null,
+    targetUnitIndex: 14,
+    score: 15,
+    totalQuestions: 15,
+  });
+  assert.equal(perfect.earnedXp, 40);
+  assert.equal(perfect.unlockedUpToUnitIndex, 14);
 
   const fail = evaluateSessionOutcome({
     mode: 'jump',
     lessonId: null,
     targetUnitIndex: 2,
-    score: 3,
-    totalQuestions: 5,
+    score: 11,
+    totalQuestions: 15,
   });
   assert.equal(fail.earnedXp, 5);
   assert.equal(fail.unlockedUpToUnitIndex, null);
+  assert.ok(fail.subtitle.includes('15-ൽ 12 ശരിയുത്തരം ആവശ്യമാണ്'));
 });
 
-test('buildUnitJumpQuestions selects up to 5 non-pair questions from earlier units', () => {
-  const qs = buildUnitJumpQuestions(2);
-  assert.equal(qs.length, 5);
-  assert.equal(qs.every((q) => q.type !== 'pairs'), true);
+test('buildUnitJumpQuestions selects 15 unique varied questions mixing multiple choice, translation tiles, audio listening, and matching pairs from preceding units', () => {
+  for (const targetUnitIndex of [1, 2, 4, 14, 19, 34]) {
+    const qs = buildUnitJumpQuestions(targetUnitIndex);
+    assert.equal(qs.length, 15, `Jump test for unit ${targetUnitIndex + 1} must contain 15 questions`);
+
+    // All 15 questions must be unique
+    const fps = new Set(qs.map((q) => getQuestionFingerprint(q)));
+    assert.equal(fps.size, 15, `Jump test for unit ${targetUnitIndex + 1} must not repeat questions`);
+
+    // Must not include speak questions (microphone shouldn't block entry tests)
+    assert.equal(qs.some((q) => q.type === 'speak'), false);
+
+    // Must mix all 4 requested formats: multiple choice, translation tiles, audio listening, and matching pairs
+    const hasMc = qs.some((q) => q.type === 'mcq' || q.type === 'fill_blank');
+    const hasTiles = qs.some((q) => q.type === 'wordbank');
+    const hasAudio = qs.some(
+      (q) =>
+        q.type === 'listen' ||
+        q.type === 'radio_tf' ||
+        q.type === 'radio_mcq' ||
+        q.type === 'radio_select3'
+    );
+    const hasPairs = qs.some((q) => isPairsQuestion(q));
+
+    assert.equal(hasMc, true, `Jump test for unit ${targetUnitIndex + 1} must include multiple choice / fill-blank`);
+    assert.equal(hasTiles, true, `Jump test for unit ${targetUnitIndex + 1} must include translation tiles (wordbank)`);
+    assert.equal(hasAudio, true, `Jump test for unit ${targetUnitIndex + 1} must include audio listening`);
+    assert.equal(hasPairs, true, `Jump test for unit ${targetUnitIndex + 1} must include matching pairs`);
+  }
 });
 
 test('computeStreakUpdate increments consecutive day, refills hearts, and resets on gap', () => {
@@ -759,8 +811,8 @@ test('Units 11 to 15 have exact theme colors, key vocabulary, 8-node progression
   assert.equal(isLessonUnlocked('u15_n2', unlockedUpTo15), false);
 
   const jumpQs = buildUnitJumpQuestions(14);
-  assert.equal(jumpQs.length, 5);
-  assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
+  assert.equal(jumpQs.length, 15);
+  assert.equal(jumpQs.some((q) => isPairsQuestion(q)), true);
 });
 
 test('Units 16 to 20 cover Grammar & Long-Sentence Mastery with exact colors, Malayalam grammar guidebooks, signature sentences, and Unit 20 Jump Here math', () => {
@@ -820,8 +872,8 @@ test('Units 16 to 20 cover Grammar & Long-Sentence Mastery with exact colors, Ma
   assert.equal(isLessonUnlocked('u20_n2', unlockedUpTo20), false);
 
   const jumpQs = buildUnitJumpQuestions(19);
-  assert.equal(jumpQs.length, 5);
-  assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
+  assert.equal(jumpQs.length, 15);
+  assert.equal(jumpQs.some((q) => isPairsQuestion(q)), true);
 });
 
 test('Units 21 to 25 cover Advanced Fluency, Gulf Expressions & Proverbs with exact colors, Malayalam guidebooks, required phrases, and Unit 25 Jump Here math', () => {
@@ -886,8 +938,8 @@ test('Units 21 to 25 cover Advanced Fluency, Gulf Expressions & Proverbs with ex
   assert.equal(isLessonUnlocked('u25_n2', unlockedUpTo25), false);
 
   const jumpQs = buildUnitJumpQuestions(24);
-  assert.equal(jumpQs.length, 5);
-  assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
+  assert.equal(jumpQs.length, 15);
+  assert.equal(jumpQs.some((q) => isPairsQuestion(q)), true);
 });
 
 test('Units 26 to 30 cover Core Arabic Grammar Mastery (Kaana, Inna, Passive, Participles, Conditionals) with exact colors, I-rab guidebooks, and Unit 30 Jump Here math', () => {
@@ -952,8 +1004,8 @@ test('Units 26 to 30 cover Core Arabic Grammar Mastery (Kaana, Inna, Passive, Pa
   assert.equal(isLessonUnlocked('u30_n2', unlockedUpTo30), false);
 
   const jumpQs = buildUnitJumpQuestions(29);
-  assert.equal(jumpQs.length, 5);
-  assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
+  assert.equal(jumpQs.length, 15);
+  assert.equal(jumpQs.some((q) => isPairsQuestion(q)), true);
 });
 
 test('Units 31 to 35 cover Classical & Modern Arabic Syntax (Relative Pronouns, Nasb, Jazm, Idafa/Naat, Numbers 11-100) with exact colors, I-rab guidebooks, and Unit 35 Jump Here math', () => {
@@ -1014,8 +1066,8 @@ test('Units 31 to 35 cover Classical & Modern Arabic Syntax (Relative Pronouns, 
   assert.equal(isLessonUnlocked('u35_n2', unlockedUpTo35), false);
 
   const jumpQs = buildUnitJumpQuestions(34);
-  assert.equal(jumpQs.length, 5);
-  assert.equal(jumpQs.every((q) => q.type !== 'pairs'), true);
+  assert.equal(jumpQs.length, 15);
+  assert.equal(jumpQs.some((q) => isPairsQuestion(q)), true);
 });
 
 test('fill_blank supports buildFilledSentence, Fisher-Yates shuffling, audio preloading, and Mistake Review re-queue', () => {
@@ -2160,5 +2212,89 @@ test('Matching Pairs (pairs & audio_pairs) selection switches cleanly within a c
   assert.notEqual(getQuestionFingerprint(pairsQ), getQuestionFingerprint(audioPairsQ));
   assert.deepEqual(collectQuestionArabicTexts(audioPairsQ), ['بَابٌ', 'كِتَابٌ']);
 });
+
+test('Grammar Cheat Sheet visualizes Past, Present, and Future verb conjugations across recent units with valid vocalized Arabic, affix splits, سَـ/سَوْفَ toggling, filtering, mastery math, and tab persistence', () => {
+  // 1. 'grammar' tab is valid and persists cleanly
+  assert.equal(normalizeAppTab('grammar'), 'grammar');
+  const mem = new Map<string, string>();
+  const storage = {
+    getItem: (k: string) => mem.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      mem.set(k, v);
+    },
+  };
+  const persisted = persistUserStateSync(storage, 'grammar_tab_test', { ...baseUser, activeTab: 'grammar' }, UNITS);
+  assert.equal(persisted.activeTab, 'grammar');
+  const hydrated = hydratePersistedUserState(storage, 'grammar_tab_test', baseUser, { units: UNITS });
+  assert.equal(hydrated.activeTab, 'grammar');
+
+  // 2. All 10 curriculum verbs × 7 pronouns have complete vocalized Past, Present, and Future conjugations
+  assert.equal(VERB_CONJUGATIONS.length, 10);
+  assert.equal(PRONOUN_ROWS.length, 7);
+  assert.equal(TENSE_FORMULAS.length, 3);
+
+  for (const verb of VERB_CONJUGATIONS) {
+    assert.ok(/[\u064B-\u0652]/.test(verb.baseAr), `${verb.id} baseAr needs Harakat`);
+    assert.ok(verb.unitNumbers.length >= 2, `${verb.id} must map to curriculum units`);
+    assert.ok(verb.examples.past.ar && verb.examples.present.ar && verb.examples.futureSa.ar && verb.examples.futureSawfa.ar);
+
+    for (const pronoun of PRONOUN_ROWS) {
+      const row = verb.rows[pronoun.key];
+      assert.ok(row, `${verb.id} missing pronoun ${pronoun.key}`);
+      assert.equal(
+        `${row.past.prefix}${row.past.stem}${row.past.suffix}`,
+        row.past.ar,
+        `${verb.id}.${pronoun.key}.past affix split must reconstruct exact Arabic form`
+      );
+      assert.equal(
+        `${row.present.prefix}${row.present.stem}${row.present.suffix}`,
+        row.present.ar,
+        `${verb.id}.${pronoun.key}.present affix split must reconstruct exact Arabic form`
+      );
+      assert.ok(/[\u064B-\u0652]/.test(row.past.ar), `${verb.id}.${pronoun.key}.past needs Harakat`);
+      assert.ok(/[\u064B-\u0652]/.test(row.present.ar), `${verb.id}.${pronoun.key}.present needs Harakat`);
+
+      const futureSa = buildFutureConjugation(row, 'sa');
+      const futureSawfa = buildFutureConjugation(row, 'sawfa');
+      assert.ok(futureSa.ar.startsWith('سَ'), `${verb.id}.${pronoun.key} near future must start with سَ`);
+      assert.equal(`${futureSa.prefix}${futureSa.stem}${futureSa.suffix}`, futureSa.ar);
+      assert.ok(futureSawfa.ar.startsWith('سَوْفَ '), `${verb.id}.${pronoun.key} far future must start with سَوْفَ`);
+      assert.equal(`${futureSawfa.prefix}${futureSawfa.stem}${futureSawfa.suffix}`, futureSawfa.ar);
+      assert.equal(futureSa.ml, row.futureMl);
+      assert.equal(futureSawfa.ml, row.futureMl);
+    }
+  }
+
+  // 3. Filtering works by unit group and diacritic-insensitive Arabic / Malayalam / English search
+  assert.equal(filterVerbEntries(VERB_CONJUGATIONS, { unitGroup: 'all' }).length, 10);
+  assert.equal(filterVerbEntries(VERB_CONJUGATIONS, { unitGroup: 'core' }).length, 6);
+  assert.equal(filterVerbEntries(VERB_CONJUGATIONS, { unitGroup: 'advanced' }).length, 4);
+  assert.deepEqual(
+    filterVerbEntries(VERB_CONJUGATIONS, { query: 'ذهب' }).map((v) => v.id),
+    ['dhahaba']
+  );
+  assert.deepEqual(
+    filterVerbEntries(VERB_CONJUGATIONS, { query: 'യാത്ര' }).map((v) => v.id),
+    ['safara']
+  );
+  assert.deepEqual(
+    filterVerbEntries(VERB_CONJUGATIONS, { query: 'write' }).map((v) => v.id),
+    ['kataba']
+  );
+  assert.equal(filterVerbEntries(VERB_CONJUGATIONS, { query: 'zzzz_none' }).length, 0);
+
+  // 4. Mastery computation accurately tracks verb curriculum units (Units 9, 18, 21, 22, 28, 32, 33)
+  const unit18 = UNITS.find((u) => u.number === 18);
+  assert.ok(unit18);
+  const halfUnit18Ids = unit18.lessons.slice(0, 4).map((l) => l.id);
+  const mastery = computeVerbUnitMastery(halfUnit18Ids, UNITS);
+  assert.equal(mastery.length, 7);
+  const row18 = mastery.find((m) => m.unitNumber === 18);
+  assert.ok(row18);
+  assert.equal(row18.completedCount, 4);
+  assert.equal(row18.totalCount, unit18.lessons.length);
+  assert.equal(row18.percent, Math.round((4 / unit18.lessons.length) * 100));
+});
+
 
 
