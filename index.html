@@ -305,6 +305,10 @@
                 <span aria-hidden="true">·</span>
                 <span>ഭാവികാലം (<span class="font-arabic font-bold">الْمُسْتَقْبَل</span>)</span>
                 <span aria-hidden="true">·</span>
+                <span>ആജ്ഞ (<span class="font-arabic font-bold">الْأَمْر</span>)</span>
+                <span aria-hidden="true">·</span>
+                <span>കർമ്മണി (<span class="font-arabic font-bold">الْمَجْهُول</span>)</span>
+                <span aria-hidden="true">·</span>
                 <span class="text-slate-500">യൂണിറ്റ് 9, 18, 21–33</span>
               </p>
             </div>
@@ -334,16 +338,23 @@
                 <!-- Controls Row -->
                 <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
                   <div id="grammar-tense-filter" role="group" aria-label="കാലം തിരഞ്ഞെടുക്കുക" class="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto max-w-full">
-                    <button type="button" data-tense-filter="all" aria-pressed="true" class="grammar-tense-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm">എല്ലാ കാലങ്ങളും</button>
+                    <button type="button" data-tense-filter="all" aria-pressed="true" class="grammar-tense-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm">എല്ലാം (5)</button>
                     <button type="button" data-tense-filter="past" aria-pressed="false" class="grammar-tense-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900">ഭൂതകാലം</button>
                     <button type="button" data-tense-filter="present" aria-pressed="false" class="grammar-tense-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900">വർത്തമാനകാലം</button>
                     <button type="button" data-tense-filter="future" aria-pressed="false" class="grammar-tense-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900">ഭാവികാലം</button>
+                    <button type="button" data-tense-filter="imperative" aria-pressed="false" class="grammar-tense-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900">ആജ്ഞ</button>
+                    <button type="button" data-tense-filter="passive" aria-pressed="false" class="grammar-tense-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900">കർമ്മണി</button>
                   </div>
 
                   <div class="flex flex-wrap items-center gap-2.5">
                     <div id="grammar-future-toggle" role="group" aria-label="ഭാവികാല സൂചകം" class="inline-flex items-center gap-1 p-1 bg-sky-50 border border-sky-200 rounded-xl">
                       <button type="button" data-future-marker="sa" aria-pressed="true" class="grammar-future-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap bg-[#0284C7] text-white"><span class="font-arabic text-sm">سَـ</span> സമീപം</button>
                       <button type="button" data-future-marker="sawfa" aria-pressed="false" class="grammar-future-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap text-[#0369A1] hover:bg-sky-100"><span class="font-arabic text-sm">سَوْفَ</span> ദീർഘം</button>
+                    </div>
+
+                    <div id="grammar-passive-toggle" role="group" aria-label="കർമ്മണി കാലം" class="inline-flex items-center gap-1 p-1 bg-violet-50 border border-violet-200 rounded-xl">
+                      <button type="button" data-passive-tense="past" aria-pressed="true" class="grammar-passive-btn px-2.5 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap bg-[#6D28D9] text-white"><span class="font-arabic text-sm">فُعِلَ</span> ഭൂതം</button>
+                      <button type="button" data-passive-tense="present" aria-pressed="false" class="grammar-passive-btn px-2.5 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap text-[#5B21B6] hover:bg-violet-100"><span class="font-arabic text-sm">يُفْعَلُ</span> വർത്തമാനം</button>
                     </div>
 
                     <button id="grammar-affix-toggle" type="button" aria-pressed="true" class="px-3 py-2 text-xs font-extrabold rounded-xl border transition-colors whitespace-nowrap bg-slate-900 text-white border-slate-900">പ്രത്യയ അടയാളം: ഓൺ</button>
@@ -353,26 +364,26 @@
 
               <!-- Conjugation CSS Grid -->
               <div class="overflow-x-auto">
-                <div id="grammar-conjugation-grid" data-testid="conjugation-grid" class="min-w-[600px] divide-y divide-slate-200"></div>
+                <div id="grammar-conjugation-grid" data-testid="conjugation-grid" class="min-w-[660px] divide-y divide-slate-200"></div>
               </div>
 
-              <!-- 3-Tense Live Example Sentence Strip -->
+              <!-- 5-Form Live Example Sentence Strip -->
               <div class="border-t border-slate-200 bg-slate-50/70 p-4 sm:p-5 space-y-3">
                 <div class="flex items-center justify-between gap-2">
                   <h3 id="grammar-examples-heading" class="text-xs font-extrabold text-slate-700">ഉദാഹരണ വാക്യങ്ങൾ</h3>
                   <span class="text-[11px] font-semibold text-slate-500">കേൾക്കാൻ വാക്യത്തിൽ തൊടുക</span>
                 </div>
-                <div id="grammar-examples-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+                <div id="grammar-examples-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
               </div>
             </div>
 
-            <!-- Tense Formulas & Negation Reference -->
+            <!-- Tense & Voice Formulas Reference -->
             <div class="space-y-3">
               <div class="flex items-baseline justify-between gap-2">
-                <h2 class="text-base font-extrabold text-slate-900">കാല നിയമങ്ങളും നിഷേധരൂപങ്ങളും</h2>
-                <span class="text-xs text-slate-500 font-latin">Tense Patterns &amp; Negation</span>
+                <h2 class="text-base font-extrabold text-slate-900">കാല-പ്രയോഗ നിയമങ്ങളും നിഷേധരൂപങ്ങളും</h2>
+                <span class="text-xs text-slate-500 font-latin">Tense, Imperative &amp; Passive Patterns</span>
               </div>
-              <div id="grammar-formulas-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+              <div id="grammar-formulas-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
 
             <!-- Live Verb Unit Mastery Visualization -->
@@ -9330,19 +9341,21 @@
 
     // ================= GRAMMAR CHEAT SHEET (VERB CONJUGATIONS) =================
     const GRAMMAR_PRONOUNS = [
-      { key: "ana", ar: "أَنَا", tr: "അന", ml: "ഞാൻ", en: "I", pastAffix: "ـتُ", presentAffix: "أَـ" },
-      { key: "nahnu", ar: "نَحْنُ", tr: "നഹ്നു", ml: "നാം", en: "We", pastAffix: "ـنَا", presentAffix: "نَـ" },
-      { key: "anta", ar: "أَنْتَ", tr: "അൻത", ml: "നീ (പു.)", en: "You (m.)", pastAffix: "ـتَ", presentAffix: "تَـ" },
-      { key: "anti", ar: "أَنْتِ", tr: "അൻതി", ml: "നീ (സ്ത്രീ.)", en: "You (f.)", pastAffix: "ـتِ", presentAffix: "تَـ ... ـِينَ" },
-      { key: "huwa", ar: "هُوَ", tr: "ഹുവ", ml: "അവൻ", en: "He", pastAffix: "മൂലരൂപം", presentAffix: "يَـ" },
-      { key: "hiya", ar: "هِيَ", tr: "ഹിയ", ml: "അവൾ", en: "She", pastAffix: "ـتْ", presentAffix: "تَـ" },
-      { key: "hum", ar: "هُمْ", tr: "ഹും", ml: "അവർ", en: "They (m.)", pastAffix: "ـُوا", presentAffix: "يَـ ... ـُونَ" }
+      { key: "ana", ar: "أَنَا", tr: "അന", ml: "ഞാൻ", en: "I", pastAffix: "ـتُ", presentAffix: "أَـ", passivePastAffix: "ـتُ (فُعِلْـ)", passivePresentAffix: "أُـ" },
+      { key: "nahnu", ar: "نَحْنُ", tr: "നഹ്നു", ml: "നാം", en: "We", pastAffix: "ـنَا", presentAffix: "نَـ", passivePastAffix: "ـنَا (فُعِلْـ)", passivePresentAffix: "نُـ" },
+      { key: "anta", ar: "أَنْتَ", tr: "അൻത", ml: "നീ (പു.)", en: "You (m.)", pastAffix: "ـتَ", presentAffix: "تَـ", imperativeAffix: "ـْ (സുകൂൻ)", passivePastAffix: "ـتَ (فُعِلْـ)", passivePresentAffix: "تُـ" },
+      { key: "anti", ar: "أَنْتِ", tr: "അൻതി", ml: "നീ (സ്ത്രീ.)", en: "You (f.)", pastAffix: "ـتِ", presentAffix: "تَـ ... ـِينَ", imperativeAffix: "ـِي (സ്ത്രീ.)", passivePastAffix: "ـتِ (فُعِلْـ)", passivePresentAffix: "تُـ ... ـِينَ" },
+      { key: "huwa", ar: "هُوَ", tr: "ഹുവ", ml: "അവൻ", en: "He", pastAffix: "മൂലരൂപം", presentAffix: "يَـ", passivePastAffix: "فُعِلَ", passivePresentAffix: "يُـ" },
+      { key: "hiya", ar: "هِيَ", tr: "ഹിയ", ml: "അവൾ", en: "She", pastAffix: "ـتْ", presentAffix: "تَـ", passivePastAffix: "ـتْ (فُعِلَـ)", passivePresentAffix: "تُـ" },
+      { key: "hum", ar: "هُمْ", tr: "ഹും", ml: "അവർ", en: "They (m.)", pastAffix: "ـُوا", presentAffix: "يَـ ... ـُونَ", passivePastAffix: "ـُوا (فُعِلـ)", passivePresentAffix: "يُـ ... ـُونَ" }
     ];
 
     const GRAMMAR_TENSE_FORMULAS = [
       { key: "past", titleMl: "ഭൂതകാലം", titleAr: "الْمَاضِي", titleEn: "Past", tone: "text-[#92400E]", markerSummaryAr: "ـتُ · ـنَا · ـتَ · ـتِ · ـتْ · ـُوا", formulaMl: "ക്രിയയുടെ അവസാനമാണ് കർത്താവിനെ കാണിക്കുന്ന പ്രത്യയം (Suffix) ചേർക്കുന്നത്.", negationAr: "مَا ذَهَبَ / لَمْ يَذْهَبْ", negationMl: "നിഷേധം: مَا + ഭൂതകാലം അല്ലെങ്കിൽ لَمْ + ജസ്മ് (ـْ)", unitsLabel: "യൂണിറ്റ് 9 · 18 · 33" },
       { key: "present", titleMl: "വർത്തമാനകാലം", titleAr: "الْمُضَارِع", titleEn: "Present", tone: "text-[#065F46]", markerSummaryAr: "أَ · نَ · يَ · تَ (أَنَيْتَ)", formulaMl: "ക്രിയയുടെ തുടക്കത്തിൽ أَ / نَ / تَ / يَ എന്നീ അക്ഷരങ്ങൾ (Prefix) ചേർക്കുന്നു.", negationAr: "لَا يَذْهَبُ", negationMl: "നിഷേധം: لَا + വർത്തമാനകാലം (അവസാനം ളമ്മ് ـُ)", unitsLabel: "യൂണിറ്റ് 9 · 18 · 28" },
-      { key: "future", titleMl: "ഭാവികാലം", titleAr: "الْمُسْتَقْبَل", titleEn: "Future", tone: "text-[#075985]", markerSummaryAr: "سَـ (സമീപം) · سَوْفَ (ദീർഘം)", formulaMl: "വർത്തമാനകാല ക്രിയയ്ക്ക് മുമ്പ് سَـ (ഉടൻ) അല്ലെങ്കിൽ سَوْفَ (പിന്നീട്) ചേർക്കുന്നു.", negationAr: "لَنْ يَذْهَبَ", negationMl: "നിഷേധം: لَنْ + നസ്ബ് (അവസാനം ഫത്ഹ് ـَ)", unitsLabel: "യൂണിറ്റ് 21 · 32" }
+      { key: "future", titleMl: "ഭാവികാലം", titleAr: "الْمُسْتَقْبَل", titleEn: "Future", tone: "text-[#075985]", markerSummaryAr: "سَـ (സമീപം) · سَوْفَ (ദീർഘം)", formulaMl: "വർത്തമാനകാല ക്രിയയ്ക്ക് മുമ്പ് سَـ (ഉടൻ) അല്ലെങ്കിൽ سَوْفَ (പിന്നീട്) ചേർക്കുന്നു.", negationAr: "لَنْ يَذْهَبَ", negationMl: "നിഷേധം: لَنْ + നസ്ബ് (അവസാനം ഫത്ഹ് ـَ)", unitsLabel: "യൂണിറ്റ് 21 · 32" },
+      { key: "imperative", titleMl: "ആജ്ഞാരൂപം", titleAr: "الْأَمْر", titleEn: "Imperative", tone: "text-[#9F1239]", markerSummaryAr: "اِفْعَلْ / اُفْعُلْ · اِفْعَلِي · اِفْعَلُوا", formulaMl: "രണ്ടാം പുരുഷൻ (أَنْتَ / أَنْتِ) വർത്തമാനകാലത്തിൽ നിന്ന് تَـ നീക്കി അവസാനം സുകൂൻ (ـْ) നൽകുന്നു.", negationAr: "لَا تَذْهَبْ / لَا تَذْهَبِي", negationMl: "വിലക്ക് (النَّهْي): لَا + ജസ്മ് (അവസാനം സുകൂൻ ـْ)", unitsLabel: "യൂണിറ്റ് 22 · 33" },
+      { key: "passive", titleMl: "കർമ്മണി പ്രയോഗം", titleAr: "الْمَجْهُول", titleEn: "Passive Voice", tone: "text-[#5B21B6]", markerSummaryAr: "فُعِلَ (ഭൂതം) · يُفْعَلُ (വർത്തമാനം)", formulaMl: "ഭൂതകാലത്തിൽ ആദ്യം ളമ്മ് + അവസാനത്തിന് മുമ്പ് കസ്റ് (فُعِلَ); വർത്തമാനത്തിൽ ആദ്യം ളമ്മ് + ഫത്ഹ് (يُفْعَلُ).", negationAr: "مَا كُتِبَ / لَا يُكْتَبُ", negationMl: "കർത്താവിന് പകരം കർമ്മം (نَائِبُ الْفَاعِلِ) റഫ്അ് (ـُ) സ്വീകരിക്കുന്നു.", unitsLabel: "യൂണിറ്റ് 28" }
     ];
 
     const GRAMMAR_UNIT_MASTERY_META = [
@@ -9363,8 +9376,16 @@
           past: { ar: "أَمْسِ ذَهَبْتُ إِلَى السُّوقِ", tr: "അംസി ദഹബ്തു ഇലസ്-സൂഖി", ml: "ഇന്നലെ ഞാൻ മാർക്കറ്റിലേക്ക് പോയി" },
           present: { ar: "الْيَوْمَ أَذْهَبُ إِلَى الْمَكْتَبِ", tr: "അൽ-യൗമ അദ്ഹബു ഇലൽ മക്തബി", ml: "ഇന്ന് ഞാൻ ഓഫീസിലേക്ക് പോകുന്നു" },
           futureSa: { ar: "سَأَذْهَبُ إِلَى الْمَكْتَبِ غَدًا", tr: "സഅദ്ഹബു ഇലൽ മക്തബി ഗദൻ", ml: "നാളെ ഞാൻ ഓഫീസിലേക്ക് പോകും" },
-          futureSawfa: { ar: "سَوْفَ أَذْهَبُ إِلَى الْمَدِينَةِ الْأُسْبُوعَ الْقَادِمَ", tr: "സൗഫ അദ്ഹബു ഇലൽ മദീനതിൽ ഉസ്ബൂഅൽ ഖാദിമ", ml: "അടുത്ത ആഴ്ച ഞാൻ നഗരത്തിലേക്ക് പോകും" }
+          futureSawfa: { ar: "سَوْفَ أَذْهَبُ إِلَى الْمَدِينَةِ الْأُسْبُوعَ الْقَادِمَ", tr: "സൗഫ അദ്ഹബു ഇലൽ മദീനതിൽ ഉസ്ബൂഅൽ ഖാദിമ", ml: "അടുത്ത ആഴ്ച ഞാൻ നഗരത്തിലേക്ക് പോകും" },
+          imperative: { ar: "اِذْهَبْ إِلَى الْمَدْرَسَةِ مُبَكِّرًا", tr: "ഇദ്ഹബ് ഇലൽ മദ്റസതി മുബക്കിറൻ", ml: "നേരത്തെ സ്കൂളിലേക്ക് പോകൂ" },
+          passivePast: { ar: "ذُهِبَ إِلَى السُّوقِ صَبَاحًا", tr: "ദുഹിബ ഇലസ്-സൂഖി സബാഹൻ", ml: "രാവിലെ മാർക്കറ്റിലേക്ക് പോകപ്പെട്ടു" },
+          passivePresent: { ar: "يُذْهَبُ إِلَى الْمَدْرَسَةِ كُلَّ يَوْمٍ", tr: "യുദ്ഹബു ഇലൽ മദ്റസതി കുല്ല യൗമിൻ", ml: "എല്ലാ ദിവസവും സ്കൂളിലേക്ക് പോകപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "اِذْهَبْ", tr: "ഇദ്ഹബ്", ml: "പോകൂ (പു.)", prefix: "اِ", stem: "ذْهَب", suffix: "ْ" },
+          anti: { ar: "اِذْهَبِي", tr: "ഇദ്ഹബീ", ml: "പോകൂ (സ്ത്രീ.)", prefix: "اِ", stem: "ذْهَب", suffix: "ِي" }
+        },
+        passive: { pastBase: "ذُهِبَ", pastSukunStem: "ذُهِبْ", pastHumStem: "ذُهِب", pastBaseTr: "ദുഹിബ", pastSukunTr: "ദുഹിബ്", pastHumTr: "ദുഹിബൂ", presentStem: "ذْهَبُ", presentAntiStem: "ذْهَب", presentHumStem: "ذْهَب", presentStemTr: "ദ്ഹബു", presentPluralTr: "ദ്ഹബ", pastMl: "പോകപ്പെട്ടു", presentMl: "പോകപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "ذَهَبْتُ", tr: "ദഹബ്തു", ml: "ഞാൻ പോയി", prefix: "", stem: "ذَهَبْ", suffix: "تُ" }, present: { ar: "أَذْهَبُ", tr: "അദ്ഹബു", ml: "ഞാൻ പോകുന്നു", prefix: "أَ", stem: "ذْهَبُ", suffix: "" }, futureMl: "ഞാൻ പോകും" },
           nahnu: { past: { ar: "ذَهَبْنَا", tr: "ദഹബ്നാ", ml: "നാം പോയി", prefix: "", stem: "ذَهَبْ", suffix: "نَا" }, present: { ar: "نَذْهَبُ", tr: "നദ്ഹബു", ml: "നാം പോകുന്നു", prefix: "نَ", stem: "ذْهَبُ", suffix: "" }, futureMl: "നാം പോകും" },
@@ -9382,8 +9403,16 @@
           past: { ar: "أَمْسِ كَتَبْتُ الدَّرْسَ", tr: "അംസി കതബ്തുദ്-ദർസ", ml: "ഇന്നലെ ഞാൻ പാഠം എഴുതി" },
           present: { ar: "هُوَ يَكْتُبُ الرِّسَالَةَ الْآنَ", tr: "ഹുവ യക്തുബുർ-രിസാലതൽ ആന", ml: "അവൻ ഇപ്പോൾ കത്ത് എഴുതുന്നു" },
           futureSa: { ar: "سَأَكْتُبُ الْوَاجِبَ بَعْدَ قَلِيلٍ", tr: "സഅക്തുബുൽ വാജിബ ബഅ്ദ ഖലീലിൻ", ml: "ഞാൻ അല്പസമയത്തിനകം ഗൃഹപാഠം എഴുതും" },
-          futureSawfa: { ar: "سَوْفَ نَكْتُبُ قِصَّةً جَمِيلَةً", tr: "സൗഫ നക്തുബു ഖിസ്സതൻ ജമീലതൻ", ml: "നാം മനോഹരമായ ഒരു കഥ എഴുതും" }
+          futureSawfa: { ar: "سَوْفَ نَكْتُبُ قِصَّةً جَمِيلَةً", tr: "സൗഫ നക്തുബു ഖിസ്സതൻ ജമീലതൻ", ml: "നാം മനോഹരമായ ഒരു കഥ എഴുതും" },
+          imperative: { ar: "اُكْتُبْ رِسَالَةً إِلَى صَدِيقِكَ", tr: "ഉക്തുബ് രിസാലതൻ ഇലാ സദീഖിക", ml: "നിന്റെ സുഹൃത്തിന് ഒരു കത്ത് എഴുതൂ" },
+          passivePast: { ar: "كُتِبَ الدَّرْسُ عَلَى السَّبُّورَةِ", tr: "കുതിബദ്-ദർസു അലസ്-സബ്ബൂറതി", ml: "പാഠം ബോർഡിൽ എഴുതപ്പെട്ടു" },
+          passivePresent: { ar: "يُكْتَبُ الدَّرْسُ بِخَطٍّ جَمِيلٍ", tr: "യുക്തബുദ്-ദർസു ബി-ഖത്ത്വിൻ ജമീലിൻ", ml: "പാഠം മനോഹരമായ കൈയക്ഷരത്തിൽ എഴുതപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "اُكْتُبْ", tr: "ഉക്തുബ്", ml: "എഴുതൂ (പു.)", prefix: "اُ", stem: "كْتُب", suffix: "ْ" },
+          anti: { ar: "اُكْتُبِي", tr: "ഉക്തുബീ", ml: "എഴുതൂ (സ്ത്രീ.)", prefix: "اُ", stem: "كْتُب", suffix: "ِي" }
+        },
+        passive: { pastBase: "كُتِبَ", pastSukunStem: "كُتِبْ", pastHumStem: "كُتِب", pastBaseTr: "കുതിബ", pastSukunTr: "കുതിബ്", pastHumTr: "കുതിബൂ", presentStem: "كْتَبُ", presentAntiStem: "كْتَب", presentHumStem: "كْتَب", presentStemTr: "ക്തബു", presentPluralTr: "ക്തബ", pastMl: "എഴുതപ്പെട്ടു", presentMl: "എഴുതപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "كَتَبْتُ", tr: "കതബ്തു", ml: "ഞാൻ എഴുതി", prefix: "", stem: "كَتَبْ", suffix: "تُ" }, present: { ar: "أَكْتُبُ", tr: "അക്തുബു", ml: "ഞാൻ എഴുതുന്നു", prefix: "أَ", stem: "كْتُبُ", suffix: "" }, futureMl: "ഞാൻ എഴുതും" },
           nahnu: { past: { ar: "كَتَبْنَا", tr: "കതബ്നാ", ml: "നാം എഴുതി", prefix: "", stem: "كَتَبْ", suffix: "نَا" }, present: { ar: "نَكْتُبُ", tr: "നക്തുബു", ml: "നാം എഴുതുന്നു", prefix: "نَ", stem: "كْتُبُ", suffix: "" }, futureMl: "നാം എഴുതും" },
@@ -9401,8 +9430,16 @@
           past: { ar: "قَرَأْتُ كِتَابًا مُفِيدًا أَمْسِ", tr: "ഖറഅ്തു കിതാബൻ മുഫീദൻ അംസി", ml: "ഇന്നലെ ഞാൻ ഉപകാരപ്രദമായ ഒരു പുസ്തകം വായിച്ചു" },
           present: { ar: "هِيَ تَقْرَأُ الْكِتَابَ فِي الْمَكْتَبَةِ", tr: "ഹിയ തഖ്റഉൽ കിതാബ ഫിൽ മക്തബതി", ml: "അവൾ ലൈബ്രറിയിൽ പുസ്തകം വായിക്കുന്നു" },
           futureSa: { ar: "سَأَقْرَأُ الْقِصَّةَ هٰذَا الْمَسَاءَ", tr: "സഅഖ്റഉൽ ഖിസ്സത ഹാദൽ മസാഅ", ml: "ഇന്ന് വൈകുന്നേരം ഞാൻ കഥ വായിക്കും" },
-          futureSawfa: { ar: "سَوْفَ نَقْرَأُ الدَّرْسَ الْجَدِيدَ غَدًا", tr: "സൗഫ നഖ്റഉദ്-ദർസൽ ജദീദ ഗദൻ", ml: "നാളെ നാം പുതിയ പാഠം വായിക്കും" }
+          futureSawfa: { ar: "سَوْفَ نَقْرَأُ الدَّرْسَ الْجَدِيدَ غَدًا", tr: "സൗഫ നഖ്റഉദ്-ദർസൽ ജദീദ ഗദൻ", ml: "നാളെ നാം പുതിയ പാഠം വായിക്കും" },
+          imperative: { ar: "اِقْرَأِ الْكِتَابَ بِصَوْتٍ وَاضِحٍ", tr: "ഇഖ്റഇൽ കിതാബ ബി-സൗതിൻ വാളിഹിൻ", ml: "വ്യക്തമായ ശബ്ദത്തിൽ പുസ്തകം വായിക്കൂ" },
+          passivePast: { ar: "قُرِئَ الْقُرْآنُ فِي الْمَسْجِدِ", tr: "ഖുരിഅൽ ഖുർആനു ഫിൽ മസ്ജിദി", ml: "പള്ളിയിൽ ഖുർആൻ വായിക്കപ്പെട്ടു" },
+          passivePresent: { ar: "يُقْرَأُ الْكِتَابُ فِي الْمَكْتَبَةِ", tr: "യുഖ്റഉൽ കിതാബു ഫിൽ മക്തബതി", ml: "ലൈബ്രറിയിൽ പുസ്തകം വായിക്കപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "اِقْرَأْ", tr: "ഇഖ്റഅ്", ml: "വായിക്കൂ (പു.)", prefix: "اِ", stem: "قْرَأ", suffix: "ْ" },
+          anti: { ar: "اِقْرَئِي", tr: "ഇഖ്റഈ", ml: "വായിക്കൂ (സ്ത്രീ.)", prefix: "اِ", stem: "قْرَئ", suffix: "ِي" }
+        },
+        passive: { pastBase: "قُرِئَ", pastSukunStem: "قُرِئْ", pastHumStem: "قُرِئ", pastBaseTr: "ഖുരിഅ", pastSukunTr: "ഖുരിഅ്", pastHumTr: "ഖുരിഊ", presentStem: "قْرَأُ", presentAntiStem: "قْرَئ", presentHumStem: "قْرَؤ", presentStemTr: "ഖ്റഉ", presentPluralTr: "ഖ്റ", pastMl: "വായിക്കപ്പെട്ടു", presentMl: "വായിക്കപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "قَرَأْتُ", tr: "ഖറഅ്തു", ml: "ഞാൻ വായിച്ചു", prefix: "", stem: "قَرَأْ", suffix: "تُ" }, present: { ar: "أَقْرَأُ", tr: "അഖ്റഉ", ml: "ഞാൻ വായിക്കുന്നു", prefix: "أَ", stem: "قْرَأُ", suffix: "" }, futureMl: "ഞാൻ വായിക്കും" },
           nahnu: { past: { ar: "قَرَأْنَا", tr: "ഖറഅ്നാ", ml: "നാം വായിച്ചു", prefix: "", stem: "قَرَأْ", suffix: "نَا" }, present: { ar: "نَقْرَأُ", tr: "നഖ്റഉ", ml: "നാം വായിക്കുന്നു", prefix: "نَ", stem: "قْرَأُ", suffix: "" }, futureMl: "നാം വായിക്കും" },
@@ -9420,8 +9457,16 @@
           past: { ar: "شَرِبَ أَحْمَدُ الْمَاءَ الْبَارِدَ", tr: "ശരിബ അഹ്മദുൽ മാഅൽ ബാരിദ", ml: "അഹമ്മദ് തണുത്ത വെള്ളം കുടിച്ചു" },
           present: { ar: "أَشْرَبُ الْقَهْوَةَ كُلَّ صَبَاحٍ", tr: "അശ്റബുൽ ഖഹ്വത കുല്ല സബാഹിൻ", ml: "ഞാൻ എല്ലാ രാവിലെയും കാപ്പി കുടിക്കുന്നു" },
           futureSa: { ar: "سَأَشْرَبُ الشَّايَ بَعْدَ الطَّعَامِ", tr: "സഅശ്റബുശ്-ശായ ബഅ്ദത്ത്വആമി", ml: "ഭക്ഷണത്തിന് ശേഷം ഞാൻ ചായ കുടിക്കും" },
-          futureSawfa: { ar: "سَوْفَ نَشْرَبُ الْعَصِيرَ فِي الْمَطْعَمِ", tr: "സൗഫ നശ്റബുൽ അസീറ ഫിൽ മത്അമി", ml: "നാം റെസ്റ്റോറന്റിൽ ജ്യൂസ് കുടിക്കും" }
+          futureSawfa: { ar: "سَوْفَ نَشْرَبُ الْعَصِيرَ فِي الْمَطْعَمِ", tr: "സൗഫ നശ്റബുൽ അസീറ ഫിൽ മത്അമി", ml: "നാം റെസ്റ്റോറന്റിൽ ജ്യൂസ് കുടിക്കും" },
+          imperative: { ar: "اِشْرَبِ الْمَاءَ النَّقِيَّ كُلَّ يَوْمٍ", tr: "ഇശ്റബിൽ മാഅൻ-നഖിയ്യ കുല്ല യൗമിൻ", ml: "എല്ലാ ദിവസവും ശുദ്ധജലം കുടിക്കൂ" },
+          passivePast: { ar: "شُرِبَ الْعَصِيرُ الْبَارِدُ", tr: "ശുരിബൽ അസീറുൽ ബാരിദു", ml: "തണുത്ത ജ്യൂസ് കുടിക്കപ്പെട്ടു" },
+          passivePresent: { ar: "يُشْرَبُ الشَّايُ سَاخِنًا", tr: "യുശ്റബുശ്-ശായു സാഖിനൻ", ml: "ചായ ചൂടോടെ കുടിക്കപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "اِشْرَبْ", tr: "ഇശ്റബ്", ml: "കുടിക്കൂ (പു.)", prefix: "اِ", stem: "شْرَب", suffix: "ْ" },
+          anti: { ar: "اِشْرَبِي", tr: "ഇശ്റബീ", ml: "കുടിക്കൂ (സ്ത്രീ.)", prefix: "اِ", stem: "شْرَب", suffix: "ِي" }
+        },
+        passive: { pastBase: "شُرِبَ", pastSukunStem: "شُرِبْ", pastHumStem: "شُرِب", pastBaseTr: "ശുരിബ", pastSukunTr: "ശുരിബ്", pastHumTr: "ശുരിബൂ", presentStem: "شْرَبُ", presentAntiStem: "شْرَب", presentHumStem: "شْرَب", presentStemTr: "ശ്റബു", presentPluralTr: "ശ്റബ", pastMl: "കുടിക്കപ്പെട്ടു", presentMl: "കുടിക്കപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "شَرِبْتُ", tr: "ശരിബ്തു", ml: "ഞാൻ കുടിച്ചു", prefix: "", stem: "شَرِبْ", suffix: "تُ" }, present: { ar: "أَشْرَبُ", tr: "അശ്റബു", ml: "ഞാൻ കുടിക്കുന്നു", prefix: "أَ", stem: "شْرَبُ", suffix: "" }, futureMl: "ഞാൻ കുടിക്കും" },
           nahnu: { past: { ar: "شَرِبْنَا", tr: "ശരിബ്നാ", ml: "നാം കുടിച്ചു", prefix: "", stem: "شَرِبْ", suffix: "نَا" }, present: { ar: "نَشْرَبُ", tr: "നശ്റബു", ml: "നാം കുടിക്കുന്നു", prefix: "نَ", stem: "شْرَبُ", suffix: "" }, futureMl: "നാം കുടിക്കും" },
@@ -9439,8 +9484,16 @@
           past: { ar: "أَكَلْنَا الْفَطُورَ فِي الْبَيْتِ", tr: "അകൽനാൽ ഫതൂറ ഫിൽ ബയ്തി", ml: "നാം വീട്ടിൽ പ്രഭാതഭക്ഷണം കഴിച്ചു" },
           present: { ar: "آكُلُ الْخُبْزَ وَالْفَاكِهَةَ", tr: "ആകുലുൽ ഖുബ്സ വൽ-ഫാകിഹത", ml: "ഞാൻ റൊട്ടിയും പഴങ്ങളും കഴിക്കുന്നു" },
           futureSa: { ar: "سَآكُلُ الْغَدَاءَ مَعَ عَائِلَتِي", tr: "സആകുലുൽ ഗദാഅ മഅ ആഇലതീ", ml: "ഞാൻ കുടുംബത്തോടൊപ്പം ഉച്ചഭക്ഷണം കഴിക്കും" },
-          futureSawfa: { ar: "سَوْفَ يَأْكُلُونَ الْعَشَاءَ فِي الْمَسَاءِ", tr: "സൗഫ യഅ്കുലൂനൽ അശാഅ ഫിൽ മസാഇ", ml: "അവർ വൈകുന്നേരം അത്താഴം കഴിക്കും" }
+          futureSawfa: { ar: "سَوْفَ يَأْكُلُونَ الْعَشَاءَ فِي الْمَسَاءِ", tr: "സൗഫ യഅ്കുലൂനൽ അശാഅ ഫിൽ മസാഇ", ml: "അവർ വൈകുന്നേരം അത്താഴം കഴിക്കും" },
+          imperative: { ar: "كُلْ طَعَامًا صِحِّيًّا يَا بُنَيَّ", tr: "കുൽ ത്വആമൻ സിഹ്ഹിയ്യൻ യാ ബുനയ്യ", ml: "മകനേ, ആരോഗ്യകരമായ ഭക്ഷണം കഴിക്കൂ" },
+          passivePast: { ar: "أُكِلَ الطَّعَامُ كُلُّهُ", tr: "ഉകിലത്ത്വആമു കുല്ലുഹു", ml: "ഭക്ഷണം മുഴുവൻ കഴിക്കപ്പെട്ടു" },
+          passivePresent: { ar: "يُؤْكَلُ التَّمْرُ فِي الصَّبَاحِ", tr: "യുഅ്കലുത്തംറു ഫിസ്-സബാഹി", ml: "രാവിലെ ഈന്തപ്പഴം കഴിക്കപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "كُلْ", tr: "കുൽ", ml: "കഴിക്കൂ (പു.)", prefix: "", stem: "كُل", suffix: "ْ" },
+          anti: { ar: "كُلِي", tr: "കുലീ", ml: "കഴിക്കൂ (സ്ത്രീ.)", prefix: "", stem: "كُل", suffix: "ِي" }
+        },
+        passive: { pastBase: "أُكِلَ", pastSukunStem: "أُكِلْ", pastHumStem: "أُكِل", pastBaseTr: "ഉകില", pastSukunTr: "ഉകിൽ", pastHumTr: "ഉകിലൂ", presentStem: "ؤْكَلُ", presentAntiStem: "ؤْكَل", presentHumStem: "ؤْكَل", presentStemTr: "അ്കലു", presentPluralTr: "അ്കല", pastMl: "കഴിക്കപ്പെട്ടു", presentMl: "കഴിക്കപ്പെടുന്നു", anaPresentOverride: { prefix: "أُ", stem: "وكَلُ", tr: "ഊകലു" } },
         rows: {
           ana: { past: { ar: "أَكَلْتُ", tr: "അകൽതു", ml: "ഞാൻ കഴിച്ചു", prefix: "", stem: "أَكَلْ", suffix: "تُ" }, present: { ar: "آكُلُ", tr: "ആകുലു", ml: "ഞാൻ കഴിക്കുന്നു", prefix: "آ", stem: "كُلُ", suffix: "" }, futureMl: "ഞാൻ കഴിക്കും" },
           nahnu: { past: { ar: "أَكَلْنَا", tr: "അകൽനാ", ml: "നാം കഴിച്ചു", prefix: "", stem: "أَكَلْ", suffix: "نَا" }, present: { ar: "نَأْكُلُ", tr: "നഅ്കുലു", ml: "നാം കഴിക്കുന്നു", prefix: "نَ", stem: "أْكُلُ", suffix: "" }, futureMl: "നാം കഴിക്കും" },
@@ -9458,8 +9511,16 @@
           past: { ar: "فَتَحَ الْمُعَلِّمُ بَابَ الْفَصْلِ", tr: "ഫതഹൽ മുഅല്ലിമു ബാബൽ ഫസ്‌ലി", ml: "അധ്യാപകൻ ക്ലാസ്സിന്റെ വാതിൽ തുറന്നു" },
           present: { ar: "أَفْتَحُ النَّافِذَةَ فِي الصَّبَاحِ", tr: "അഫ്തഹുന്നാഫിദത ഫിസ്-സബാഹി", ml: "ഞാൻ രാവിലെ ജനൽ തുറക്കുന്നു" },
           futureSa: { ar: "سَأَفْتَحُ الْكِتَابَ الْآنَ", tr: "സഅഫ്തഹുൽ കിതാബൽ ആന", ml: "ഞാൻ ഇപ്പോൾ പുസ്തകം തുറക്കും" },
-          futureSawfa: { ar: "سَوْفَ يَفْتَحُونَ الْمَتْجَرَ غَدًا", tr: "സൗഫ യഫ്തഹൂനൽ മത്ജറ ഗദൻ", ml: "അവർ നാളെ കട തുറക്കും" }
+          futureSawfa: { ar: "سَوْفَ يَفْتَحُونَ الْمَتْجَرَ غَدًا", tr: "സൗഫ യഫ്തഹൂനൽ മത്ജറ ഗദൻ", ml: "അവർ നാളെ കട തുറക്കും" },
+          imperative: { ar: "اِفْتَحِ الْبَابَ مِنْ فَضْلِكَ", tr: "ഇഫ്തഹിൽ ബാബ മിൻ ഫദ്‌ലിക", ml: "ദയവായി വാതിൽ തുറക്കൂ" },
+          passivePast: { ar: "فُتِحَ الْبَابُ لِلضُّيُوفِ", tr: "ഫുതിഹൽ ബാബു ലിള്ളുയൂഫി", ml: "അതിഥികൾക്കായി വാതിൽ തുറക്കപ്പെട്ടു" },
+          passivePresent: { ar: "يُفْتَحُ الْمَتْجَرُ فِي الصَّبَاحِ", tr: "യുഫ്തഹുൽ മത്ജറു ഫിസ്-സബാഹി", ml: "രാവിലെ കട തുറക്കപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "اِفْتَحْ", tr: "ഇഫ്തഹ്", ml: "തുറക്കൂ (പു.)", prefix: "اِ", stem: "فْتَح", suffix: "ْ" },
+          anti: { ar: "اِفْتَحِي", tr: "ഇഫ്തഹീ", ml: "തുറക്കൂ (സ്ത്രീ.)", prefix: "اِ", stem: "فْتَح", suffix: "ِي" }
+        },
+        passive: { pastBase: "فُتِحَ", pastSukunStem: "فُتِحْ", pastHumStem: "فُتِح", pastBaseTr: "ഫുതിഹ", pastSukunTr: "ഫുതിഹ്", pastHumTr: "ഫുതിഹൂ", presentStem: "فْتَحُ", presentAntiStem: "فْتَح", presentHumStem: "فْتَح", presentStemTr: "ഫ്തഹു", presentPluralTr: "ഫ്തഹ", pastMl: "തുറക്കപ്പെട്ടു", presentMl: "തുറക്കപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "فَتَحْتُ", tr: "ഫതഹ്തു", ml: "ഞാൻ തുറന്നു", prefix: "", stem: "فَتَحْ", suffix: "تُ" }, present: { ar: "أَفْتَحُ", tr: "അഫ്തഹു", ml: "ഞാൻ തുറക്കുന്നു", prefix: "أَ", stem: "فْتَحُ", suffix: "" }, futureMl: "ഞാൻ തുറക്കും" },
           nahnu: { past: { ar: "فَتَحْنَا", tr: "ഫതഹ്നാ", ml: "നാം തുറന്നു", prefix: "", stem: "فَتَحْ", suffix: "نَا" }, present: { ar: "نَفْتَحُ", tr: "നഫ്തഹു", ml: "നാം തുറക്കുന്നു", prefix: "نَ", stem: "فْتَحُ", suffix: "" }, futureMl: "നാം തുറക്കും" },
@@ -9477,8 +9538,16 @@
           past: { ar: "سَافَرْتُ إِلَى دُبَيَّ أَمْسِ", tr: "സാഫർതു ഇലാ ദുബയ്യ അംസി", ml: "ഇന്നലെ ഞാൻ ദുബായിലേക്ക് യാത്ര ചെയ്തു" },
           present: { ar: "يُسَافِرُ أَبِي بِالطَّائِرَةِ كُلَّ شَهْرٍ", tr: "യുസാഫിറു അബീ ബിത്ത്വാഇറതി കുല്ല ശഹ്‌രിൻ", ml: "എന്റെ ഉപ്പ എല്ലാ മാസവും വിമാനത്തിൽ യാത്ര ചെയ്യുന്നു" },
           futureSa: { ar: "سَأُسَافِرُ غَدًا إِلَى الرِّيَاضِ", tr: "സഉസാഫിറു ഗദൻ ഇലർ-രിയാളി", ml: "നാളെ ഞാൻ റിയാദിലേക്ക് യാത്ര ചെയ്യും" },
-          futureSawfa: { ar: "سَوْفَ نُسَافِرُ فِي الْعُطْلَةِ الْقَادِمَةِ", tr: "സൗഫ നുസാഫിറു ഫിൽ ഉത്‌ലതിൽ ഖാദിമതി", ml: "വരുന്ന അവധിക്കാലത്ത് നാം യാത്ര ചെയ്യും" }
+          futureSawfa: { ar: "سَوْفَ نُسَافِرُ فِي الْعُطْلَةِ الْقَادِمَةِ", tr: "സൗഫ നുസാഫിറു ഫിൽ ഉത്‌ലതിൽ ഖാദിമതി", ml: "വരുന്ന അവധിക്കാലത്ത് നാം യാത്ര ചെയ്യും" },
+          imperative: { ar: "سَافِرْ مَعَ أُسْرَتِكَ فِي الْعُطْلَةِ", tr: "സാഫിർ മഅ ഉസ്റതിക ഫിൽ ഉത്‌ലതി", ml: "അവധിക്കാലത്ത് കുടുംബത്തോടൊപ്പം യാത്ര ചെയ്യൂ" },
+          passivePast: { ar: "سُوفِرَ إِلَى مَكَّةَ بِالْحَافِلَةِ", tr: "സൂഫിറ ഇലാ മക്കത ബിൽ-ഹാഫിലതി", ml: "ബസ്സിൽ മക്കയിലേക്ക് യാത്ര ചെയ്യപ്പെട്ടു" },
+          passivePresent: { ar: "يُسَافَرُ إِلَى الْجَبَلِ فِي الصَّيْفِ", tr: "യുസാഫറു ഇലൽ ജബലി ഫിസ്-സയ്ഫി", ml: "വേനൽക്കാലത്ത് മലയിലേക്ക് യാത്ര ചെയ്യപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "سَافِرْ", tr: "സാഫിർ", ml: "യാത്ര ചെയ്യൂ (പു.)", prefix: "", stem: "سَافِر", suffix: "ْ" },
+          anti: { ar: "سَافِرِي", tr: "സാഫിരീ", ml: "യാത്ര ചെയ്യൂ (സ്ത്രീ.)", prefix: "", stem: "سَافِر", suffix: "ِي" }
+        },
+        passive: { pastBase: "سُوفِرَ", pastSukunStem: "سُوفِرْ", pastHumStem: "سُوفِر", pastBaseTr: "സൂഫിറ", pastSukunTr: "സൂഫിർ", pastHumTr: "സൂഫിറൂ", presentStem: "سَافَرُ", presentAntiStem: "سَافَر", presentHumStem: "سَافَر", presentStemTr: "സാഫറു", presentPluralTr: "സാഫറ", pastMl: "യാത്ര ചെയ്യപ്പെട്ടു", presentMl: "യാത്ര ചെയ്യപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "سَافَرْتُ", tr: "സാഫർതു", ml: "ഞാൻ യാത്ര ചെയ്തു", prefix: "", stem: "سَافَرْ", suffix: "تُ" }, present: { ar: "أُسَافِرُ", tr: "ഉസാഫിറു", ml: "ഞാൻ യാത്ര ചെയ്യുന്നു", prefix: "أُ", stem: "سَافِرُ", suffix: "" }, futureMl: "ഞാൻ യാത്ര ചെയ്യും" },
           nahnu: { past: { ar: "سَافَرْنَا", tr: "സാഫർനാ", ml: "നാം യാത്ര ചെയ്തു", prefix: "", stem: "سَافَرْ", suffix: "نَا" }, present: { ar: "نُسَافِرُ", tr: "നുസാഫിറു", ml: "നാം യാത്ര ചെയ്യുന്നു", prefix: "نُ", stem: "سَافِرُ", suffix: "" }, futureMl: "നാം യാത്ര ചെയ്യും" },
@@ -9496,8 +9565,16 @@
           past: { ar: "تَعَلَّمْتُ اللُّغَةَ الْعَرَبِيَّةَ بِسُهُولَةٍ", tr: "തഅല്ലംതുൽ ലുഗതൽ അറബിയ്യത ബി-സുഹൂലതിൻ", ml: "ഞാൻ അറബി ഭാഷ എളുപ്പത്തിൽ പഠിച്ചു" },
           present: { ar: "نَتَعَلَّمُ قَوَاعِدَ النَّحْوِ الْيَوْمَ", tr: "നതഅല്ലമു ഖവാഇദൻ-നഹ്‌വിൽ യൗമ", ml: "ഇന്ന് നാം വ്യാകരണ നിയമങ്ങൾ പഠിക്കുന്നു" },
           futureSa: { ar: "سَأَتَعَلَّمُ كَلِمَاتٍ جَدِيدَةً الْيَوْمَ", tr: "സഅതഅല്ലമു കലിമാതിൻ ജദീദതൻ അൽ-യൗമ", ml: "ഇന്ന് ഞാൻ പുതിയ വാക്കുകൾ പഠിക്കും" },
-          futureSawfa: { ar: "سَوْفَ أَتَعَلَّمُ التَّحَدُّثَ بِطَلَاقَةٍ", tr: "സൗഫ അതഅല്ലമുത്തഹദ്ദുഥ ബി-ത്വലാഖതിൻ", ml: "ഞാൻ ഒഴുക്കോടെ സംസാരിക്കാൻ പഠിക്കും" }
+          futureSawfa: { ar: "سَوْفَ أَتَعَلَّمُ التَّحَدُّثَ بِطَلَاقَةٍ", tr: "സൗഫ അതഅല്ലമുത്തഹദ്ദുഥ ബി-ത്വലാഖതിൻ", ml: "ഞാൻ ഒഴുക്കോടെ സംസാരിക്കാൻ പഠിക്കും" },
+          imperative: { ar: "تَعَلَّمْ كَلِمَةً جَدِيدَةً كُلَّ يَوْمٍ", tr: "തഅല്ലം കലിമതൻ ജദീദതൻ കുല്ല യൗമിൻ", ml: "എല്ലാ ദിവസവും ഒരു പുതിയ വാക്ക് പഠിക്കൂ" },
+          passivePast: { ar: "تُعُلِّمَ النَّحْوُ بِسُهُولَةٍ", tr: "തുഉല്ലിമൻ-നഹ്‌വു ബി-സുഹൂലതിൻ", ml: "വ്യാകരണം എളുപ്പത്തിൽ പഠിക്കപ്പെട്ടു" },
+          passivePresent: { ar: "يُتَعَلَّمُ الْعِلْمُ بِالصَّبْرِ", tr: "യുതഅല്ലമുൽ ഇൽമു ബിസ്-സബ്‌രി", ml: "ക്ഷമയോടെ വിജ്ഞാനം പഠിക്കപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "تَعَلَّمْ", tr: "തഅല്ലം", ml: "പഠിക്കൂ (പു.)", prefix: "", stem: "تَعَلَّم", suffix: "ْ" },
+          anti: { ar: "تَعَلَّمِي", tr: "തഅല്ലമീ", ml: "പഠിക്കൂ (സ്ത്രീ.)", prefix: "", stem: "تَعَلَّم", suffix: "ِي" }
+        },
+        passive: { pastBase: "تُعُلِّمَ", pastSukunStem: "تُعُلِّمْ", pastHumStem: "تُعُلِّم", pastBaseTr: "തുഉല്ലിമ", pastSukunTr: "തുഉല്ലിം", pastHumTr: "തുഉല്ലിമൂ", presentStem: "تَعَلَّمُ", presentAntiStem: "تَعَلَّم", presentHumStem: "تَعَلَّم", presentStemTr: "തഅല്ലമു", presentPluralTr: "തഅല്ലമ", pastMl: "പഠിക്കപ്പെട്ടു", presentMl: "പഠിക്കപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "تَعَلَّمْتُ", tr: "തഅല്ലംതു", ml: "ഞാൻ പഠിച്ചു", prefix: "", stem: "تَعَلَّمْ", suffix: "تُ" }, present: { ar: "أَتَعَلَّمُ", tr: "അതഅല്ലമു", ml: "ഞാൻ പഠിക്കുന്നു", prefix: "أَ", stem: "تَعَلَّمُ", suffix: "" }, futureMl: "ഞാൻ പഠിക്കും" },
           nahnu: { past: { ar: "تَعَلَّمْنَا", tr: "തഅല്ലംനാ", ml: "നാം പഠിച്ചു", prefix: "", stem: "تَعَلَّمْ", suffix: "نَا" }, present: { ar: "نَتَعَلَّمُ", tr: "നതഅല്ലമു", ml: "നാം പഠിക്കുന്നു", prefix: "نَ", stem: "تَعَلَّمُ", suffix: "" }, futureMl: "നാം പഠിക്കും" },
@@ -9515,8 +9592,16 @@
           past: { ar: "عَمِلَ أَخِي فِي الْمُسْتَشْفَى", tr: "അമില അഖീ ഫിൽ മുസ്തശ്ഫാ", ml: "എന്റെ സഹോദരൻ ആശുപത്രിയിൽ ജോലി ചെയ്തു" },
           present: { ar: "أَعْمَلُ فِي شَرِكَةٍ كَبِيرَةٍ", tr: "അഅ്മലു ഫീ ശരികതിൻ കബീറതിൻ", ml: "ഞാൻ ഒരു വലിയ കമ്പനിയിൽ ജോലി ചെയ്യുന്നു" },
           futureSa: { ar: "سَأَعْمَلُ بِجِدٍّ لِأَنْجَحَ", tr: "സഅഅ്മലു ബി-ജിദ്ദിൻ ലി-അൻജഹ", ml: "വിജയിക്കാൻ ഞാൻ കഠിനമായി പ്രയത്നിക്കും" },
-          futureSawfa: { ar: "سَوْفَ نَعْمَلُ مَعًا فِي الْمَشْرُوعِ", tr: "സൗഫ നഅ്മലു മഅൻ ഫിൽ മശ്റൂഇ", ml: "നാം പദ്ധതിയിൽ ഒരുമിച്ച് പ്രവർത്തിക്കും" }
+          futureSawfa: { ar: "سَوْفَ نَعْمَلُ مَعًا فِي الْمَشْرُوعِ", tr: "സൗഫ നഅ്മലു മഅൻ ഫിൽ മശ്റൂഇ", ml: "നാം പദ്ധതിയിൽ ഒരുമിച്ച് പ്രവർത്തിക്കും" },
+          imperative: { ar: "اِعْمَلْ بِإِخْلَاصٍ وَأَمَانَةٍ", tr: "ഇഅ്മൽ ബി-ഇഖ്‌ലാസിൻ വ അമാനതിൻ", ml: "ആത്മാർത്ഥതയോടെയും വിശ്വസ്തതയോടെയും പ്രവർത്തിക്കൂ" },
+          passivePast: { ar: "عُمِلَ الْخَيْرُ لِوَجْهِ اللّٰهِ", tr: "ഉമിലൽ ഖയ്റു ലി-വജ്ഹില്ലാഹി", ml: "നന്മ പ്രവർത്തിക്കപ്പെട്ടു" },
+          passivePresent: { ar: "يُعْمَلُ الْمَشْرُوعُ بِإِتْقَانٍ", tr: "യുഅ്മലുൽ മശ്റൂഉ ബി-ഇത്ഖാനിൻ", ml: "പദ്ധതി കൃത്യതയോടെ നിർവ്വഹിക്കപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "اِعْمَلْ", tr: "ഇഅ്മൽ", ml: "പ്രവർത്തിക്കൂ (പു.)", prefix: "اِ", stem: "عْمَل", suffix: "ْ" },
+          anti: { ar: "اِعْمَلِي", tr: "ഇഅ്മലീ", ml: "പ്രവർത്തിക്കൂ (സ്ത്രീ.)", prefix: "اِ", stem: "عْمَل", suffix: "ِي" }
+        },
+        passive: { pastBase: "عُمِلَ", pastSukunStem: "عُمِلْ", pastHumStem: "عُمِل", pastBaseTr: "ഉമില", pastSukunTr: "ഉമിൽ", pastHumTr: "ഉമിലൂ", presentStem: "عْمَلُ", presentAntiStem: "عْمَل", presentHumStem: "عْمَل", presentStemTr: "അ്മലു", presentPluralTr: "അ്മല", pastMl: "ചെയ്യപ്പെട്ടു", presentMl: "ചെയ്യപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "عَمِلْتُ", tr: "അമിൽതു", ml: "ഞാൻ ജോലി ചെയ്തു", prefix: "", stem: "عَمِلْ", suffix: "تُ" }, present: { ar: "أَعْمَلُ", tr: "അഅ്മലു", ml: "ഞാൻ ജോലി ചെയ്യുന്നു", prefix: "أَ", stem: "عْمَلُ", suffix: "" }, futureMl: "ഞാൻ ജോലി ചെയ്യും" },
           nahnu: { past: { ar: "عَمِلْنَا", tr: "അമിൽനാ", ml: "നാം ജോലി ചെയ്തു", prefix: "", stem: "عَمِلْ", suffix: "نَا" }, present: { ar: "نَعْمَلُ", tr: "നഅ്മലു", ml: "നാം ജോലി ചെയ്യുന്നു", prefix: "نَ", stem: "عْمَلُ", suffix: "" }, futureMl: "നാം ജോലി ചെയ്യും" },
@@ -9534,8 +9619,16 @@
           past: { ar: "دَرَسْتُ النَّحْوَ فِي الْجَامِعَةِ", tr: "ദറസ്തുൻ-നഹ്‌വ ഫിൽ ജാമിഅതി", ml: "ഞാൻ സർവകലാശാലയിൽ വ്യാകരണം അഭ്യസിച്ചു" },
           present: { ar: "تَدْرُسُ فَاطِمَةُ الطِّبَّ", tr: "തദ്‌റുസു ഫാത്തിമത്തുത്ത്വിബ്ബ", ml: "ഫാത്തിമ വൈദ്യശാസ്ത്രം പഠിക്കുന്നു" },
           futureSa: { ar: "سَأَدْرُسُ لِلِامْتِحَانِ اللَّيْلَةَ", tr: "സഅദ്‌റുസു ലിൽ-ഇംതിഹാനിൽ ലയ്‌ലത", ml: "ഇന്ന് രാത്രി ഞാൻ പരീക്ഷയ്ക്കായി പഠിക്കും" },
-          futureSawfa: { ar: "سَوْفَ يَدْرُسُونَ فِي كُلِّيَّةِ اللُّغَاتِ", tr: "സൗഫ യദ്‌റുസൂന ഫീ കുല്ലിയ്യതിൽ ലുഗാതി", ml: "അവർ ഭാഷാ കോളേജിൽ പഠിക്കും" }
+          futureSawfa: { ar: "سَوْفَ يَدْرُسُونَ فِي كُلِّيَّةِ اللُّغَاتِ", tr: "സൗഫ യദ്‌റുസൂന ഫീ കുല്ലിയ്യതിൽ ലുഗാതി", ml: "അവർ ഭാഷാ കോളേജിൽ പഠിക്കും" },
+          imperative: { ar: "اُدْرُسْ دُرُوسَكَ جَيِّدًا قَبْلَ الِامْتِحَانِ", tr: "ഉദ്‌റുസ് ദുറൂസക ജയ്യിദൻ ഖബ്‌ലൽ ഇംതിഹാനി", ml: "പരീക്ഷയ്ക്ക് മുമ്പ് നിന്റെ പാഠങ്ങൾ നന്നായി അഭ്യസിക്കൂ" },
+          passivePast: { ar: "دُرِسَ الْفَصْلُ الْأَوَّلُ أَمْسِ", tr: "ദുരിസൽ ഫസ്‌ലുൽ അവ്വലു അംസി", ml: "ഒന്നാം അധ്യായം ഇന്നലെ അഭ്യസിക്കപ്പെട്ടു" },
+          passivePresent: { ar: "يُدْرَسُ التَّارِيخُ فِي الْجَامِعَةِ", tr: "യുദ്‌റസുത്താരീഖു ഫിൽ ജാമിഅതി", ml: "സർവകലാശാലയിൽ ചരിത്രം അഭ്യസിക്കപ്പെടുന്നു" }
         },
+        imperative: {
+          anta: { ar: "اُدْرُسْ", tr: "ഉദ്‌റുസ്", ml: "അഭ്യസിക്കൂ (പു.)", prefix: "اُ", stem: "دْرُس", suffix: "ْ" },
+          anti: { ar: "اُدْرُسِي", tr: "ഉദ്‌റുസീ", ml: "അഭ്യസിക്കൂ (സ്ത്രീ.)", prefix: "اُ", stem: "دْرُس", suffix: "ِي" }
+        },
+        passive: { pastBase: "دُرِسَ", pastSukunStem: "دُرِسْ", pastHumStem: "دُرِس", pastBaseTr: "ദുരിസ", pastSukunTr: "ദുരിസ്", pastHumTr: "ദുരിസൂ", presentStem: "دْرَسُ", presentAntiStem: "دْرَس", presentHumStem: "دْرَس", presentStemTr: "ദ്‌റസു", presentPluralTr: "ദ്‌റസ", pastMl: "അഭ്യസിക്കപ്പെട്ടു", presentMl: "അഭ്യസിക്കപ്പെടുന്നു" },
         rows: {
           ana: { past: { ar: "دَرَسْتُ", tr: "ദറസ്തു", ml: "ഞാൻ അഭ്യസിച്ചു", prefix: "", stem: "دَرَسْ", suffix: "تُ" }, present: { ar: "أَدْرُسُ", tr: "അദ്‌റുസു", ml: "ഞാൻ അഭ്യസിക്കുന്നു", prefix: "أَ", stem: "دْرُسُ", suffix: "" }, futureMl: "ഞാൻ അഭ്യസിക്കും" },
           nahnu: { past: { ar: "دَرَسْنَا", tr: "ദറസ്നാ", ml: "നാം അഭ്യസിച്ചു", prefix: "", stem: "دَرَسْ", suffix: "نَا" }, present: { ar: "نَدْرُسُ", tr: "നദ്‌റുസു", ml: "നാം അഭ്യസിക്കുന്നു", prefix: "نَ", stem: "دْرُسُ", suffix: "" }, futureMl: "നാം അഭ്യസിക്കും" },
@@ -9554,9 +9647,20 @@
       selectedVerbId: "dhahaba",
       tenseFilter: "all",
       futureMarker: "sa",
+      passiveTense: "past",
       highlightAffixes: true,
       activeAudioKey: null,
       activePronoun: null
+    };
+
+    const GRAMMAR_PASSIVE_SUBJ_ML = {
+      ana: "ഞാൻ",
+      nahnu: "നാം",
+      anta: "നീ (പു.)",
+      anti: "നീ (സ്ത്രീ.)",
+      huwa: "അത് / അവൻ",
+      hiya: "അത് / അവൾ",
+      hum: "അവർ"
     };
 
     function stripArabicTashkeelGrammar(val) {
@@ -9584,11 +9688,49 @@
       };
     }
 
+    function getGrammarImperativeForm(verb, pronounKey) {
+      if (pronounKey === "anta") return verb.imperative.anta;
+      if (pronounKey === "anti") return verb.imperative.anti;
+      return null;
+    }
+
+    function buildGrammarPassiveForm(verb, pronounKey, mode) {
+      const p = verb.passive;
+      const subj = GRAMMAR_PASSIVE_SUBJ_ML[pronounKey];
+      if (mode === "past") {
+        const ml = `${subj} ${p.pastMl}`;
+        if (pronounKey === "ana") return { ar: `${p.pastSukunStem}تُ`, tr: `${p.pastSukunTr}തു`, ml, prefix: "", stem: p.pastSukunStem, suffix: "تُ" };
+        if (pronounKey === "nahnu") return { ar: `${p.pastSukunStem}نَا`, tr: `${p.pastSukunTr}നാ`, ml, prefix: "", stem: p.pastSukunStem, suffix: "نَا" };
+        if (pronounKey === "anta") return { ar: `${p.pastSukunStem}تَ`, tr: `${p.pastSukunTr}ത`, ml, prefix: "", stem: p.pastSukunStem, suffix: "تَ" };
+        if (pronounKey === "anti") return { ar: `${p.pastSukunStem}تِ`, tr: `${p.pastSukunTr}തി`, ml, prefix: "", stem: p.pastSukunStem, suffix: "تِ" };
+        if (pronounKey === "huwa") return { ar: p.pastBase, tr: p.pastBaseTr, ml, prefix: "", stem: p.pastBase, suffix: "" };
+        if (pronounKey === "hiya") return { ar: `${p.pastBase}تْ`, tr: `${p.pastBaseTr}ത്`, ml, prefix: "", stem: p.pastBase, suffix: "تْ" };
+        return { ar: `${p.pastHumStem}ُوا`, tr: p.pastHumTr, ml, prefix: "", stem: p.pastHumStem, suffix: "ُوا" };
+      }
+      const ml = `${subj} ${p.presentMl}`;
+      if (pronounKey === "ana") {
+        if (p.anaPresentOverride) {
+          return { ar: `${p.anaPresentOverride.prefix}${p.anaPresentOverride.stem}`, tr: p.anaPresentOverride.tr, ml, prefix: p.anaPresentOverride.prefix, stem: p.anaPresentOverride.stem, suffix: "" };
+        }
+        return { ar: `أُ${p.presentStem}`, tr: `ഉ${p.presentStemTr}`, ml, prefix: "أُ", stem: p.presentStem, suffix: "" };
+      }
+      if (pronounKey === "nahnu") return { ar: `نُ${p.presentStem}`, tr: `നു${p.presentStemTr}`, ml, prefix: "نُ", stem: p.presentStem, suffix: "" };
+      if (pronounKey === "anta") return { ar: `تُ${p.presentStem}`, tr: `തു${p.presentStemTr}`, ml, prefix: "تُ", stem: p.presentStem, suffix: "" };
+      if (pronounKey === "anti") return { ar: `تُ${p.presentAntiStem}ِينَ`, tr: `തു${p.presentPluralTr}ീന`, ml, prefix: "تُ", stem: p.presentAntiStem, suffix: "ِينَ" };
+      if (pronounKey === "huwa") return { ar: `يُ${p.presentStem}`, tr: `യു${p.presentStemTr}`, ml, prefix: "يُ", stem: p.presentStem, suffix: "" };
+      if (pronounKey === "hiya") return { ar: `تُ${p.presentStem}`, tr: `തു${p.presentStemTr}`, ml, prefix: "تُ", stem: p.presentStem, suffix: "" };
+      return { ar: `يُ${p.presentHumStem}ُونَ`, tr: `യു${p.presentPluralTr}ൂന`, ml, prefix: "يُ", stem: p.presentHumStem, suffix: "ُونَ" };
+    }
+
     function renderGrammarArabicFormHtml(form, tense) {
       if (!grammarState.highlightAffixes) return form.ar;
-      const prefixTone = tense === "future" ? "text-[#0284C7]" : tense === "present" ? "text-[#059669]" : "text-[#B45309]";
-      const suffixTone = tense === "past" ? "text-[#B45309]" : tense === "present" ? "text-[#059669]" : "text-[#0284C7]";
-      return `${form.prefix ? `<span class="${prefixTone}">${form.prefix}</span>` : ""}<span class="text-slate-900">${form.stem}</span>${form.suffix ? `<span class="${suffixTone}">${form.suffix}</span>` : ""}`;
+      const affixTone =
+        tense === "future" ? "text-[#0284C7]" :
+        tense === "present" ? "text-[#059669]" :
+        tense === "imperative" ? "text-[#BE123C]" :
+        tense === "passive" ? "text-[#6D28D9]" :
+        "text-[#B45309]";
+      return `${form.prefix ? `<span class="${affixTone}">${form.prefix}</span>` : ""}<span class="text-slate-900">${form.stem}</span>${form.suffix ? `<span class="${affixTone}">${form.suffix}</span>` : ""}`;
     }
 
     function renderGrammarCheatSheet() {
@@ -9611,8 +9753,8 @@
         const active = btn.dataset.unitGroup === grammarState.unitGroup;
         btn.setAttribute("aria-pressed", String(active));
         btn.className = active
-          ? "grammar-group-btn px-3 py-2 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm"
-          : "grammar-group-btn px-3 py-2 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap shrink-0 text-slate-600 hover:text-slate-900";
+          ? "grammar-group-btn px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap text-center bg-white text-slate-900 shadow-sm"
+          : "grammar-group-btn px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap text-center text-slate-600 hover:text-slate-900";
       });
       document.querySelectorAll(".grammar-tense-btn").forEach(btn => {
         const active = btn.dataset.tenseFilter === grammarState.tenseFilter;
@@ -9627,6 +9769,13 @@
         btn.className = active
           ? "grammar-future-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap bg-[#0284C7] text-white"
           : "grammar-future-btn px-3 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap text-[#0369A1] hover:bg-sky-100";
+      });
+      document.querySelectorAll(".grammar-passive-btn").forEach(btn => {
+        const active = btn.dataset.passiveTense === grammarState.passiveTense;
+        btn.setAttribute("aria-pressed", String(active));
+        btn.className = active
+          ? "grammar-passive-btn px-2.5 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap bg-[#6D28D9] text-white"
+          : "grammar-passive-btn px-2.5 py-1.5 text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap text-[#5B21B6] hover:bg-violet-100";
       });
       const affixBtn = document.getElementById("grammar-affix-toggle");
       if (affixBtn) {
@@ -9697,30 +9846,48 @@
       });
 
       // 3. CSS Grid Conjugation Matrix
-      const visibleTenses = grammarState.tenseFilter === "all" ? ["past", "present", "future"] : [grammarState.tenseFilter];
-      const gridColsClass = visibleTenses.length === 3
-        ? "grid-cols-[152px_repeat(3,minmax(0,1fr))]"
+      const visibleTenses = grammarState.tenseFilter === "all"
+        ? ["past", "present", "future", "imperative", "passive"]
+        : [grammarState.tenseFilter];
+      const isAllCols = visibleTenses.length === 5;
+      const cellPad = isAllCols ? "px-2 py-2.5" : "px-4 py-3.5";
+      const headPad = isAllCols ? "px-2 py-2.5" : "px-4 py-3";
+      const gridColsClass = isAllCols
+        ? "grid-cols-[88px_repeat(5,minmax(114px,1fr))]"
         : "grid-cols-[170px_minmax(0,1fr)]";
       const gridEl = document.getElementById("grammar-conjugation-grid");
+      gridEl.className = `${isAllCols ? "min-w-[660px]" : "min-w-[380px]"} divide-y divide-slate-200`;
 
       let headerHtml = `<div class="grid ${gridColsClass} bg-slate-50 text-xs font-extrabold text-slate-700">
-        <div class="px-4 py-3 border-r border-slate-200"><div>സർവ്വനാമം</div><div class="text-[11px] font-semibold text-slate-500 mt-0.5 font-latin">Pronoun</div></div>`;
+        <div class="${headPad} border-r border-slate-200 flex flex-col justify-center"><div class="${isAllCols ? "text-[11px] leading-tight" : ""}">സർവ്വനാമം</div><div class="text-[10px] font-semibold text-slate-500 mt-0.5 font-latin">Pronoun</div></div>`;
       if (visibleTenses.includes("past")) {
-        headerHtml += `<div class="px-4 py-3 border-r border-slate-200 last:border-r-0 bg-amber-50/50">
-          <div class="flex items-baseline justify-between gap-2"><span class="text-[#92400E] whitespace-nowrap">ഭൂതകാലം</span><span dir="rtl" lang="ar" class="font-arabic text-sm font-bold text-[#B45309] shrink-0">الْمَاضِي</span></div>
-          <div class="text-[11px] font-semibold text-slate-500 mt-0.5">Past · അവസാന പ്രത്യയം</div>
+        headerHtml += `<div class="${headPad} border-r border-slate-200 last:border-r-0 bg-amber-50/50">
+          <div class="text-[#92400E] text-[11px] sm:text-xs leading-tight whitespace-nowrap">ഭൂതകാലം</div>
+          <div class="flex items-baseline justify-between gap-1 mt-0.5"><span class="text-[10px] font-semibold text-slate-500 whitespace-nowrap">Past</span><span dir="rtl" lang="ar" class="font-arabic text-sm font-bold text-[#B45309] shrink-0">الْمَاضِي</span></div>
         </div>`;
       }
       if (visibleTenses.includes("present")) {
-        headerHtml += `<div class="px-4 py-3 border-r border-slate-200 last:border-r-0 bg-emerald-50/50">
-          <div class="flex items-baseline justify-between gap-2"><span class="text-[#065F46] whitespace-nowrap">വർത്തമാനകാലം</span><span dir="rtl" lang="ar" class="font-arabic text-sm font-bold text-[#059669] shrink-0">الْمُضَارِع</span></div>
-          <div class="text-[11px] font-semibold text-slate-500 mt-0.5">Present · ആദ്യ അക്ഷരം أ ن ي ت</div>
+        headerHtml += `<div class="${headPad} border-r border-slate-200 last:border-r-0 bg-emerald-50/50">
+          <div class="text-[#065F46] text-[11px] sm:text-xs leading-tight whitespace-nowrap">വർത്തമാനം</div>
+          <div class="flex items-baseline justify-between gap-1 mt-0.5"><span class="text-[10px] font-semibold text-slate-500 whitespace-nowrap">Present</span><span dir="rtl" lang="ar" class="font-arabic text-sm font-bold text-[#059669] shrink-0">الْمُضَارِع</span></div>
         </div>`;
       }
       if (visibleTenses.includes("future")) {
-        headerHtml += `<div class="px-4 py-3 bg-sky-50/50">
-          <div class="flex items-baseline justify-between gap-2"><span class="text-[#075985] whitespace-nowrap">ഭാവികാലം</span><span dir="rtl" lang="ar" class="font-arabic text-sm font-bold text-[#0284C7] shrink-0">الْمُسْتَقْبَل</span></div>
-          <div class="text-[11px] font-semibold text-slate-500 mt-0.5">${grammarState.futureMarker === "sawfa" ? "Future · سَوْفَ + വർത്തമാനകാലം" : "Future · سَـ + വർത്തമാനകാലം"}</div>
+        headerHtml += `<div class="${headPad} border-r border-slate-200 last:border-r-0 bg-sky-50/50">
+          <div class="text-[#075985] text-[11px] sm:text-xs leading-tight whitespace-nowrap">ഭാവികാലം</div>
+          <div class="flex items-baseline justify-between gap-1 mt-0.5"><span class="text-[10px] font-semibold text-slate-500 whitespace-nowrap">${grammarState.futureMarker === "sawfa" ? "سَوْفَ" : "سَـ"}</span><span dir="rtl" lang="ar" class="font-arabic text-sm font-bold text-[#0284C7] shrink-0">الْمُسْتَقْبَل</span></div>
+        </div>`;
+      }
+      if (visibleTenses.includes("imperative")) {
+        headerHtml += `<div class="${headPad} border-r border-slate-200 last:border-r-0 bg-rose-50/50">
+          <div class="text-[#9F1239] text-[11px] sm:text-xs leading-tight whitespace-nowrap">ആജ്ഞ</div>
+          <div class="flex items-baseline justify-between gap-1 mt-0.5"><span class="text-[10px] font-semibold text-slate-500 whitespace-nowrap">Imperative</span><span dir="rtl" lang="ar" class="font-arabic text-sm font-bold text-[#BE123C] shrink-0">الْأَمْر</span></div>
+        </div>`;
+      }
+      if (visibleTenses.includes("passive")) {
+        headerHtml += `<div class="${headPad} bg-violet-50/50">
+          <div class="text-[#5B21B6] text-[11px] sm:text-xs leading-tight whitespace-nowrap">കർമ്മണി</div>
+          <div class="flex items-baseline justify-between gap-1 mt-0.5"><span class="text-[10px] font-semibold text-slate-500 whitespace-nowrap">${grammarState.passiveTense === "present" ? "يُفْعَلُ" : "فُعِلَ"}</span><span dir="rtl" lang="ar" class="font-arabic text-sm font-bold text-[#6D28D9] shrink-0">الْمَجْهُول</span></div>
         </div>`;
       }
       headerHtml += `</div>`;
@@ -9728,40 +9895,56 @@
       const rowsHtml = GRAMMAR_PRONOUNS.map(p => {
         const row = activeVerb.rows[p.key];
         const futureForm = buildGrammarFutureForm(row, grammarState.futureMarker);
+        const imperativeForm = getGrammarImperativeForm(activeVerb, p.key);
+        const passiveForm = buildGrammarPassiveForm(activeVerb, p.key, grammarState.passiveTense);
         const isRowFocused = grammarState.activePronoun === p.key;
         const cells = [
           { tense: "past", form: row.past, affixHint: p.pastAffix },
           { tense: "present", form: row.present, affixHint: p.presentAffix },
-          { tense: "future", form: futureForm, affixHint: `${grammarState.futureMarker === "sawfa" ? "سَوْفَ + " : "سَـ + "}${p.presentAffix}` }
+          { tense: "future", form: futureForm, affixHint: `${grammarState.futureMarker === "sawfa" ? "سَوْفَ + " : "سَـ + "}${p.presentAffix}` },
+          { tense: "imperative", form: imperativeForm, affixHint: p.imperativeAffix || "" },
+          { tense: "passive", form: passiveForm, affixHint: grammarState.passiveTense === "present" ? p.passivePresentAffix : p.passivePastAffix }
         ].filter(c => visibleTenses.includes(c.tense));
 
         const cellsHtml = cells.map(({ tense, form, affixHint }) => {
-          const cellKey = `${activeVerb.id}-${p.key}-${tense}-${grammarState.futureMarker}`;
+          if (!form) {
+            return `<div class="${cellPad} border-r border-slate-200 last:border-r-0 bg-slate-50/40 flex flex-col justify-center items-start gap-0.5 text-slate-400 min-w-0">
+              <span class="text-base font-bold leading-none" aria-hidden="true">—</span>
+              <span class="text-[10px] font-semibold text-slate-400 leading-snug">2-ാം പുരുഷന് മാത്രം</span>
+            </div>`;
+          }
+          const modeSuffix = tense === "future" ? grammarState.futureMarker : tense === "passive" ? grammarState.passiveTense : "std";
+          const cellKey = `${activeVerb.id}-${p.key}-${tense}-${modeSuffix}`;
           const isActiveAudio = grammarState.activeAudioKey === cellKey;
-          const activeBg = tense === "past" ? "bg-amber-50/90 ring-1 ring-inset ring-amber-300" : tense === "present" ? "bg-emerald-50/90 ring-1 ring-inset ring-emerald-300" : "bg-sky-50/90 ring-1 ring-inset ring-sky-300";
-          return `<button type="button" data-speak-ar="${form.ar}" data-audio-key="${cellKey}" data-pronoun="${p.key}" aria-label="${p.ml} ${tense}: ${form.ar} (${form.ml}) കേൾക്കുക" class="grammar-cell-btn px-4 py-3.5 border-r border-slate-200 last:border-r-0 text-left transition-colors hover:bg-slate-50 flex flex-col justify-between gap-1 ${isActiveAudio ? activeBg : ""}">
-            <div class="flex items-start justify-between gap-2">
-              <span dir="rtl" lang="ar" class="font-arabic text-2xl font-bold leading-snug">${renderGrammarArabicFormHtml(form, tense)}</span>
+          const activeBg =
+            tense === "past" ? "bg-amber-50/90 ring-1 ring-inset ring-amber-300" :
+            tense === "present" ? "bg-emerald-50/90 ring-1 ring-inset ring-emerald-300" :
+            tense === "imperative" ? "bg-rose-50/90 ring-1 ring-inset ring-rose-300" :
+            tense === "passive" ? "bg-violet-50/90 ring-1 ring-inset ring-violet-300" :
+            "bg-sky-50/90 ring-1 ring-inset ring-sky-300";
+          return `<button type="button" data-speak-ar="${form.ar}" data-audio-key="${cellKey}" data-pronoun="${p.key}" aria-label="${p.ml} ${tense}: ${form.ar} (${form.ml}) കേൾക്കുക" class="grammar-cell-btn ${cellPad} border-r border-slate-200 last:border-r-0 text-left transition-colors hover:bg-slate-50 flex flex-col justify-between gap-1 min-w-0 ${isActiveAudio ? activeBg : ""}">
+            <div class="flex items-start justify-between gap-1">
+              <span dir="rtl" lang="ar" class="font-arabic ${isAllCols ? "text-[19px]" : "text-2xl"} font-bold leading-snug">${renderGrammarArabicFormHtml(form, tense)}</span>
               <span class="text-xs ${isActiveAudio ? "text-[#0284C7]" : "text-slate-300"} shrink-0 mt-1" aria-hidden="true">🔊</span>
             </div>
-            <div>
-              <div class="text-xs font-extrabold text-slate-800">${form.ml}</div>
-              <div class="text-[11px] text-slate-500 flex items-center justify-between gap-1 mt-0.5">
+            <div class="min-w-0">
+              <div class="text-[11px] font-extrabold text-slate-800 leading-snug line-clamp-2">${form.ml}</div>
+              <div class="text-[10px] text-slate-500 flex items-center justify-between gap-1 mt-0.5">
                 <span class="truncate">${form.tr}</span>
-                ${grammarState.highlightAffixes ? (/[\u0600-\u06FF]/.test(affixHint) ? `<span dir="rtl" lang="ar" class="font-arabic text-xs font-bold text-slate-500 shrink-0">${affixHint}</span>` : `<span class="text-[11px] font-semibold text-slate-400 shrink-0">${affixHint}</span>`) : ""}
+                ${grammarState.highlightAffixes && affixHint ? (/[\u0600-\u06FF]/.test(affixHint) ? `<span dir="rtl" lang="ar" class="font-arabic text-[11px] font-bold text-slate-500 shrink-0">${affixHint}</span>` : `<span class="text-[10px] font-semibold text-slate-400 shrink-0">${affixHint}</span>`) : ""}
               </div>
             </div>
           </button>`;
         }).join("");
 
         return `<div class="grid ${gridColsClass} transition-colors ${isRowFocused ? "bg-slate-50/90" : "bg-white"}">
-          <button type="button" data-speak-ar="${p.ar}" data-audio-key="pronoun-${p.key}" data-pronoun="${p.key}" aria-label="${p.ar} (${p.ml}) കേൾക്കുക" class="grammar-cell-btn px-4 py-3.5 border-r border-slate-200 text-left hover:bg-slate-50 transition-colors flex flex-col justify-center">
-            <div class="flex items-baseline justify-between gap-2">
-              <span dir="rtl" lang="ar" class="font-arabic text-xl font-bold text-slate-900 leading-snug">${p.ar}</span>
-              <span class="text-[11px] font-semibold text-slate-400 font-latin">${p.en}</span>
+          <button type="button" data-speak-ar="${p.ar}" data-audio-key="pronoun-${p.key}" data-pronoun="${p.key}" aria-label="${p.ar} (${p.ml}) കേൾക്കുക" class="grammar-cell-btn ${cellPad} border-r border-slate-200 text-left hover:bg-slate-50 transition-colors flex flex-col justify-center min-w-0">
+            <div class="flex items-baseline justify-between gap-1">
+              <span dir="rtl" lang="ar" class="font-arabic ${isAllCols ? "text-base" : "text-xl"} font-bold text-slate-900 leading-snug">${p.ar}</span>
+              ${!isAllCols ? `<span class="text-[10px] font-semibold text-slate-400 font-latin truncate">${p.en}</span>` : ""}
             </div>
-            <div class="text-xs font-extrabold text-slate-700 mt-0.5">${p.ml}</div>
-            <div class="text-[11px] text-slate-500">${p.tr}</div>
+            <div class="${isAllCols ? "text-[11px]" : "text-xs"} font-extrabold text-slate-700 mt-0.5 truncate">${p.ml}</div>
+            <div class="text-[10px] text-slate-500 truncate">${p.tr}</div>
           </button>
           ${cellsHtml}
         </div>`;
@@ -9778,18 +9961,21 @@
         });
       });
 
-      // 4. Examples
+      // 4. Examples (5 Forms)
       const exHeading = document.getElementById("grammar-examples-heading");
       if (exHeading) exHeading.textContent = `ഉദാഹരണ വാക്യങ്ങൾ — ${activeVerb.meaningMl} (${activeVerb.baseAr})`;
       const activeFutureEx = grammarState.futureMarker === "sawfa" ? activeVerb.examples.futureSawfa : activeVerb.examples.futureSa;
+      const activePassiveEx = grammarState.passiveTense === "present" ? activeVerb.examples.passivePresent : activeVerb.examples.passivePast;
       const exItems = [
         { key: "past", label: "ഭൂതകാലം · Past", tone: "text-[#92400E]", ex: activeVerb.examples.past },
         { key: "present", label: "വർത്തമാനകാലം · Present", tone: "text-[#065F46]", ex: activeVerb.examples.present },
-        { key: "future", label: grammarState.futureMarker === "sawfa" ? "ഭാവികാലം · سَوْفَ" : "ഭാവികാലം · سَـ", tone: "text-[#075985]", ex: activeFutureEx }
+        { key: "future", label: grammarState.futureMarker === "sawfa" ? "ഭാവികാലം · سَوْفَ" : "ഭാവികാലം · سَـ", tone: "text-[#075985]", ex: activeFutureEx },
+        { key: "imperative", label: "ആജ്ഞാരൂപം · Imperative", tone: "text-[#9F1239]", ex: activeVerb.examples.imperative },
+        { key: "passive", label: grammarState.passiveTense === "present" ? "കർമ്മണി · يُفْعَلُ (വർത്തമാനം)" : "കർമ്മണി · فُعِلَ (ഭൂതം)", tone: "text-[#5B21B6]", ex: activePassiveEx }
       ];
       const exGrid = document.getElementById("grammar-examples-grid");
       exGrid.innerHTML = exItems.map(item => {
-        const exKey = `ex-${activeVerb.id}-${item.key}-${grammarState.futureMarker}`;
+        const exKey = `ex-${activeVerb.id}-${item.key}-${grammarState.futureMarker}-${grammarState.passiveTense}`;
         const playing = grammarState.activeAudioKey === exKey;
         return `<button type="button" data-speak-ar="${item.ex.ar}" data-audio-key="${exKey}" class="grammar-ex-btn p-3.5 rounded-xl border text-left transition-colors flex flex-col justify-between gap-2 ${playing ? "bg-sky-50 border-[#0284C7]" : "bg-white border-slate-200 hover:border-slate-300"}">
           <div class="flex items-center justify-between gap-2"><span class="text-[11px] font-extrabold ${item.tone}">${item.label}</span><span class="text-xs text-slate-400" aria-hidden="true">🔊</span></div>
@@ -9875,6 +10061,13 @@
         btn.addEventListener("click", () => {
           playTone("tap");
           grammarState.futureMarker = btn.dataset.futureMarker;
+          renderGrammarCheatSheet();
+        });
+      });
+      document.querySelectorAll(".grammar-passive-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          playTone("tap");
+          grammarState.passiveTense = btn.dataset.passiveTense;
           renderGrammarCheatSheet();
         });
       });

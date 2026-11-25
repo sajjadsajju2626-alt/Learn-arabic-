@@ -9,8 +9,10 @@ import {
 } from '../data/unitVideoCalls';
 import {
   buildFutureConjugation,
+  buildPassiveConjugation,
   computeVerbUnitMastery,
   filterVerbEntries,
+  getImperativeConjugation,
   PRONOUN_ROWS,
   TENSE_FORMULAS,
   VERB_CONJUGATIONS,
@@ -2213,7 +2215,7 @@ test('Matching Pairs (pairs & audio_pairs) selection switches cleanly within a c
   assert.deepEqual(collectQuestionArabicTexts(audioPairsQ), ['بَابٌ', 'كِتَابٌ']);
 });
 
-test('Grammar Cheat Sheet visualizes Past, Present, and Future verb conjugations across recent units with valid vocalized Arabic, affix splits, سَـ/سَوْفَ toggling, filtering, mastery math, and tab persistence', () => {
+test('Grammar Cheat Sheet visualizes Past, Present, Future, Imperative, and Passive Voice verb conjugations across recent units with valid vocalized Arabic, affix splits, toggles, filtering, mastery math, and tab persistence', () => {
   // 1. 'grammar' tab is valid and persists cleanly
   assert.equal(normalizeAppTab('grammar'), 'grammar');
   const mem = new Map<string, string>();
@@ -2228,15 +2230,28 @@ test('Grammar Cheat Sheet visualizes Past, Present, and Future verb conjugations
   const hydrated = hydratePersistedUserState(storage, 'grammar_tab_test', baseUser, { units: UNITS });
   assert.equal(hydrated.activeTab, 'grammar');
 
-  // 2. All 10 curriculum verbs × 7 pronouns have complete vocalized Past, Present, and Future conjugations
+  // 2. All 10 curriculum verbs × 7 pronouns have complete vocalized Past, Present, Future, Imperative (2nd person), and Passive (Past & Present) conjugations
   assert.equal(VERB_CONJUGATIONS.length, 10);
   assert.equal(PRONOUN_ROWS.length, 7);
-  assert.equal(TENSE_FORMULAS.length, 3);
+  assert.equal(TENSE_FORMULAS.length, 5);
+  assert.deepEqual(
+    TENSE_FORMULAS.map((f) => f.key),
+    ['past', 'present', 'future', 'imperative', 'passive']
+  );
 
   for (const verb of VERB_CONJUGATIONS) {
     assert.ok(/[\u064B-\u0652]/.test(verb.baseAr), `${verb.id} baseAr needs Harakat`);
     assert.ok(verb.unitNumbers.length >= 2, `${verb.id} must map to curriculum units`);
-    assert.ok(verb.examples.past.ar && verb.examples.present.ar && verb.examples.futureSa.ar && verb.examples.futureSawfa.ar);
+    assert.ok(
+      verb.examples.past.ar &&
+        verb.examples.present.ar &&
+        verb.examples.futureSa.ar &&
+        verb.examples.futureSawfa.ar &&
+        verb.examples.imperative.ar &&
+        verb.examples.passivePast.ar &&
+        verb.examples.passivePresent.ar,
+      `${verb.id} must include all 7 example sentences (past, present, futureSa, futureSawfa, imperative, passivePast, passivePresent)`
+    );
 
     for (const pronoun of PRONOUN_ROWS) {
       const row = verb.rows[pronoun.key];
@@ -2262,8 +2277,53 @@ test('Grammar Cheat Sheet visualizes Past, Present, and Future verb conjugations
       assert.equal(`${futureSawfa.prefix}${futureSawfa.stem}${futureSawfa.suffix}`, futureSawfa.ar);
       assert.equal(futureSa.ml, row.futureMl);
       assert.equal(futureSawfa.ml, row.futureMl);
+
+      // Imperative (الْأَمْر): direct imperative only on 2nd person (anta, anti)
+      const imp = getImperativeConjugation(verb, pronoun.key);
+      if (pronoun.key === 'anta' || pronoun.key === 'anti') {
+        assert.ok(imp, `${verb.id}.${pronoun.key} must have a direct Imperative form`);
+        assert.equal(
+          `${imp.prefix}${imp.stem}${imp.suffix}`,
+          imp.ar,
+          `${verb.id}.${pronoun.key}.imperative affix split must reconstruct exact Arabic form`
+        );
+        assert.ok(/[\u064B-\u0652]/.test(imp.ar), `${verb.id}.${pronoun.key}.imperative needs Harakat`);
+      } else {
+        assert.equal(imp, null, `${verb.id}.${pronoun.key} should not have a direct 2nd-person Imperative`);
+      }
+
+      // Passive Voice (الْمَجْهُول): Past (فُعِلَ) & Present (يُفْعَلُ) on all 7 pronouns
+      const passivePast = buildPassiveConjugation(verb, pronoun.key, 'past');
+      const passivePresent = buildPassiveConjugation(verb, pronoun.key, 'present');
+      assert.equal(
+        `${passivePast.prefix}${passivePast.stem}${passivePast.suffix}`,
+        passivePast.ar,
+        `${verb.id}.${pronoun.key}.passivePast affix split must reconstruct exact Arabic form`
+      );
+      assert.equal(
+        `${passivePresent.prefix}${passivePresent.stem}${passivePresent.suffix}`,
+        passivePresent.ar,
+        `${verb.id}.${pronoun.key}.passivePresent affix split must reconstruct exact Arabic form`
+      );
+      assert.ok(/[\u064B-\u0652]/.test(passivePast.ar), `${verb.id}.${pronoun.key}.passivePast needs Harakat`);
+      assert.ok(/[\u064B-\u0652]/.test(passivePresent.ar), `${verb.id}.${pronoun.key}.passivePresent needs Harakat`);
     }
   }
+
+  // Spot-check key irregular & Form III/V Imperative and Passive Arabic orthography
+  const byId = new Map(VERB_CONJUGATIONS.map((v) => [v.id, v]));
+  assert.equal(getImperativeConjugation(byId.get('kataba')!, 'anta')?.ar, 'اُكْتُبْ');
+  assert.equal(getImperativeConjugation(byId.get('akala')!, 'anta')?.ar, 'كُلْ');
+  assert.equal(getImperativeConjugation(byId.get('akala')!, 'anti')?.ar, 'كُلِي');
+  assert.equal(getImperativeConjugation(byId.get('safara')!, 'anta')?.ar, 'سَافِرْ');
+  assert.equal(getImperativeConjugation(byId.get('taallama')!, 'anta')?.ar, 'تَعَلَّمْ');
+  assert.equal(getImperativeConjugation(byId.get('darasa')!, 'anta')?.ar, 'اُدْرُسْ');
+  assert.equal(buildPassiveConjugation(byId.get('kataba')!, 'huwa', 'past').ar, 'كُتِبَ');
+  assert.equal(buildPassiveConjugation(byId.get('kataba')!, 'huwa', 'present').ar, 'يُكْتَبُ');
+  assert.equal(buildPassiveConjugation(byId.get('safara')!, 'huwa', 'past').ar, 'سُوفِرَ');
+  assert.equal(buildPassiveConjugation(byId.get('taallama')!, 'huwa', 'past').ar, 'تُعُلِّمَ');
+  assert.equal(buildPassiveConjugation(byId.get('akala')!, 'ana', 'present').ar, 'أُوكَلُ');
+  assert.equal(buildPassiveConjugation(byId.get('qaraa')!, 'hum', 'present').ar, 'يُقْرَؤُونَ');
 
   // 3. Filtering works by unit group and diacritic-insensitive Arabic / Malayalam / English search
   assert.equal(filterVerbEntries(VERB_CONJUGATIONS, { unitGroup: 'all' }).length, 10);

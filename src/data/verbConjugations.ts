@@ -1,8 +1,9 @@
 import type { Unit } from '../types/learning';
 
-export type VerbTenseKey = 'past' | 'present' | 'future';
+export type VerbTenseKey = 'past' | 'present' | 'future' | 'imperative' | 'passive';
 export type TenseFilterMode = 'all' | VerbTenseKey;
 export type FutureMarker = 'sa' | 'sawfa';
+export type PassiveTenseMode = 'past' | 'present';
 export type VerbUnitGroup = 'all' | 'core' | 'advanced';
 export type PronounRowKey = 'ana' | 'nahnu' | 'anta' | 'anti' | 'huwa' | 'hiya' | 'hum';
 
@@ -14,6 +15,9 @@ export interface PronounMeta {
   en: string;
   pastAffix: string;
   presentAffix: string;
+  imperativeAffix?: string;
+  passivePastAffix: string;
+  passivePresentAffix: string;
 }
 
 export interface ConjugationForm {
@@ -29,6 +33,28 @@ export interface PronounVerbRow {
   past: ConjugationForm;
   present: ConjugationForm;
   futureMl: string;
+}
+
+export interface ImperativeVerbForms {
+  anta: ConjugationForm;
+  anti: ConjugationForm;
+}
+
+export interface PassiveVerbSpec {
+  pastBase: string;
+  pastSukunStem: string;
+  pastHumStem: string;
+  pastBaseTr: string;
+  pastSukunTr: string;
+  pastHumTr: string;
+  presentStem: string;
+  presentAntiStem: string;
+  presentHumStem: string;
+  presentStemTr: string;
+  presentPluralTr: string;
+  pastMl: string;
+  presentMl: string;
+  anaPresentOverride?: { prefix: string; stem: string; tr: string };
 }
 
 export interface VerbExampleSentence {
@@ -52,7 +78,12 @@ export interface VerbConjugationEntry {
     present: VerbExampleSentence;
     futureSa: VerbExampleSentence;
     futureSawfa: VerbExampleSentence;
+    imperative: VerbExampleSentence;
+    passivePast: VerbExampleSentence;
+    passivePresent: VerbExampleSentence;
   };
+  imperative: ImperativeVerbForms;
+  passive: PassiveVerbSpec;
   rows: Record<PronounRowKey, PronounVerbRow>;
 }
 
@@ -87,6 +118,8 @@ export const PRONOUN_ROWS: readonly PronounMeta[] = [
     en: 'I',
     pastAffix: 'ـتُ',
     presentAffix: 'أَـ',
+    passivePastAffix: 'ـتُ (فُعِلْـ)',
+    passivePresentAffix: 'أُـ',
   },
   {
     key: 'nahnu',
@@ -96,6 +129,8 @@ export const PRONOUN_ROWS: readonly PronounMeta[] = [
     en: 'We',
     pastAffix: 'ـنَا',
     presentAffix: 'نَـ',
+    passivePastAffix: 'ـنَا (فُعِلْـ)',
+    passivePresentAffix: 'نُـ',
   },
   {
     key: 'anta',
@@ -105,6 +140,9 @@ export const PRONOUN_ROWS: readonly PronounMeta[] = [
     en: 'You (m.)',
     pastAffix: 'ـتَ',
     presentAffix: 'تَـ',
+    imperativeAffix: 'ـْ (സുകൂൻ)',
+    passivePastAffix: 'ـتَ (فُعِلْـ)',
+    passivePresentAffix: 'تُـ',
   },
   {
     key: 'anti',
@@ -114,6 +152,9 @@ export const PRONOUN_ROWS: readonly PronounMeta[] = [
     en: 'You (f.)',
     pastAffix: 'ـتِ',
     presentAffix: 'تَـ ... ـِينَ',
+    imperativeAffix: 'ـِي (സ്ത്രീ.)',
+    passivePastAffix: 'ـتِ (فُعِلْـ)',
+    passivePresentAffix: 'تُـ ... ـِينَ',
   },
   {
     key: 'huwa',
@@ -123,6 +164,8 @@ export const PRONOUN_ROWS: readonly PronounMeta[] = [
     en: 'He',
     pastAffix: 'മൂലരൂപം',
     presentAffix: 'يَـ',
+    passivePastAffix: 'فُعِلَ',
+    passivePresentAffix: 'يُـ',
   },
   {
     key: 'hiya',
@@ -132,6 +175,8 @@ export const PRONOUN_ROWS: readonly PronounMeta[] = [
     en: 'She',
     pastAffix: 'ـتْ',
     presentAffix: 'تَـ',
+    passivePastAffix: 'ـتْ (فُعِلَـ)',
+    passivePresentAffix: 'تُـ',
   },
   {
     key: 'hum',
@@ -141,6 +186,8 @@ export const PRONOUN_ROWS: readonly PronounMeta[] = [
     en: 'They (m.)',
     pastAffix: 'ـُوا',
     presentAffix: 'يَـ ... ـُونَ',
+    passivePastAffix: 'ـُوا (فُعِلـ)',
+    passivePresentAffix: 'يُـ ... ـُونَ',
   },
 ] as const;
 
@@ -177,6 +224,28 @@ export const TENSE_FORMULAS: readonly TenseFormulaCard[] = [
     negationAr: 'لَنْ يَذْهَبَ',
     negationMl: 'നിഷേധം: لَنْ + നസ്ബ് (അവസാനം ഫത്ഹ് ـَ)',
     unitsLabel: 'യൂണിറ്റ് 21 · 32',
+  },
+  {
+    key: 'imperative',
+    titleMl: 'ആജ്ഞാരൂപം',
+    titleAr: 'الْأَمْر',
+    titleEn: 'Imperative',
+    markerSummaryAr: 'اِفْعَلْ / اُفْعُلْ · اِفْعَلِي · اِفْعَلُوا',
+    formulaMl: 'രണ്ടാം പുരുഷൻ (أَنْتَ / أَنْتِ) വർത്തമാനകാലത്തിൽ നിന്ന് تَـ നീക്കി അവസാനം സുകൂൻ (ـْ) നൽകുന്നു.',
+    negationAr: 'لَا تَذْهَبْ / لَا تَذْهَبِي',
+    negationMl: 'വിലക്ക് (النَّهْي): لَا + ജസ്മ് (അവസാനം സുകൂൻ ـْ)',
+    unitsLabel: 'യൂണിറ്റ് 22 · 33',
+  },
+  {
+    key: 'passive',
+    titleMl: 'കർമ്മണി പ്രയോഗം',
+    titleAr: 'الْمَجْهُول',
+    titleEn: 'Passive Voice',
+    markerSummaryAr: 'فُعِلَ (ഭൂതം) · يُفْعَلُ (വർത്തമാനം)',
+    formulaMl: 'ഭൂതകാലത്തിൽ ആദ്യം ളമ്മ് + അവസാനത്തിന് മുമ്പ് കസ്റ് (فُعِلَ); വർത്തമാനത്തിൽ ആദ്യം ളമ്മ് + ഫത്ഹ് (يُفْعَلُ).',
+    negationAr: 'مَا كُتِبَ / لَا يُكْتَبُ',
+    negationMl: 'കർത്താവിന് പകരം കർമ്മം (نَائِبُ الْفَاعِلِ) റഫ്അ് (ـُ) സ്വീകരിക്കുന്നു.',
+    unitsLabel: 'യൂണിറ്റ് 28',
   },
 ] as const;
 
@@ -226,6 +295,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ അദ്ഹബു ഇലൽ മദീനതിൽ ഉസ്ബൂഅൽ ഖാദിമ',
         ml: 'അടുത്ത ആഴ്ച ഞാൻ നഗരത്തിലേക്ക് പോകും',
       },
+      imperative: {
+        ar: 'اِذْهَبْ إِلَى الْمَدْرَسَةِ مُبَكِّرًا',
+        tr: 'ഇദ്ഹബ് ഇലൽ മദ്റസതി മുബക്കിറൻ',
+        ml: 'നേരത്തെ സ്കൂളിലേക്ക് പോകൂ',
+      },
+      passivePast: {
+        ar: 'ذُهِبَ إِلَى السُّوقِ صَبَاحًا',
+        tr: 'ദുഹിബ ഇലസ്-സൂഖി സബാഹൻ',
+        ml: 'രാവിലെ മാർക്കറ്റിലേക്ക് പോകപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُذْهَبُ إِلَى الْمَدْرَسَةِ كُلَّ يَوْمٍ',
+        tr: 'യുദ്ഹബു ഇലൽ മദ്റസതി കുല്ല യൗമിൻ',
+        ml: 'എല്ലാ ദിവസവും സ്കൂളിലേക്ക് പോകപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'اِذْهَبْ', tr: 'ഇദ്ഹബ്', ml: 'പോകൂ (പു.)', prefix: 'اِ', stem: 'ذْهَب', suffix: 'ْ' },
+      anti: { ar: 'اِذْهَبِي', tr: 'ഇദ്ഹബീ', ml: 'പോകൂ (സ്ത്രീ.)', prefix: 'اِ', stem: 'ذْهَب', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'ذُهِبَ',
+      pastSukunStem: 'ذُهِبْ',
+      pastHumStem: 'ذُهِب',
+      pastBaseTr: 'ദുഹിബ',
+      pastSukunTr: 'ദുഹിബ്',
+      pastHumTr: 'ദുഹിബൂ',
+      presentStem: 'ذْهَبُ',
+      presentAntiStem: 'ذْهَب',
+      presentHumStem: 'ذْهَب',
+      presentStemTr: 'ദ്ഹബു',
+      presentPluralTr: 'ദ്ഹബ',
+      pastMl: 'പോകപ്പെട്ടു',
+      presentMl: 'പോകപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -296,6 +399,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ നക്തുബു ഖിസ്സതൻ ജമീലതൻ',
         ml: 'നാം മനോഹരമായ ഒരു കഥ എഴുതും',
       },
+      imperative: {
+        ar: 'اُكْتُبْ رِسَالَةً إِلَى صَدِيقِكَ',
+        tr: 'ഉക്തുബ് രിസാലതൻ ഇലാ സദീഖിക',
+        ml: 'നിന്റെ സുഹൃത്തിന് ഒരു കത്ത് എഴുതൂ',
+      },
+      passivePast: {
+        ar: 'كُتِبَ الدَّرْسُ عَلَى السَّبُّورَةِ',
+        tr: 'കുതിബദ്-ദർസു അലസ്-സബ്ബൂറതി',
+        ml: 'പാഠം ബോർഡിൽ എഴുതപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُكْتَبُ الدَّرْسُ بِخَطٍّ جَمِيلٍ',
+        tr: 'യുക്തബുദ്-ദർസു ബി-ഖത്ത്വിൻ ജമീലിൻ',
+        ml: 'പാഠം മനോഹരമായ കൈയക്ഷരത്തിൽ എഴുതപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'اُكْتُبْ', tr: 'ഉക്തുബ്', ml: 'എഴുതൂ (പു.)', prefix: 'اُ', stem: 'كْتُب', suffix: 'ْ' },
+      anti: { ar: 'اُكْتُبِي', tr: 'ഉക്തുബീ', ml: 'എഴുതൂ (സ്ത്രീ.)', prefix: 'اُ', stem: 'كْتُب', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'كُتِبَ',
+      pastSukunStem: 'كُتِبْ',
+      pastHumStem: 'كُتِب',
+      pastBaseTr: 'കുതിബ',
+      pastSukunTr: 'കുതിബ്',
+      pastHumTr: 'കുതിബൂ',
+      presentStem: 'كْتَبُ',
+      presentAntiStem: 'كْتَب',
+      presentHumStem: 'كْتَب',
+      presentStemTr: 'ക്തബു',
+      presentPluralTr: 'ക്തബ',
+      pastMl: 'എഴുതപ്പെട്ടു',
+      presentMl: 'എഴുതപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -366,6 +503,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ നഖ്റഉദ്-ദർസൽ ജദീദ ഗദൻ',
         ml: 'നാളെ നാം പുതിയ പാഠം വായിക്കും',
       },
+      imperative: {
+        ar: 'اِقْرَأِ الْكِتَابَ بِصَوْتٍ وَاضِحٍ',
+        tr: 'ഇഖ്റഇൽ കിതാബ ബി-സൗതിൻ വാളിഹിൻ',
+        ml: 'വ്യക്തമായ ശബ്ദത്തിൽ പുസ്തകം വായിക്കൂ',
+      },
+      passivePast: {
+        ar: 'قُرِئَ الْقُرْآنُ فِي الْمَسْجِدِ',
+        tr: 'ഖുരിഅൽ ഖുർആനു ഫിൽ മസ്ജിദി',
+        ml: 'പള്ളിയിൽ ഖുർആൻ വായിക്കപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُقْرَأُ الْكِتَابُ فِي الْمَكْتَبَةِ',
+        tr: 'യുഖ്റഉൽ കിതാബു ഫിൽ മക്തബതി',
+        ml: 'ലൈബ്രറിയിൽ പുസ്തകം വായിക്കപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'اِقْرَأْ', tr: 'ഇഖ്റഅ്', ml: 'വായിക്കൂ (പു.)', prefix: 'اِ', stem: 'قْرَأ', suffix: 'ْ' },
+      anti: { ar: 'اِقْرَئِي', tr: 'ഇഖ്റഈ', ml: 'വായിക്കൂ (സ്ത്രീ.)', prefix: 'اِ', stem: 'قْرَئ', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'قُرِئَ',
+      pastSukunStem: 'قُرِئْ',
+      pastHumStem: 'قُرِئ',
+      pastBaseTr: 'ഖുരിഅ',
+      pastSukunTr: 'ഖുരിഅ്',
+      pastHumTr: 'ഖുരിഊ',
+      presentStem: 'قْرَأُ',
+      presentAntiStem: 'قْرَئ',
+      presentHumStem: 'قْرَؤ',
+      presentStemTr: 'ഖ്റഉ',
+      presentPluralTr: 'ഖ്റ',
+      pastMl: 'വായിക്കപ്പെട്ടു',
+      presentMl: 'വായിക്കപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -436,6 +607,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ നശ്റബുൽ അസീറ ഫിൽ മത്അമി',
         ml: 'നാം റെസ്റ്റോറന്റിൽ ജ്യൂസ് കുടിക്കും',
       },
+      imperative: {
+        ar: 'اِشْرَبِ الْمَاءَ النَّقِيَّ كُلَّ يَوْمٍ',
+        tr: 'ഇശ്റബിൽ മാഅൻ-നഖിയ്യ കുല്ല യൗമിൻ',
+        ml: 'എല്ലാ ദിവസവും ശുദ്ധജലം കുടിക്കൂ',
+      },
+      passivePast: {
+        ar: 'شُرِبَ الْعَصِيرُ الْبَارِدُ',
+        tr: 'ശുരിബൽ അസീറുൽ ബാരിദു',
+        ml: 'തണുത്ത ജ്യൂസ് കുടിക്കപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُشْرَبُ الشَّايُ سَاخِنًا',
+        tr: 'യുശ്റബുശ്-ശായു സാഖിനൻ',
+        ml: 'ചായ ചൂടോടെ കുടിക്കപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'اِشْرَبْ', tr: 'ഇശ്റബ്', ml: 'കുടിക്കൂ (പു.)', prefix: 'اِ', stem: 'شْرَب', suffix: 'ْ' },
+      anti: { ar: 'اِشْرَبِي', tr: 'ഇശ്റബീ', ml: 'കുടിക്കൂ (സ്ത്രീ.)', prefix: 'اِ', stem: 'شْرَب', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'شُرِبَ',
+      pastSukunStem: 'شُرِبْ',
+      pastHumStem: 'شُرِب',
+      pastBaseTr: 'ശുരിബ',
+      pastSukunTr: 'ശുരിബ്',
+      pastHumTr: 'ശുരിബൂ',
+      presentStem: 'شْرَبُ',
+      presentAntiStem: 'شْرَب',
+      presentHumStem: 'شْرَب',
+      presentStemTr: 'ശ്റബു',
+      presentPluralTr: 'ശ്റബ',
+      pastMl: 'കുടിക്കപ്പെട്ടു',
+      presentMl: 'കുടിക്കപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -506,6 +711,41 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ യഅ്കുലൂനൽ അശാഅ ഫിൽ മസാഇ',
         ml: 'അവർ വൈകുന്നേരം അത്താഴം കഴിക്കും',
       },
+      imperative: {
+        ar: 'كُلْ طَعَامًا صِحِّيًّا يَا بُنَيَّ',
+        tr: 'കുൽ ത്വആമൻ സിഹ്ഹിയ്യൻ യാ ബുനയ്യ',
+        ml: 'മകനേ, ആരോഗ്യകരമായ ഭക്ഷണം കഴിക്കൂ',
+      },
+      passivePast: {
+        ar: 'أُكِلَ الطَّعَامُ كُلُّهُ',
+        tr: 'ഉകിലത്ത്വആമു കുല്ലുഹു',
+        ml: 'ഭക്ഷണം മുഴുവൻ കഴിക്കപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُؤْكَلُ التَّمْرُ فِي الصَّبَاحِ',
+        tr: 'യുഅ്കലുത്തംറു ഫിസ്-സബാഹി',
+        ml: 'രാവിലെ ഈന്തപ്പഴം കഴിക്കപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'كُلْ', tr: 'കുൽ', ml: 'കഴിക്കൂ (പു.)', prefix: '', stem: 'كُل', suffix: 'ْ' },
+      anti: { ar: 'كُلِي', tr: 'കുലീ', ml: 'കഴിക്കൂ (സ്ത്രീ.)', prefix: '', stem: 'كُل', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'أُكِلَ',
+      pastSukunStem: 'أُكِلْ',
+      pastHumStem: 'أُكِل',
+      pastBaseTr: 'ഉകില',
+      pastSukunTr: 'ഉകിൽ',
+      pastHumTr: 'ഉകിലൂ',
+      presentStem: 'ؤْكَلُ',
+      presentAntiStem: 'ؤْكَل',
+      presentHumStem: 'ؤْكَل',
+      presentStemTr: 'അ്കലു',
+      presentPluralTr: 'അ്കല',
+      pastMl: 'കഴിക്കപ്പെട്ടു',
+      presentMl: 'കഴിക്കപ്പെടുന്നു',
+      anaPresentOverride: { prefix: 'أُ', stem: 'وكَلُ', tr: 'ഊകലു' },
     },
     rows: {
       ana: {
@@ -576,6 +816,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ യഫ്തഹൂനൽ മത്ജറ ഗദൻ',
         ml: 'അവർ നാളെ കട തുറക്കും',
       },
+      imperative: {
+        ar: 'اِفْتَحِ الْبَابَ مِنْ فَضْلِكَ',
+        tr: 'ഇഫ്തഹിൽ ബാബ മിൻ ഫദ്‌ലിക',
+        ml: 'ദയവായി വാതിൽ തുറക്കൂ',
+      },
+      passivePast: {
+        ar: 'فُتِحَ الْبَابُ لِلضُّيُوفِ',
+        tr: 'ഫുതിഹൽ ബാബു ലിള്ളുയൂഫി',
+        ml: 'അതിഥികൾക്കായി വാതിൽ തുറക്കപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُفْتَحُ الْمَتْجَرُ فِي الصَّبَاحِ',
+        tr: 'യുഫ്തഹുൽ മത്ജറു ഫിസ്-സബാഹി',
+        ml: 'രാവിലെ കട തുറക്കപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'اِفْتَحْ', tr: 'ഇഫ്തഹ്', ml: 'തുറക്കൂ (പു.)', prefix: 'اِ', stem: 'فْتَح', suffix: 'ْ' },
+      anti: { ar: 'اِفْتَحِي', tr: 'ഇഫ്തഹീ', ml: 'തുറക്കൂ (സ്ത്രീ.)', prefix: 'اِ', stem: 'فْتَح', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'فُتِحَ',
+      pastSukunStem: 'فُتِحْ',
+      pastHumStem: 'فُتِح',
+      pastBaseTr: 'ഫുതിഹ',
+      pastSukunTr: 'ഫുതിഹ്',
+      pastHumTr: 'ഫുതിഹൂ',
+      presentStem: 'فْتَحُ',
+      presentAntiStem: 'فْتَح',
+      presentHumStem: 'فْتَح',
+      presentStemTr: 'ഫ്തഹു',
+      presentPluralTr: 'ഫ്തഹ',
+      pastMl: 'തുറക്കപ്പെട്ടു',
+      presentMl: 'തുറക്കപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -646,6 +920,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ നുസാഫിറു ഫിൽ ഉത്‌ലതിൽ ഖാദിമതി',
         ml: 'വരുന്ന അവധിക്കാലത്ത് നാം യാത്ര ചെയ്യും',
       },
+      imperative: {
+        ar: 'سَافِرْ مَعَ أُسْرَتِكَ فِي الْعُطْلَةِ',
+        tr: 'സാഫിർ മഅ ഉസ്റതിക ഫിൽ ഉത്‌ലതി',
+        ml: 'അവധിക്കാലത്ത് കുടുംബത്തോടൊപ്പം യാത്ര ചെയ്യൂ',
+      },
+      passivePast: {
+        ar: 'سُوفِرَ إِلَى مَكَّةَ بِالْحَافِلَةِ',
+        tr: 'സൂഫിറ ഇലാ മക്കത ബിൽ-ഹാഫിലതി',
+        ml: 'ബസ്സിൽ മക്കയിലേക്ക് യാത്ര ചെയ്യപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُسَافَرُ إِلَى الْجَبَلِ فِي الصَّيْفِ',
+        tr: 'യുസാഫറു ഇലൽ ജബലി ഫിസ്-സയ്ഫി',
+        ml: 'വേനൽക്കാലത്ത് മലയിലേക്ക് യാത്ര ചെയ്യപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'سَافِرْ', tr: 'സാഫിർ', ml: 'യാത്ര ചെയ്യൂ (പു.)', prefix: '', stem: 'سَافِر', suffix: 'ْ' },
+      anti: { ar: 'سَافِرِي', tr: 'സാഫിരീ', ml: 'യാത്ര ചെയ്യൂ (സ്ത്രീ.)', prefix: '', stem: 'سَافِر', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'سُوفِرَ',
+      pastSukunStem: 'سُوفِرْ',
+      pastHumStem: 'سُوفِر',
+      pastBaseTr: 'സൂഫിറ',
+      pastSukunTr: 'സൂഫിർ',
+      pastHumTr: 'സൂഫിറൂ',
+      presentStem: 'سَافَرُ',
+      presentAntiStem: 'سَافَر',
+      presentHumStem: 'سَافَر',
+      presentStemTr: 'സാഫറു',
+      presentPluralTr: 'സാഫറ',
+      pastMl: 'യാത്ര ചെയ്യപ്പെട്ടു',
+      presentMl: 'യാത്ര ചെയ്യപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -716,6 +1024,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ അതഅല്ലമുത്തഹദ്ദുഥ ബി-ത്വലാഖതിൻ',
         ml: 'ഞാൻ ഒഴുക്കോടെ സംസാരിക്കാൻ പഠിക്കും',
       },
+      imperative: {
+        ar: 'تَعَلَّمْ كَلِمَةً جَدِيدَةً كُلَّ يَوْمٍ',
+        tr: 'തഅല്ലം കലിമതൻ ജദീദതൻ കുല്ല യൗമിൻ',
+        ml: 'എല്ലാ ദിവസവും ഒരു പുതിയ വാക്ക് പഠിക്കൂ',
+      },
+      passivePast: {
+        ar: 'تُعُلِّمَ النَّحْوُ بِسُهُولَةٍ',
+        tr: 'തുഉല്ലിമൻ-നഹ്‌വു ബി-സുഹൂലതിൻ',
+        ml: 'വ്യാകരണം എളുപ്പത്തിൽ പഠിക്കപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُتَعَلَّمُ الْعِلْمُ بِالصَّبْرِ',
+        tr: 'യുതഅല്ലമുൽ ഇൽമു ബിസ്-സബ്‌രി',
+        ml: 'ക്ഷമയോടെ വിജ്ഞാനം പഠിക്കപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'تَعَلَّمْ', tr: 'തഅല്ലം', ml: 'പഠിക്കൂ (പു.)', prefix: '', stem: 'تَعَلَّم', suffix: 'ْ' },
+      anti: { ar: 'تَعَلَّمِي', tr: 'തഅല്ലമീ', ml: 'പഠിക്കൂ (സ്ത്രീ.)', prefix: '', stem: 'تَعَلَّم', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'تُعُلِّمَ',
+      pastSukunStem: 'تُعُلِّمْ',
+      pastHumStem: 'تُعُلِّم',
+      pastBaseTr: 'തുഉല്ലിമ',
+      pastSukunTr: 'തുഉല്ലിം',
+      pastHumTr: 'തുഉല്ലിമൂ',
+      presentStem: 'تَعَلَّمُ',
+      presentAntiStem: 'تَعَلَّم',
+      presentHumStem: 'تَعَلَّم',
+      presentStemTr: 'തഅല്ലമു',
+      presentPluralTr: 'തഅല്ലമ',
+      pastMl: 'പഠിക്കപ്പെട്ടു',
+      presentMl: 'പഠിക്കപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -786,6 +1128,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ നഅ്മലു മഅൻ ഫിൽ മശ്റൂഇ',
         ml: 'നാം പദ്ധതിയിൽ ഒരുമിച്ച് പ്രവർത്തിക്കും',
       },
+      imperative: {
+        ar: 'اِعْمَلْ بِإِخْلَاصٍ وَأَمَانَةٍ',
+        tr: 'ഇഅ്മൽ ബി-ഇഖ്‌ലാസിൻ വ അമാനതിൻ',
+        ml: 'ആത്മാർത്ഥതയോടെയും വിശ്വസ്തതയോടെയും പ്രവർത്തിക്കൂ',
+      },
+      passivePast: {
+        ar: 'عُمِلَ الْخَيْرُ لِوَجْهِ اللّٰهِ',
+        tr: 'ഉമിലൽ ഖയ്റു ലി-വജ്ഹില്ലാഹി',
+        ml: 'നന്മ പ്രവർത്തിക്കപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُعْمَلُ الْمَشْرُوعُ بِإِتْقَانٍ',
+        tr: 'യുഅ്മലുൽ മശ്റൂഉ ബി-ഇത്ഖാനിൻ',
+        ml: 'പദ്ധതി കൃത്യതയോടെ നിർവ്വഹിക്കപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'اِعْمَلْ', tr: 'ഇഅ്മൽ', ml: 'പ്രവർത്തിക്കൂ (പു.)', prefix: 'اِ', stem: 'عْمَل', suffix: 'ْ' },
+      anti: { ar: 'اِعْمَلِي', tr: 'ഇഅ്മലീ', ml: 'പ്രവർത്തിക്കൂ (സ്ത്രീ.)', prefix: 'اِ', stem: 'عْمَل', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'عُمِلَ',
+      pastSukunStem: 'عُمِلْ',
+      pastHumStem: 'عُمِل',
+      pastBaseTr: 'ഉമില',
+      pastSukunTr: 'ഉമിൽ',
+      pastHumTr: 'ഉമിലൂ',
+      presentStem: 'عْمَلُ',
+      presentAntiStem: 'عْمَل',
+      presentHumStem: 'عْمَل',
+      presentStemTr: 'അ്മലു',
+      presentPluralTr: 'അ്മല',
+      pastMl: 'ചെയ്യപ്പെട്ടു',
+      presentMl: 'ചെയ്യപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -856,6 +1232,40 @@ export const VERB_CONJUGATIONS: readonly VerbConjugationEntry[] = [
         tr: 'സൗഫ യദ്‌റുസൂന ഫീ കുല്ലിയ്യതിൽ ലുഗാതി',
         ml: 'അവർ ഭാഷാ കോളേജിൽ പഠിക്കും',
       },
+      imperative: {
+        ar: 'اُدْرُسْ دُرُوسَكَ جَيِّدًا قَبْلَ الِامْتِحَانِ',
+        tr: 'ഉദ്‌റുസ് ദുറൂസക ജയ്യിദൻ ഖബ്‌ലൽ ഇംതിഹാനി',
+        ml: 'പരീക്ഷയ്ക്ക് മുമ്പ് നിന്റെ പാഠങ്ങൾ നന്നായി അഭ്യസിക്കൂ',
+      },
+      passivePast: {
+        ar: 'دُرِسَ الْفَصْلُ الْأَوَّلُ أَمْسِ',
+        tr: 'ദുരിസൽ ഫസ്‌ലുൽ അവ്വലു അംസി',
+        ml: 'ഒന്നാം അധ്യായം ഇന്നലെ അഭ്യസിക്കപ്പെട്ടു',
+      },
+      passivePresent: {
+        ar: 'يُدْرَسُ التَّارِيخُ فِي الْجَامِعَةِ',
+        tr: 'യുദ്‌റസുത്താരീഖു ഫിൽ ജാമിഅതി',
+        ml: 'സർവകലാശാലയിൽ ചരിത്രം അഭ്യസിക്കപ്പെടുന്നു',
+      },
+    },
+    imperative: {
+      anta: { ar: 'اُدْرُسْ', tr: 'ഉദ്‌റുസ്', ml: 'അഭ്യസിക്കൂ (പു.)', prefix: 'اُ', stem: 'دْرُس', suffix: 'ْ' },
+      anti: { ar: 'اُدْرُسِي', tr: 'ഉദ്‌റുസീ', ml: 'അഭ്യസിക്കൂ (സ്ത്രീ.)', prefix: 'اُ', stem: 'دْرُس', suffix: 'ِي' },
+    },
+    passive: {
+      pastBase: 'دُرِسَ',
+      pastSukunStem: 'دُرِسْ',
+      pastHumStem: 'دُرِس',
+      pastBaseTr: 'ദുരിസ',
+      pastSukunTr: 'ദുരിസ്',
+      pastHumTr: 'ദുരിസൂ',
+      presentStem: 'دْرَسُ',
+      presentAntiStem: 'دْرَس',
+      presentHumStem: 'دْرَس',
+      presentStemTr: 'ദ്‌റസു',
+      presentPluralTr: 'ദ്‌റസ',
+      pastMl: 'അഭ്യസിക്കപ്പെട്ടു',
+      presentMl: 'അഭ്യസിക്കപ്പെടുന്നു',
     },
     rows: {
       ana: {
@@ -928,6 +1338,82 @@ export function buildFutureConjugation(
     stem: present.stem,
     suffix: present.suffix,
   };
+}
+
+export function getImperativeConjugation(
+  verb: VerbConjugationEntry,
+  pronounKey: PronounRowKey
+): ConjugationForm | null {
+  if (pronounKey === 'anta') return verb.imperative.anta;
+  if (pronounKey === 'anti') return verb.imperative.anti;
+  return null;
+}
+
+const PASSIVE_PRONOUN_ML_SUBJECT: Record<PronounRowKey, string> = {
+  ana: 'ഞാൻ',
+  nahnu: 'നാം',
+  anta: 'നീ (പു.)',
+  anti: 'നീ (സ്ത്രീ.)',
+  huwa: 'അത് / അവൻ',
+  hiya: 'അത് / അവൾ',
+  hum: 'അവർ',
+};
+
+export function buildPassiveConjugation(
+  verb: VerbConjugationEntry,
+  pronounKey: PronounRowKey,
+  mode: PassiveTenseMode
+): ConjugationForm {
+  const p = verb.passive;
+  const subjMl = PASSIVE_PRONOUN_ML_SUBJECT[pronounKey];
+
+  if (mode === 'past') {
+    const ml = `${subjMl} ${p.pastMl}`;
+    switch (pronounKey) {
+      case 'ana':
+        return { ar: `${p.pastSukunStem}تُ`, tr: `${p.pastSukunTr}തു`, ml, prefix: '', stem: p.pastSukunStem, suffix: 'تُ' };
+      case 'nahnu':
+        return { ar: `${p.pastSukunStem}نَا`, tr: `${p.pastSukunTr}നാ`, ml, prefix: '', stem: p.pastSukunStem, suffix: 'نَا' };
+      case 'anta':
+        return { ar: `${p.pastSukunStem}تَ`, tr: `${p.pastSukunTr}ത`, ml, prefix: '', stem: p.pastSukunStem, suffix: 'تَ' };
+      case 'anti':
+        return { ar: `${p.pastSukunStem}تِ`, tr: `${p.pastSukunTr}തി`, ml, prefix: '', stem: p.pastSukunStem, suffix: 'تِ' };
+      case 'huwa':
+        return { ar: p.pastBase, tr: p.pastBaseTr, ml, prefix: '', stem: p.pastBase, suffix: '' };
+      case 'hiya':
+        return { ar: `${p.pastBase}تْ`, tr: `${p.pastBaseTr}ത്`, ml, prefix: '', stem: p.pastBase, suffix: 'تْ' };
+      case 'hum':
+        return { ar: `${p.pastHumStem}ُوا`, tr: p.pastHumTr, ml, prefix: '', stem: p.pastHumStem, suffix: 'ُوا' };
+    }
+  }
+
+  const ml = `${subjMl} ${p.presentMl}`;
+  switch (pronounKey) {
+    case 'ana':
+      if (p.anaPresentOverride) {
+        return {
+          ar: `${p.anaPresentOverride.prefix}${p.anaPresentOverride.stem}`,
+          tr: p.anaPresentOverride.tr,
+          ml,
+          prefix: p.anaPresentOverride.prefix,
+          stem: p.anaPresentOverride.stem,
+          suffix: '',
+        };
+      }
+      return { ar: `أُ${p.presentStem}`, tr: `ഉ${p.presentStemTr}`, ml, prefix: 'أُ', stem: p.presentStem, suffix: '' };
+    case 'nahnu':
+      return { ar: `نُ${p.presentStem}`, tr: `നു${p.presentStemTr}`, ml, prefix: 'نُ', stem: p.presentStem, suffix: '' };
+    case 'anta':
+      return { ar: `تُ${p.presentStem}`, tr: `തു${p.presentStemTr}`, ml, prefix: 'تُ', stem: p.presentStem, suffix: '' };
+    case 'anti':
+      return { ar: `تُ${p.presentAntiStem}ِينَ`, tr: `തു${p.presentPluralTr}ീന`, ml, prefix: 'تُ', stem: p.presentAntiStem, suffix: 'ِينَ' };
+    case 'huwa':
+      return { ar: `يُ${p.presentStem}`, tr: `യു${p.presentStemTr}`, ml, prefix: 'يُ', stem: p.presentStem, suffix: '' };
+    case 'hiya':
+      return { ar: `تُ${p.presentStem}`, tr: `തു${p.presentStemTr}`, ml, prefix: 'تُ', stem: p.presentStem, suffix: '' };
+    case 'hum':
+      return { ar: `يُ${p.presentHumStem}ُونَ`, tr: `യു${p.presentPluralTr}ൂന`, ml, prefix: 'يُ', stem: p.presentHumStem, suffix: 'ُونَ' };
+  }
 }
 
 export function filterVerbEntries(
