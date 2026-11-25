@@ -576,10 +576,16 @@ export const UNITS: Unit[] = expandUnitsToEightNodes(BASE_UNITS);
 export const PLACEMENT_QUESTIONS: LessonQuestion[] = [
   {
     type: 'mcq',
-    prompt: "ചോദ്യം 1/8: 'ജി' (Ji) എന്ന ശബ്ദമുള്ള അക്ഷരം ഏതാണ്?",
-    options: ['جَ', 'جِ', 'جُ', 'حِ'],
+    prompt: "ചോദ്യം 1/8: 'സുപ്രഭാതം' (Good morning) എന്ന് അറബിയിൽ എങ്ങനെ പറയും?",
+    options: ['صَبَاحُ الْخَيْرِ', 'مَسَاءُ الْخَيْرِ', 'مَعَ السَّلَامَةِ', 'عَفْوًا'],
     isArabicOption: true,
-    answer: 'جِ',
+    optionTranslits: {
+      'صَبَاحُ الْخَيْرِ': 'സ്വബാഹുൽ ഖൈർ',
+      'مَسَاءُ الْخَيْرِ': 'മസാഉൽ ഖൈർ',
+      'مَعَ السَّلَامَةِ': 'മഅസ്സലാമ',
+      'عَفْوًا': 'അഫ്‌വൻ',
+    },
+    answer: 'صَبَاحُ الْخَيْرِ',
   },
   {
     type: 'mcq',

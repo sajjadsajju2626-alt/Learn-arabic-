@@ -3803,7 +3803,7 @@
     const UNITS = expandUnitsToEightNodes(BASE_UNITS);
 
     const PLACEMENT_QUESTIONS = [
-      { type: "mcq", prompt: "ചോദ്യം 1/8: 'ജി' (Ji) എന്ന ശബ്ദമുള്ള അക്ഷരം ഏതാണ്?", options: ["جَ", "جِ", "جُ", "حِ"], isArabicOption: true, answer: "جِ" },
+      { type: "mcq", prompt: "ചോദ്യം 1/8: 'സുപ്രഭാതം' (Good morning) എന്ന് അറബിയിൽ എങ്ങനെ പറയും?", options: ["صَبَاحُ الْخَيْرِ", "مَسَاءُ الْخَيْرِ", "مَعَ السَّلَامَةِ", "عَفْوًا"], isArabicOption: true, optionTranslits: { "صَبَاحُ الْخَيْرِ": "സ്വബാഹുൽ ഖൈർ", "مَسَاءُ الْخَيْرِ": "മസാഉൽ ഖൈർ", "مَعَ السَّلَامَةِ": "മഅസ്സലാമ", "عَفْوًا": "അഫ്‌വൻ" }, answer: "صَبَاحُ الْخَيْرِ" },
       { type: "mcq", prompt: "ചോദ്യം 2/8: 'ശുക്റൻ' (شُكْرًا) എന്നതിന്റെ അർത്ഥം?", arabic: "شُكْرًا", translit: "ശുക്റൻ", options: ["നന്ദി", "സ്വാഗതം", "ക്ഷമിക്കണം", "വിട"], answer: "നന്ദി" },
       { type: "mcq", prompt: "ചോദ്യം 3/8: 'നിങ്ങൾക്ക് സുഖമാണോ?' എന്ന് അറബിയിൽ എങ്ങനെ ചോദിക്കും?", options: ["كَيْفَ حَالُكَ؟", "مَا اسْمُكَ؟", "أَيْنَ بَيْتُكَ؟", "مَنْ أَنْتَ؟"], isArabicOption: true, optionTranslits: { "كَيْفَ حَالُكَ؟": "കൈഫ ഹാലുക?", "مَا اسْمُكَ؟": "മസ്മുക?", "أَيْنَ بَيْتُكَ؟": "അയ്ന ബയ്തുക?", "مَنْ أَنْتَ؟": "മൻ അൻത?" }, answer: "كَيْفَ حَالُكَ؟" },
       { type: "mcq", prompt: "ചോദ്യം 4/8: 'അവൾ' എന്നതിന്റെ അറബി സർവ്വനാമം ഏതാണ്?", options: ["أَنَا", "أَنْتَ", "هُوَ", "هِيَ"], isArabicOption: true, optionTranslits: { "أَنَا": "അനാ", "أَنْتَ": "അൻത", "هُوَ": "ഹുവ", "هِيَ": "ഹിയ" }, answer: "هِيَ" },
@@ -5469,8 +5469,52 @@
       return Boolean(normExpected) && normUser === normExpected;
     }
 
+    const ALPHABET_MAX_UNIT_NUMBER = 4;
     const SPEAK_MIN_UNIT_NUMBER = 20;
     const SPEAK_MATCH_THRESHOLD = 0.7;
+
+    function getUnitNumberFromLessonId(lessonId) {
+      if (!lessonId) return null;
+      const m = /^u(\d+)_/i.exec(String(lessonId).trim());
+      if (!m) return null;
+      const parsed = parseInt(m[1], 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
+
+    const BASIC_ALPHABET_PROMPT_PATTERN = /(അക്ഷരം\s*(ഏതാണ്|തിരഞ്ഞെടുക്കുക)|അക്ഷരത്തിന്റെ\s*ഉച്ചാരണം|അക്ഷരങ്ങളും|പുള്ളികളുള്ള\s*അക്ഷരം|ഹറകത്തുള്ള\s*അക്ഷര|ശരിയായ\s*ഹറകത്ത്\s*തിരഞ്ഞെടുക്കുക|ചെറിയ\s*വര\s*\(|ശബ്ദം\s*നൽകുന്ന\s*അക്ഷരം|ശബ്ദമുള്ള\s*അക്ഷരം)/;
+
+    function countBareArabicLetters(text) {
+      if (!text) return 0;
+      const matches = String(text).normalize("NFC").match(/[\u0621-\u064A]/g);
+      return matches ? matches.length : 0;
+    }
+
+    function isSingleArabicLetterOption(option) {
+      if (countBareArabicLetters(option) !== 1) return false;
+      const nonArabicRemainder = String(option)
+        .normalize("NFC")
+        .replace(/[\u0600-\u06FF\s()[\]'".,!?:/\-–—·]+/g, "");
+      return nonArabicRemainder.length <= 14;
+    }
+
+    function isBasicAlphabetOrHarakatQuestion(q) {
+      if (!q) return false;
+      if (BASIC_ALPHABET_PROMPT_PATTERN.test(q.prompt || "")) return true;
+      if (q.type === "mcq" || q.type === "listen" || q.type === "dictation" || q.type === "speak") {
+        if (q.arabic && countBareArabicLetters(q.arabic) === 1) return true;
+      }
+      if (q.type === "mcq" || q.type === "listen") {
+        if (Array.isArray(q.options) && q.options.length > 0 && q.options.every(isSingleArabicLetterOption)) {
+          return true;
+        }
+      }
+      if (isPairsQuestion(q)) {
+        if (Array.isArray(q.pairs) && q.pairs.length > 0 && q.pairs.every(p => countBareArabicLetters(p.ar) === 1)) {
+          return true;
+        }
+      }
+      return false;
+    }
 
     function normalizeArabicSpeech(text) {
       return normalizeArabicDictation(text).replace(/ة/g, "ه");
@@ -5569,11 +5613,13 @@
       const seenAr = new Set();
       const seenMl = new Set();
       const clean = [];
+      const disallowSingleLetter = unit.number > ALPHABET_MAX_UNIT_NUMBER;
       const pushEntry = (ar, tr, ml) => {
         const cleanAr = String(ar || "").trim();
         const cleanMl = String(ml || "").trim();
         if (!cleanAr || !cleanMl) return;
         if (/[→\/]/.test(cleanAr)) return;
+        if (disallowSingleLetter && countBareArabicLetters(cleanAr) < 2) return;
         const arKey = normalizeWordBankText(cleanAr);
         const mlKey = cleanMl.toLowerCase();
         if (!arKey || seenAr.has(arKey) || seenMl.has(mlKey)) return;
@@ -5729,6 +5775,7 @@
           }
         });
       });
+      if (unit.number > ALPHABET_MAX_UNIT_NUMBER) return multiLetter;
       return multiLetter.length >= 3 ? multiLetter : [...multiLetter, ...singleLetter];
     }
 
@@ -5775,7 +5822,10 @@
       const seen = new Set();
       const cloneQ = q => JSON.parse(JSON.stringify(q));
 
+      const disallowBasicAlphabet = Boolean(unit && unit.number > ALPHABET_MAX_UNIT_NUMBER);
+
       const tryAccept = (list, q, markSpacedRepetition = false) => {
+        if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return false;
         const fp = getQuestionFingerprint(q);
         if (seen.has(fp)) return false;
         seen.add(fp);
@@ -5793,15 +5843,24 @@
       });
 
       const spacedRepetition = [];
-      if (unitIndex > 0 && Array.isArray(completedLessons) && completedLessons.length > 0) {
+      const minSrUnitIndex =
+        unit && unit.number >= ALPHABET_MAX_UNIT_NUMBER + 2
+          ? ALPHABET_MAX_UNIT_NUMBER
+          : disallowBasicAlphabet
+            ? 1
+            : 0;
+      if (unitIndex > minSrUnitIndex && Array.isArray(completedLessons) && completedLessons.length > 0) {
         const completedSet = new Set(completedLessons);
         const earlierPool = [];
-        for (let i = 0; i < unitIndex; i++) {
+        for (let i = minSrUnitIndex; i < unitIndex; i++) {
           const earlierUnit = units[i];
           if (!earlierUnit.lessons.some(l => completedSet.has(l.id))) continue;
           earlierUnit.lessons.forEach(l => {
             if (l.nodeType === "chest" || l.nodeType === "video_call" || !Array.isArray(l.questions)) return;
-            l.questions.forEach(q => earlierPool.push(q));
+            l.questions.forEach(q => {
+              if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return;
+              earlierPool.push(q);
+            });
           });
         }
         const shuffledEarlier = shuffleArray(earlierPool);
@@ -5820,19 +5879,28 @@
       if (unit) {
         unit.lessons.forEach(sibling => {
           if (sibling.id === lesson.id || sibling.nodeType === "chest" || sibling.nodeType === "video_call") return;
-          (sibling.questions || []).forEach(q => siblingHandcrafted.push(q));
+          (sibling.questions || []).forEach(q => {
+            if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return;
+            siblingHandcrafted.push(q);
+          });
         });
       }
-      const dynamicUnitQs = unit ? generateDynamicUnitQuestions(unit) : [];
+      const dynamicUnitQs = unit
+        ? generateDynamicUnitQuestions(unit).filter(q => !(disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)))
+        : [];
       const unitPool = [...shuffleArray(siblingHandcrafted), ...shuffleArray(dynamicUnitQs)];
 
       const fallbackPool = [];
       if (unitPool.length < 15) {
         units.forEach(u => {
           if (unit && u.id === unit.id) return;
+          if (disallowBasicAlphabet && u.number <= ALPHABET_MAX_UNIT_NUMBER) return;
           u.lessons.forEach(l => {
             if (l.nodeType === "chest" || l.nodeType === "video_call") return;
-            (l.questions || []).forEach(q => fallbackPool.push(q));
+            (l.questions || []).forEach(q => {
+              if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return;
+              fallbackPool.push(q);
+            });
           });
         });
       }
@@ -5984,6 +6052,10 @@
 
     function enqueueMistakeForReview(missedQuestion) {
       if (!activeSession || activeSession.mode !== "lesson") return false;
+      const activeUnitNum = getUnitNumberFromLessonId(activeSession.lessonId);
+      if (activeUnitNum && activeUnitNum > ALPHABET_MAX_UNIT_NUMBER && isBasicAlphabetOrHarakatQuestion(missedQuestion)) {
+        return false;
+      }
       const copy = JSON.parse(JSON.stringify(missedQuestion));
       copy.isReview = true;
       delete copy.isSpacedRepetition;
@@ -6019,7 +6091,10 @@
     function buildLegendarySessionQuestions(lesson, units) {
       const basePool = buildLessonSessionQuestions(lesson, [], units);
       const unit = units.find(u => u.lessons.some(l => l.id === lesson.id));
-      const extraDynamic = unit ? generateDynamicUnitQuestions(unit) : [];
+      const disallowBasicAlphabet = Boolean(unit && unit.number > ALPHABET_MAX_UNIT_NUMBER);
+      const extraDynamic = unit
+        ? generateDynamicUnitQuestions(unit).filter(q => !(disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)))
+        : [];
       const combined = [...basePool, ...shuffleArray(extraDynamic)];
       const rank = q => {
         if (q.type === "dictation") return 0;
@@ -6359,11 +6434,21 @@
       const seenGlobal = new Set();
       const buckets = { multiple_choice: [], translation_tiles: [], audio_listening: [], matching_pairs: [] };
 
-      for (let i = 0; i < maxUnits; i++) {
+      const targetUnitNumber = targetUnitIndex + 1;
+      const disallowBasicAlphabet = targetUnitNumber > ALPHABET_MAX_UNIT_NUMBER;
+      const startUnitIndex =
+        targetUnitNumber >= ALPHABET_MAX_UNIT_NUMBER + 2
+          ? ALPHABET_MAX_UNIT_NUMBER
+          : targetUnitNumber === ALPHABET_MAX_UNIT_NUMBER + 1
+            ? 1
+            : 0;
+
+      for (let i = startUnitIndex; i < maxUnits; i++) {
         UNITS[i].lessons.forEach(l => {
           if (l.nodeType === "chest" || l.nodeType === "video_call" || !Array.isArray(l.questions)) return;
           l.questions.forEach(q => {
             if (q.type === "speak") return;
+            if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return;
             const bucket = classifyJumpQuestionBucket(q);
             if (!bucket) return;
             const fp = getQuestionFingerprint(q);

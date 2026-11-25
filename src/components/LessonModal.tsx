@@ -26,6 +26,7 @@ import {
   evaluateSessionOutcome,
   evaluateSpeechMatch,
   fisherYatesShuffle,
+  getUnitNumberFromLessonId,
   isPairsQuestion,
   isPodcastQuestion,
   MAX_HEARTS,
@@ -620,7 +621,10 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       playTone('wrong', soundEnabled);
       deductHeart();
       if (session.mode === 'lesson') {
-        setQuestionQueue((prev) => enqueueMistakeForReview(prev, question, session.mode));
+        const activeUnitNumber = getUnitNumberFromLessonId(session.lessonId) ?? undefined;
+        setQuestionQueue((prev) =>
+          enqueueMistakeForReview(prev, question, session.mode, Math.random, activeUnitNumber)
+        );
       }
       setFeedback({
         isCorrect: false,

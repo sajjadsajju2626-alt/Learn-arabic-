@@ -25,6 +25,7 @@ import {
   stripQuotedEcho,
 } from './videoCallConversation';
 import {
+  ALPHABET_MAX_UNIT_NUMBER,
   ALL_QUESTION_TYPES,
   applySessionResult,
   ARABIC_QUICK_KEYS,
@@ -54,7 +55,9 @@ import {
   getAllLessonIds,
   getLetterDisplay,
   getQuestionFingerprint,
+  getUnitNumberFromLessonId,
   hydratePersistedUserState,
+  isBasicAlphabetOrHarakatQuestion,
   isLessonUnlocked,
   isPairsQuestion,
   isPodcastQuestion,
@@ -2355,6 +2358,198 @@ test('Grammar Cheat Sheet visualizes Past, Present, Future, Imperative, and Pass
   assert.equal(row18.totalCount, unit18.lessons.length);
   assert.equal(row18.percent, Math.round((4 / unit18.lessons.length) * 100));
 });
+
+test('basic Alphabet and single-letter Harakat recognition questions are strictly restricted to Units 1-4 across all lessons, Hard Practice, Mistake Review, Placement, and Unit 5-35 Jump-Ahead Entry Tests', () => {
+  assert.equal(ALPHABET_MAX_UNIT_NUMBER, 4);
+  assert.equal(getUnitNumberFromLessonId('u1_n1'), 1);
+  assert.equal(getUnitNumberFromLessonId('u5_n7'), 5);
+  assert.equal(getUnitNumberFromLessonId('u21_n8'), 21);
+  assert.equal(getUnitNumberFromLessonId(null), null);
+
+  // 1. Classifier catches basic Alphabet & single-letter Harakat questions accurately
+  const sampleDuQuestion = {
+    type: 'mcq' as const,
+    prompt: "'ദു' (Du) എന്ന ശബ്ദം നൽകുന്ന അക്ഷരം ഏതാണ്?",
+    options: ['دَ', 'دِ', 'دُ', 'رُ'],
+    isArabicOption: true,
+    answer: 'دُ',
+  };
+  const sampleJiQuestion = {
+    type: 'mcq' as const,
+    prompt: "ചോദ്യം 1/8: 'ജി' (Ji) എന്ന ശബ്ദമുള്ള അക്ഷരം ഏതാണ്?",
+    options: ['جَ', 'جِ', 'جُ', 'حِ'],
+    isArabicOption: true,
+    answer: 'جِ',
+  };
+  assert.equal(isBasicAlphabetOrHarakatQuestion(sampleDuQuestion), true);
+  assert.equal(isBasicAlphabetOrHarakatQuestion(sampleJiQuestion), true);
+
+  // Unit 1 still preserves its Alphabet & Harakat curriculum
+  const u1AlphabetCount = UNITS[0].lessons
+    .flatMap((l) => l.questions)
+    .filter((q) => isBasicAlphabetOrHarakatQuestion(q)).length;
+  assert.ok(u1AlphabetCount >= 15, `Unit 1 must retain basic alphabet & Harakat questions (found ${u1AlphabetCount})`);
+
+  // Zero false positives across all handcrafted Units 5-35 questions (including I'rab grammar in Units 27, 32-35)
+  for (let uIdx = 4; uIdx < UNITS.length; uIdx++) {
+    const unit = UNITS[uIdx];
+    for (const lesson of unit.lessons) {
+      for (const q of lesson.questions) {
+        assert.equal(
+          isBasicAlphabetOrHarakatQuestion(q),
+          false,
+          `Unit ${unit.number} (${lesson.id}) handcrafted question should not be classified as basic alphabet: ${q.prompt}`
+        );
+      }
+    }
+  }
+
+  // 2. Placement Test (Unit 5 placement jump) has ZERO basic Alphabet/Harakat questions
+  assert.equal(PLACEMENT_QUESTIONS.length, 8);
+  for (const q of PLACEMENT_QUESTIONS) {
+    assert.equal(
+      isBasicAlphabetOrHarakatQuestion(q),
+      false,
+      `Placement Test (Unit 5 jump) must not contain basic alphabet/Harakat question: ${q.prompt}`
+    );
+  }
+
+  // Build fingerprint lookup maps per unit range
+  const unit1to4Fps = new Set<string>();
+  const unit1Fps = new Set<string>();
+  for (let i = 0; i < 4; i++) {
+    for (const l of UNITS[i].lessons) {
+      for (const q of l.questions) {
+        const fp = getQuestionFingerprint(q);
+        unit1to4Fps.add(fp);
+        if (i === 0) unit1Fps.add(fp);
+      }
+    }
+  }
+
+  // 3. Jump-Ahead Entry Tests from Unit 5 through Unit 35:
+  //    - Zero basic alphabet/Harakat questions for ALL N = 5..35
+  //    - For N = 6..35 (including Unit 21 & Unit 35), every question is sampled strictly from Units 5..N-1
+  //    - For N = 5 (targetUnitIndex = 4), every question comes from Units 2..4 (zero Unit 1 alphabet)
+  for (let targetUnitIndex = 4; targetUnitIndex < UNITS.length; targetUnitIndex++) {
+    const targetUnitNumber = targetUnitIndex + 1;
+    const jumpQs = buildUnitJumpQuestions(targetUnitIndex, UNITS, JUMP_TEST_QUESTION_COUNT);
+    assert.equal(jumpQs.length, 15, `Unit ${targetUnitNumber} Jump Test must have 15 questions`);
+
+    const allowedRangeFps = new Set<string>();
+    const startIdx = targetUnitNumber >= 6 ? 4 : 1;
+    for (let i = startIdx; i < targetUnitIndex; i++) {
+      for (const l of UNITS[i].lessons) {
+        if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
+        for (const q of l.questions) {
+          if (q.type === 'speak') continue;
+          allowedRangeFps.add(getQuestionFingerprint(q));
+        }
+      }
+    }
+
+    for (const q of jumpQs) {
+      assert.equal(
+        isBasicAlphabetOrHarakatQuestion(q),
+        false,
+        `Unit ${targetUnitNumber} Entry Test leaked alphabet/Harakat question: ${q.prompt}`
+      );
+      const fp = getQuestionFingerprint(q);
+      assert.equal(
+        allowedRangeFps.has(fp),
+        true,
+        `Unit ${targetUnitNumber} Entry Test question must come strictly from Units ${startIdx + 1}-${targetUnitNumber - 1}: ${q.prompt}`
+      );
+      if (targetUnitNumber >= 6) {
+        assert.equal(
+          unit1to4Fps.has(fp),
+          false,
+          `Unit ${targetUnitNumber} Entry Test must NEVER sample from Units 1-4: ${q.prompt}`
+        );
+      } else {
+        assert.equal(
+          unit1Fps.has(fp),
+          false,
+          `Unit 5 Entry Test must NEVER sample from Unit 1: ${q.prompt}`
+        );
+      }
+    }
+  }
+
+  // 4. All Lessons, Hard Practice, Trophy, Review, and Legendary sessions in Units 5-35
+  //    with all preceding units (including Unit 1) marked completed must have ZERO alphabet/Harakat questions
+  let seed = 9137;
+  const rng = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+  for (let uIdx = 4; uIdx < UNITS.length; uIdx++) {
+    const unit = UNITS[uIdx];
+    const priorCompleted = unlockLessonsUpToUnit([], uIdx, UNITS);
+    for (const lesson of unit.lessons) {
+      if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call') continue;
+      const sessionQs = buildLessonSessionQuestions(lesson, priorCompleted, UNITS, rng);
+      for (const q of sessionQs) {
+        assert.equal(
+          isBasicAlphabetOrHarakatQuestion(q),
+          false,
+          `Unit ${unit.number} (${lesson.id} ${lesson.nodeType}) session leaked alphabet/Harakat question: ${q.prompt}`
+        );
+        if (q.isSpacedRepetition) {
+          if (unit.number >= 6) {
+            assert.equal(
+              unit1to4Fps.has(getQuestionFingerprint(q)),
+              false,
+              `Unit ${unit.number} (${lesson.id}) Spaced Repetition must not pull from Units 1-4: ${q.prompt}`
+            );
+          } else {
+            assert.equal(
+              unit1Fps.has(getQuestionFingerprint(q)),
+              false,
+              `Unit 5 (${lesson.id}) Spaced Repetition must not pull from Unit 1: ${q.prompt}`
+            );
+          }
+        }
+      }
+      if (lesson.nodeType === 'hard' || lesson.nodeType === 'trophy') {
+        const revQs = buildReviewSessionQuestions(lesson, UNITS, rng);
+        const legQs = buildLegendarySessionQuestions(lesson, UNITS, rng);
+        for (const q of [...revQs, ...legQs]) {
+          assert.equal(
+            isBasicAlphabetOrHarakatQuestion(q),
+            false,
+            `Unit ${unit.number} (${lesson.id}) review/legendary leaked alphabet/Harakat question: ${q.prompt}`
+          );
+        }
+      }
+    }
+  }
+
+  // 5. Mistake Review refuses to enqueue basic alphabet/Harakat questions in Units 5-35,
+  //    while continuing to re-queue normally in Units 1-4 and for vocabulary/grammar in Units 5-35
+  const u5VocabQ = UNITS[4].lessons[0].questions[0];
+  assert.equal(
+    enqueueMistakeForReview([u5VocabQ], sampleDuQuestion, 'lesson', rng, 5).length,
+    1,
+    'Unit 5 Mistake Review must reject basic alphabet/Harakat questions'
+  );
+  assert.equal(
+    enqueueMistakeForReview([u5VocabQ], sampleDuQuestion, 'lesson', rng, 21).length,
+    1,
+    'Unit 21 Mistake Review must reject basic alphabet/Harakat questions'
+  );
+  assert.equal(
+    enqueueMistakeForReview([u5VocabQ], u5VocabQ, 'lesson', rng, 5).length,
+    2,
+    'Unit 5 Mistake Review must still re-queue normal Unit 5 vocabulary/grammar questions'
+  );
+  assert.equal(
+    enqueueMistakeForReview([sampleDuQuestion], sampleDuQuestion, 'lesson', rng, 1).length,
+    2,
+    'Unit 1 Mistake Review must still re-queue Unit 1 Harakat questions'
+  );
+});
+
 
 
 

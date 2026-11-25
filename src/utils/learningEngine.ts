@@ -36,8 +36,78 @@ export const JUMP_TEST_PASS_SCORE = 12;
 export const JUMP_TEST_HEARTS = 3;
 export const TREASURE_CHEST_XP = 25;
 export const TREASURE_CHEST_HEARTS = 1;
+export const ALPHABET_MAX_UNIT_NUMBER = 4;
 export const MISTAKE_REVIEW_BANNER_TEXT =
   "🔄 തെറ്റിയവ ശരിയാക്കാം! (Let's correct the ones you missed)";
+
+export function getUnitNumberFromLessonId(lessonId?: string | null): number | null {
+  if (!lessonId) return null;
+  const match = /^u(\d+)_/i.exec(lessonId.trim());
+  if (!match) return null;
+  const parsed = Number.parseInt(match[1], 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+const BASIC_ALPHABET_PROMPT_PATTERN =
+  /(അക്ഷരം\s*(ഏതാണ്|തിരഞ്ഞെടുക്കുക)|അക്ഷരത്തിന്റെ\s*ഉച്ചാരണം|അക്ഷരങ്ങളും|പുള്ളികളുള്ള\s*അക്ഷരം|ഹറകത്തുള്ള\s*അക്ഷര|ശരിയായ\s*ഹറകത്ത്\s*തിരഞ്ഞെടുക്കുക|ചെറിയ\s*വര\s*\(|ശബ്ദം\s*നൽകുന്ന\s*അക്ഷരം|ശബ്ദമുള്ള\s*അക്ഷരം)/;
+
+function countBareArabicLetters(text?: string | null): number {
+  if (!text) return 0;
+  const matches = text.normalize('NFC').match(/[\u0621-\u064A]/g);
+  return matches ? matches.length : 0;
+}
+
+function isSingleArabicLetterOption(option: string): boolean {
+  if (countBareArabicLetters(option) !== 1) return false;
+  // Exclude long Malayalam grammar explanations that merely mention a Harakat/Tanween example like '(ـًا)'
+  const nonArabicRemainder = option
+    .normalize('NFC')
+    .replace(/[\u0600-\u06FF\s()[\]'".,!?:/\-–—·]+/g, '');
+  return nonArabicRemainder.length <= 14;
+}
+
+/**
+ * Identifies basic Arabic Alphabet and single-letter Harakat recognition questions
+ * that must remain strictly restricted to Units 1-4.
+ */
+export function isBasicAlphabetOrHarakatQuestion(question: LessonQuestion): boolean {
+  if (!question) return false;
+  if (BASIC_ALPHABET_PROMPT_PATTERN.test(question.prompt || '')) {
+    return true;
+  }
+
+  if (
+    question.type === 'mcq' ||
+    question.type === 'listen' ||
+    question.type === 'dictation' ||
+    question.type === 'speak'
+  ) {
+    if (question.arabic && countBareArabicLetters(question.arabic) === 1) {
+      return true;
+    }
+  }
+
+  if (question.type === 'mcq' || question.type === 'listen') {
+    if (
+      Array.isArray(question.options) &&
+      question.options.length > 0 &&
+      question.options.every((opt) => isSingleArabicLetterOption(opt))
+    ) {
+      return true;
+    }
+  }
+
+  if (isPairsQuestion(question)) {
+    if (
+      question.pairs.length > 0 &&
+      question.pairs.every((pair) => countBareArabicLetters(pair.ar) === 1)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 export function getAllLessonIds(units: Unit[] = UNITS): string[] {
   return units.flatMap((u) => u.lessons.map((l) => l.id));
@@ -489,9 +559,17 @@ export function enqueueMistakeForReview(
   questions: readonly LessonQuestion[],
   missedQuestion: LessonQuestion,
   mode: SessionMode,
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
+  unitNumber?: number
 ): LessonQuestion[] {
   if (mode !== 'lesson') {
+    return [...questions];
+  }
+  if (
+    typeof unitNumber === 'number' &&
+    unitNumber > ALPHABET_MAX_UNIT_NUMBER &&
+    isBasicAlphabetOrHarakatQuestion(missedQuestion)
+  ) {
     return [...questions];
   }
   const cloned = JSON.parse(JSON.stringify(missedQuestion)) as LessonQuestion;
@@ -950,12 +1028,14 @@ function collectUnitVocabPool(unit: Unit): VocabEntry[] {
   const seenMl = new Set<string>();
   const clean: VocabEntry[] = [];
 
+  const disallowSingleLetter = unit.number > ALPHABET_MAX_UNIT_NUMBER;
   const pushEntry = (ar: string, tr: string, ml: string) => {
     const cleanAr = ar.trim();
     const cleanMl = ml.trim();
     if (!cleanAr || !cleanMl) return;
     // Skip compound comparison rows (with arrows or slashes) for cleaner single-answer MCQs
     if (/[→\/]/.test(cleanAr)) return;
+    if (disallowSingleLetter && countBareArabicLetters(cleanAr) < 2) return;
     const arKey = normalizeWordBankText(cleanAr);
     const mlKey = cleanMl.toLowerCase();
     if (!arKey || seenAr.has(arKey) || seenMl.has(mlKey)) return;
@@ -1211,6 +1291,9 @@ function collectUnitDictationPool(unit: Unit): VocabEntry[] {
     }
   }
 
+  if (unit.number > ALPHABET_MAX_UNIT_NUMBER) {
+    return multiLetter;
+  }
   return multiLetter.length >= 3 ? multiLetter : [...multiLetter, ...singleLetter];
 }
 
@@ -1238,11 +1321,14 @@ export function buildLessonSessionQuestions(
   const cloneQ = (q: LessonQuestion): LessonQuestion =>
     JSON.parse(JSON.stringify(q)) as LessonQuestion;
 
+  const disallowBasicAlphabet = Boolean(unit && unit.number > ALPHABET_MAX_UNIT_NUMBER);
+
   const tryAccept = (
     list: LessonQuestion[],
     q: LessonQuestion,
     markSpacedRepetition = false
   ): boolean => {
+    if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return false;
     const fp = getQuestionFingerprint(q);
     if (seen.has(fp)) return false;
     seen.add(fp);
@@ -1265,17 +1351,26 @@ export function buildLessonSessionQuestions(
   }
 
   // 2. Spaced-Repetition pool: up to 2 review questions from earlier completed units
+  //    Starting from Unit 6 onward, sample strictly from Units 5..N-1; in Unit 5, review Units 2-4 (skipping Unit 1).
+  //    Never allow basic Alphabet/Harakat questions from Unit 5 onward.
   const spacedRepetition: LessonQuestion[] = [];
-  if (unitIndex > 0 && completedLessons.length > 0) {
+  const minSrUnitIndex =
+    unit && unit.number >= ALPHABET_MAX_UNIT_NUMBER + 2
+      ? ALPHABET_MAX_UNIT_NUMBER
+      : disallowBasicAlphabet
+        ? 1
+        : 0;
+  if (unitIndex > minSrUnitIndex && completedLessons.length > 0) {
     const completedSet = new Set(completedLessons);
     const earlierPool: LessonQuestion[] = [];
-    for (let i = 0; i < unitIndex; i++) {
+    for (let i = minSrUnitIndex; i < unitIndex; i++) {
       const earlierUnit = units[i];
       const hasCompletedInUnit = earlierUnit.lessons.some((l) => completedSet.has(l.id));
       if (!hasCompletedInUnit) continue;
       for (const l of earlierUnit.lessons) {
         if (l.nodeType === 'chest' || l.nodeType === 'video_call' || l.questions.length === 0) continue;
         for (const q of l.questions) {
+          if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) continue;
           earlierPool.push(q);
         }
       }
@@ -1299,11 +1394,16 @@ export function buildLessonSessionQuestions(
     for (const sibling of unit.lessons) {
       if (sibling.id === lesson.id || sibling.nodeType === 'chest' || sibling.nodeType === 'video_call') continue;
       for (const q of sibling.questions) {
+        if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) continue;
         siblingHandcrafted.push(q);
       }
     }
   }
-  const dynamicUnitQs = unit ? generateDynamicUnitQuestions(unit, rng) : [];
+  const dynamicUnitQs = unit
+    ? generateDynamicUnitQuestions(unit, rng).filter(
+        (q) => !(disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q))
+      )
+    : [];
   const unitPool: LessonQuestion[] = [
     ...shuffleArray(siblingHandcrafted, rng),
     ...shuffleArray(dynamicUnitQs, rng),
@@ -1314,9 +1414,13 @@ export function buildLessonSessionQuestions(
   if (unitPool.length < 15) {
     for (const u of units) {
       if (unit && u.id === unit.id) continue;
+      if (disallowBasicAlphabet && u.number <= ALPHABET_MAX_UNIT_NUMBER) continue;
       for (const l of u.lessons) {
         if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
-        for (const q of l.questions) fallbackPool.push(q);
+        for (const q of l.questions) {
+          if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) continue;
+          fallbackPool.push(q);
+        }
       }
     }
   }
@@ -1559,7 +1663,12 @@ export function buildLegendarySessionQuestions(
 ): LessonQuestion[] {
   const basePool = buildLessonSessionQuestions(lesson, [], units, rng);
   const unit = units.find((u) => u.lessons.some((l) => l.id === lesson.id));
-  const extraDynamic = unit ? generateDynamicUnitQuestions(unit, rng) : [];
+  const disallowBasicAlphabet = Boolean(unit && unit.number > ALPHABET_MAX_UNIT_NUMBER);
+  const extraDynamic = unit
+    ? generateDynamicUnitQuestions(unit, rng).filter(
+        (q) => !(disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q))
+      )
+    : [];
   const combined = [...basePool, ...shuffleArray(extraDynamic, rng)];
 
   const difficultyRank = (q: LessonQuestion): number => {
@@ -1704,7 +1813,18 @@ export function buildUnitJumpQuestions(
     matching_pairs: [],
   };
 
-  for (let i = 0; i < maxUnits; i++) {
+  const targetUnitNumber = targetUnitIndex + 1;
+  const disallowBasicAlphabet = targetUnitNumber > ALPHABET_MAX_UNIT_NUMBER;
+  // For Jump-Ahead Entry Tests at Unit N (N >= 6), sample exclusively from Units 5 through N-1.
+  // For Unit 5 itself (targetUnitIndex === 4), sample from Units 2-4 (vocabulary/phrases, zero Unit 1 alphabet).
+  const startUnitIndex =
+    targetUnitNumber >= ALPHABET_MAX_UNIT_NUMBER + 2
+      ? ALPHABET_MAX_UNIT_NUMBER
+      : targetUnitNumber === ALPHABET_MAX_UNIT_NUMBER + 1
+        ? 1
+        : 0;
+
+  for (let i = startUnitIndex; i < maxUnits; i++) {
     for (const lesson of units[i].lessons) {
       if (
         lesson.nodeType === 'chest' ||
@@ -1715,6 +1835,7 @@ export function buildUnitJumpQuestions(
       }
       for (const q of lesson.questions) {
         if (q.type === 'speak') continue;
+        if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) continue;
         const bucket = classifyJumpQuestionBucket(q);
         if (!bucket) continue;
         const fp = getQuestionFingerprint(q);
