@@ -27,6 +27,7 @@ interface VideoCallModalProps {
   lessonId: string;
   scenario: VideoCallScenario;
   soundEnabled: boolean;
+  learnerName?: string;
   onComplete: (result: SessionResult) => void;
   onClose: () => void;
 }
@@ -138,6 +139,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   lessonId,
   scenario,
   soundEnabled,
+  learnerName,
   onComplete,
   onClose,
 }) => {
@@ -336,6 +338,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         scenario,
         turnIndex,
         history: updatedHistory,
+        learnerName,
       });
 
       if (!mountedRef.current) return;

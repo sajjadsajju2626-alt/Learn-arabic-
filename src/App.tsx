@@ -427,6 +427,7 @@ export default function App() {
           lessonId={activeVideoCallLesson.id}
           scenario={activeVideoCallLesson.videoCall}
           soundEnabled={user.soundEnabled}
+          learnerName={user.name}
           onComplete={handleSessionComplete}
           onClose={() => setActiveVideoCallLesson(null)}
         />

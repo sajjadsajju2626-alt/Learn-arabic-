@@ -8142,6 +8142,7 @@
 
     // ================= SMART OPEN-TOPIC ARABIC CONVERSATIONAL ENGINE + GEMINI 2.5 FLASH =================
     const VC_INTENT_RULES = [
+      { intent: "name_identity", keywords: ["هل تعرف اسمي", "تعرف اسمي", "ما اسمي", "شو اسمي", "ايش اسمي", "تذكر اسمي", "من انا", "اسمي", "انا اسمي"] },
       { intent: "question_to_tariq", keywords: ["وانت", "كيف حالك", "كيفك", "اخبارك", "ما اسمك", "من اين انت", "اين تسكن", "اين تعيش", "ماذا تعمل", "ما عملك", "كم عمرك", "هل تحب", "ما رايك"] },
       { intent: "food_drink", keywords: ["قهوه", "شاي", "ماء", "طعام", "اكل", "اشرب", "خبز", "ارز", "رز", "دجاج", "لحم", "سمك", "فاكهه", "عصير", "حليب", "تمر", "كبسه", "مندي", "برياني", "مطعم", "مقهي", "لذيذ", "جائع", "عطشان", "فطور", "غداء", "عشاء", "حلي", "سكر", "طبخ", "اطبخ"] },
       { intent: "travel", keywords: ["سفر", "مسافر", "اسافر", "سافرت", "مطار", "طائره", "جواز", "تاشيره", "فيزا", "دبي", "الرياض", "جده", "الدوحه", "مسقط", "الكويت", "البحرين", "ابوظبي", "مكه", "المدينه", "عمره", "حج", "كيرالا", "الهند", "فندق", "تذكره", "حقيبه", "بوابه", "رحله", "سياره", "قطار", "زياره", "سياحه"] },
@@ -8258,6 +8259,34 @@
 
     function buildVcIntentVariants() {
       return {
+        name_identity: [
+          {
+            ackAr: "بِصَرَاحَةٍ لَا أَعْرِفُ اسْمَكَ بَعْدُ يَا صَدِيقِي، وَيُسْعِدُنِي جِدًّا أَنْ أَتَعَرَّفَ عَلَيْكَ!",
+            ackTr: "ബിസ്വറാഹത്തിൻ ലാ അഅ്രിഫു ഇസ്മക ബഅ്ദു യാ സ്വദീഖീ, വ യുസ്ഇദുനീ ജിദ്ദൻ അൻ അതഅർറഫ അലൈക!",
+            ackMl: "സത്യം പറഞ്ഞാൽ എനിക്ക് നിങ്ങളുടെ പേര് ഇതുവരെ അറിയില്ല സുഹൃത്തേ, നിങ്ങളെ പരിചയപ്പെടാൻ എനിക്ക് വളരെ സന്തോഷമുണ്ട്!",
+            followUpAr: "مَا اسْمُكَ الْكَرِيمُ وَمِنْ أَيْنَ أَنْتَ؟",
+            followUpTr: "മസ്മുകൽ കരീമു വ മിൻ അയ്ന അൻത?",
+            followUpMl: "നിങ്ങളുടെ പേരെന്താണ്, നിങ്ങൾ എവിടെ നിന്നാണ്?",
+            hints: [
+              { ar: "اِسْمِي سَجَّادٌ", tr: "ഇസ്മീ സജ്ജാദ്", ml: "എന്റെ പേര് സജ്ജാദ് എന്നാണ്" },
+              { ar: "اِسْمِي أَحْمَدُ وَأَنَا مِنْ كِيرَالَا", tr: "ഇസ്മീ അഹ്‌മദു വ അന മിൻ കേരള", ml: "എന്റെ പേര് അഹ്മദ് എന്നാണ്, ഞാൻ കേരളത്തിൽ നിന്നാണ്" },
+              { ar: "تَشَرَّفْتُ بِكَ يَا طَارِقُ، أَنَا صَدِيقُكَ الْجَدِيدُ وَأَتَعَلَّمُ الْعَرَبِيَّةَ", tr: "തശർറഫ്തു ബിക യാ ത്വാരിഖ്, അന സ്വദീഖുകൽ ജദീദു വ അതഅല്ലമുൽ അറബിയ്യ", ml: "നിങ്ങളെ പരിചയപ്പെട്ടതിൽ സന്തോഷം താരിഖ്, ഞാൻ നിങ്ങളുടെ പുതിയ സുഹൃത്താണ്, അറബി പഠിക്കുന്നു" }
+            ]
+          },
+          {
+            ackAr: "تَشَرَّفْتُ بِمَعْرِفَتِكَ يَا صَدِيقِي الْعَزِيزُ! اِسْمٌ جَمِيلٌ جِدًّا وَسَعِيدٌ بِصَدَاقَتِكَ.",
+            ackTr: "തശർറഫ്തു ബിമഅ്രിഫതിക യാ സ്വദീഖിൽ അസീസ്! ഇസ്മുൻ ജമീലുൻ ജിദ്ദൻ വ സഈദുൻ ബിസ്വദാഖതിക.",
+            ackMl: "നിങ്ങളെ പരിചയപ്പെട്ടതിൽ വളരെ സന്തോഷം പ്രിയ സുഹൃത്തേ! വളരെ മനോഹരമായ പേരാണ്, നിങ്ങളുടെ സൗഹൃദത്തിൽ എനിക്ക് സന്തോഷമുണ്ട്.",
+            followUpAr: "أَخْبِرْنِي، مِنْ أَيِّ مَدِينَةٍ أَنْتَ وَمَاذَا فَعَلْتَ الْيَوْمَ؟",
+            followUpTr: "അഖ്ബിർനീ, മിൻ അയ്യി മദീനത്തിൻ അൻത വ മാദാ ഫഅൽതൽ യൗം?",
+            followUpMl: "പറയൂ, നിങ്ങൾ ഏത് നഗരത്തിൽ നിന്നാണ്, ഇന്ന് എന്തൊക്കെ ചെയ്തു?",
+            hints: [
+              { ar: "أَنَا مِنْ كِيرَالَا", tr: "അന മിൻ കേരള", ml: "ഞാൻ കേരളത്തിൽ നിന്നാണ്" },
+              { ar: "ذَهَبْتُ إِلَى الْعَمَلِ وَتَعَلَّمْتُ الْعَرَبِيَّةَ", tr: "ദഹബ്തു ഇലൽ അമലി വ തഅല്ലംതുൽ അറബിയ്യ", ml: "ഞാൻ ജോലിക്ക് പോയി, അറബി പഠിച്ചു" },
+              { ar: "أَنَا مِنْ مَدِينَةٍ جَمِيلَةٍ فِي الْهِنْدِ وَيَوْمِي كَانَ رَائِعًا", tr: "അന മിൻ മദീനത്തിൻ ജമീലത്തിൻ ഫിൽ ഹിന്ദി വ യൗമീ കാന റാഇഅൻ", ml: "ഞാൻ ഇന്ത്യയിലെ മനോഹരമായ ഒരു നഗരത്തിൽ നിന്നാണ്, എന്റെ ദിവസം വളരെ നല്ലതായിരുന്നു" }
+            ]
+          }
+        ],
         question_to_tariq: [
           {
             ackAr: "أَنَا بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ يَا صَدِيقِي! أَنَا طَارِقٌ، أَجْلِسُ الْآنَ فِي مَقْهًى جَمِيلٍ وَأَسْتَمْتِعُ بِالتَّحَدُّثِ مَعَكَ.",
@@ -8658,7 +8687,7 @@
       return variants[turnIndex % variants.length];
     }
 
-    function generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex, history }) {
+    function generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex, history, learnerName }) {
       const totalTurns = scenario.turns.length;
       const isFinalTurn = turnIndex + 1 >= totalTurns;
 
@@ -8674,7 +8703,59 @@
       let ackTr = chosen.ackTr;
       let ackMl = chosen.ackMl;
 
-      if (intent === "food_drink") {
+      if (intent === "name_identity") {
+        const askingIfKnown =
+          norm.includes("تعرف اسمي") ||
+          norm.includes("تذكر اسمي") ||
+          norm.includes("ما اسمي") ||
+          norm.includes("شو اسمي") ||
+          norm.includes("ايش اسمي") ||
+          norm.includes("من انا");
+        const sharedNameEarlier = (history || []).some(
+          h => h && h.speaker === "user" && normalizeArabicSpeech(h.text).includes("اسمي") && !normalizeArabicSpeech(h.text).includes("تعرف اسمي")
+        );
+        const cleanLearner = String(learnerName || "").trim();
+        const hasCustomProfileName = Boolean(
+          cleanLearner && !["പഠിതാവ്", "learner", "student", "user", "guest"].includes(cleanLearner.toLowerCase())
+        );
+        if (askingIfKnown && (sharedNameEarlier || hasCustomProfileName)) {
+          ackAr = "نَعَمْ بِالطَّبْعِ أَتَذَكَّرُكَ يَا صَدِيقِي الْعَزِيزُ! أَنَا سَعِيدٌ جِدًّا بِالتَّحَدُّثِ مَعَكَ الْيَوْمَ.";
+          ackTr = "നഅം ബിത്ത്വബ്ഇ അതദക്കറുക യാ സ്വദീഖിൽ അസീസ്! അന സഈദുൻ ജിദ്ദൻ ബിത്തഹദ്ദുഥി മഅകൽ യൗം.";
+          ackMl = "അതെ, തീർച്ചയായും ഞാൻ നിങ്ങളെ ഓർക്കുന്നു പ്രിയ സുഹൃത്തേ! ഇന്ന് നിങ്ങളോട് സംസാരിക്കാൻ എനിക്ക് വളരെ സന്തോഷമുണ്ട്.";
+          const altVariant = allVariants.name_identity[1];
+          if (!isFinalTurn && altVariant) {
+            return {
+              replyArabic: stripVcQuotedEcho(`${ackAr} ${altVariant.followUpAr}`),
+              replyTransliteration: `${ackTr} ${altVariant.followUpTr}`,
+              replyMalayalam: `${ackMl} ${altVariant.followUpMl}`,
+              nextHints: altVariant.hints,
+              xpEarned,
+              isFinalTurn: false,
+              intent,
+              source: "smart_local"
+            };
+          }
+        } else if (!askingIfKnown && norm.includes("اسمي")) {
+          const introVariant = allVariants.name_identity[1];
+          if (introVariant) {
+            ackAr = introVariant.ackAr;
+            ackTr = introVariant.ackTr;
+            ackMl = introVariant.ackMl;
+            if (!isFinalTurn) {
+              return {
+                replyArabic: stripVcQuotedEcho(`${ackAr} ${introVariant.followUpAr}`),
+                replyTransliteration: `${ackTr} ${introVariant.followUpTr}`,
+                replyMalayalam: `${ackMl} ${introVariant.followUpMl}`,
+                nextHints: introVariant.hints,
+                xpEarned,
+                isFinalTurn: false,
+                intent,
+                source: "smart_local"
+              };
+            }
+          }
+        }
+      } else if (intent === "food_drink") {
         const sub = getVcFoodSubAck(norm);
         if (sub) { ackAr = sub.ar; ackTr = sub.tr; ackMl = sub.ml; }
       } else if (intent === "travel") {
@@ -8708,6 +8789,7 @@
     }
 
     function canUseServerGeminiEndpoint() {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
       const proto = String((window.location && window.location.protocol) || "").toLowerCase();
       const host = String((window.location && window.location.hostname) || "").toLowerCase();
       if (proto !== "http:" && proto !== "https:") return false;
@@ -8715,11 +8797,12 @@
       return true;
     }
 
-    async function requestDynamicVideoCallReply({ userSpokenText, scenario, turnIndex, history }) {
+    async function requestDynamicVideoCallReply({ userSpokenText, scenario, turnIndex, history, learnerName }) {
       if (canUseServerGeminiEndpoint() && typeof fetch === "function") {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-        const timer = controller ? setTimeout(() => controller.abort(), 7000) : null;
+        const timer = controller ? setTimeout(() => controller.abort(), 12000) : null;
         try {
+          const fullHistory = (history || []).slice(-30);
           const resp = await fetch("/api/video-call-reply", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -8732,17 +8815,19 @@
               characterNameAr: scenario.characterNameAr,
               sceneTitleMl: scenario.sceneTitleMl,
               sceneSettingMl: scenario.sceneSettingMl,
+              learnerName,
               unitNumber: scenario.unitNumber,
               turnIndex,
               totalTurns: scenario.turns.length,
-              history: (history || []).slice(-10)
+              history: fullHistory,
+              conversationHistory: fullHistory
             })
           });
           if (resp.ok) {
             const data = await resp.json();
             const cleanArabic = stripVcQuotedEcho(data && typeof data.replyArabic === "string" ? data.replyArabic : "");
             if (cleanArabic && /[\u0621-\u064A]/.test(cleanArabic)) {
-              const fallback = generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex, history });
+              const fallback = generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex, history, learnerName });
               const validHints = Array.isArray(data.nextHints) && data.nextHints.length
                 ? data.nextHints
                     .filter(h => h && typeof h.ar === "string" && h.ar.trim() && typeof h.ml === "string")
@@ -8764,12 +8849,12 @@
             }
           }
         } catch (e) {
-          // Seamless fallback to Smart Arabic Responder on GitHub Pages / APK / offline
+          // Seamless silent offline fallback to Smart Arabic Responder
         } finally {
           if (timer !== null) clearTimeout(timer);
         }
       }
-      return generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex, history });
+      return generateSmartVideoCallReply({ userSpokenText, scenario, turnIndex, history, learnerName });
     }
 
     function stopVideoCallRecognition() {
@@ -8931,7 +9016,8 @@
         userSpokenText: cleaned,
         scenario: sc,
         turnIndex: turnIdx,
-        history: st.history
+        history: st.history,
+        learnerName: userState && userState.name ? userState.name : ""
       });
 
       if (!activeVideoCallSession || activeVideoCallSession.sessionToken !== token) return;

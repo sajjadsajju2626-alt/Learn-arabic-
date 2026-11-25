@@ -2,6 +2,7 @@ import type { VideoCallReplySuggestion, VideoCallScenario } from '../types/learn
 import { countSpokenArabicWords, normalizeArabicSpeech } from './learningEngine';
 
 export type VideoCallIntent =
+  | 'name_identity'
   | 'question_to_tariq'
   | 'greeting'
   | 'food_drink'
@@ -40,6 +41,7 @@ export interface DynamicVideoCallRequest {
   scenario: VideoCallScenario;
   turnIndex: number;
   history: VideoCallChatEntry[];
+  learnerName?: string;
 }
 
 interface KeywordRule {
@@ -58,6 +60,20 @@ interface IntentVariant {
 }
 
 const INTENT_RULES: readonly KeywordRule[] = [
+  {
+    intent: 'name_identity',
+    keywords: [
+      'هل تعرف اسمي',
+      'تعرف اسمي',
+      'ما اسمي',
+      'شو اسمي',
+      'ايش اسمي',
+      'تذكر اسمي',
+      'من انا',
+      'اسمي',
+      'انا اسمي',
+    ],
+  },
   {
     intent: 'question_to_tariq',
     keywords: [
@@ -527,6 +543,50 @@ function getSubTopicTravelAck(norm: string): { ar: string; tr: string; ml: strin
 
 function buildIntentVariants(): Record<VideoCallIntent, IntentVariant[]> {
   return {
+    name_identity: [
+      {
+        ackAr: 'بِصَرَاحَةٍ لَا أَعْرِفُ اسْمَكَ بَعْدُ يَا صَدِيقِي، وَيُسْعِدُنِي جِدًّا أَنْ أَتَعَرَّفَ عَلَيْكَ!',
+        ackTr: 'ബിസ്വറാഹത്തിൻ ലാ അഅ്രിഫു ഇസ്മക ബഅ്ദു യാ സ്വദീഖീ, വ യുസ്ഇദുനീ ജിദ്ദൻ അൻ അതഅർറഫ അലൈക!',
+        ackMl: 'സത്യം പറഞ്ഞാൽ എനിക്ക് നിങ്ങളുടെ പേര് ഇതുവരെ അറിയില്ല സുഹൃത്തേ, നിങ്ങളെ പരിചയപ്പെടാൻ എനിക്ക് വളരെ സന്തോഷമുണ്ട്!',
+        followUpAr: 'مَا اسْمُكَ الْكَرِيمُ وَمِنْ أَيْنَ أَنْتَ؟',
+        followUpTr: 'മസ്മുകൽ കരീമു വ മിൻ അയ്ന അൻത?',
+        followUpMl: 'നിങ്ങളുടെ പേരെന്താണ്, നിങ്ങൾ എവിടെ നിന്നാണ്?',
+        hints: [
+          { ar: 'اِسْمِي سَجَّادٌ', tr: 'ഇസ്മീ സജ്ജാദ്', ml: 'എന്റെ പേര് സജ്ജാദ് എന്നാണ്' },
+          {
+            ar: 'اِسْمِي أَحْمَدُ وَأَنَا مِنْ كِيرَالَا',
+            tr: 'ഇസ്മീ അഹ്‌മദു വ അന മിൻ കേരള',
+            ml: 'എന്റെ പേര് അഹ്മദ് എന്നാണ്, ഞാൻ കേരളത്തിൽ നിന്നാണ്',
+          },
+          {
+            ar: 'تَشَرَّفْتُ بِكَ يَا طَارِقُ، أَنَا صَدِيقُكَ الْجَدِيدُ وَأَتَعَلَّمُ الْعَرَبِيَّةَ',
+            tr: 'തശർറഫ്തു ബിക യാ ത്വാരിഖ്, അന സ്വദീഖുകൽ ജദീദു വ അതഅല്ലമുൽ അറബിയ്യ',
+            ml: 'നിങ്ങളെ പരിചയപ്പെട്ടതിൽ സന്തോഷം താരിഖ്, ഞാൻ നിങ്ങളുടെ പുതിയ സുഹൃത്താണ്, അറബി പഠിക്കുന്നു',
+          },
+        ],
+      },
+      {
+        ackAr: 'تَشَرَّفْتُ بِمَعْرِفَتِكَ يَا صَدِيقِي الْعَزِيزُ! اِسْمٌ جَمِيلٌ جِدًّا وَسَعِيدٌ بِصَدَاقَتِكَ.',
+        ackTr: 'തശർറഫ്തു ബിമഅ്രിഫതിക യാ സ്വദീഖിൽ അസീസ്! ഇസ്മുൻ ജമീലുൻ ജിദ്ദൻ വ സഈദുൻ ബിസ്വദാഖതിക.',
+        ackMl: 'നിങ്ങളെ പരിചയപ്പെട്ടതിൽ വളരെ സന്തോഷം പ്രിയ സുഹൃത്തേ! വളരെ മനോഹരമായ പേരാണ്, നിങ്ങളുടെ സൗഹൃദത്തിൽ എനിക്ക് സന്തോഷമുണ്ട്.',
+        followUpAr: 'أَخْبِرْنِي، مِنْ أَيِّ مَدِينَةٍ أَنْتَ وَمَاذَا فَعَلْتَ الْيَوْمَ؟',
+        followUpTr: 'അഖ്ബിർനീ, മിൻ അയ്യി മദീനത്തിൻ അൻത വ മാദാ ഫഅൽതൽ യൗം?',
+        followUpMl: 'പറയൂ, നിങ്ങൾ ഏത് നഗരത്തിൽ നിന്നാണ്, ഇന്ന് എന്തൊക്കെ ചെയ്തു?',
+        hints: [
+          { ar: 'أَنَا مِنْ كِيرَالَا', tr: 'അന മിൻ കേരള', ml: 'ഞാൻ കേരളത്തിൽ നിന്നാണ്' },
+          {
+            ar: 'ذَهَبْتُ إِلَى الْعَمَلِ وَتَعَلَّمْتُ الْعَرَبِيَّةَ',
+            tr: 'ദഹബ്തു ഇലൽ അമലി വ തഅല്ലംതുൽ അറബിയ്യ',
+            ml: 'ഞാൻ ജോലിക്ക് പോയി, അറബി പഠിച്ചു',
+          },
+          {
+            ar: 'أَنَا مِنْ مَدِينَةٍ جَمِيلَةٍ فِي الْهِنْدِ وَيَوْمِي كَانَ رَائِعًا',
+            tr: 'അന മിൻ മദീനത്തിൻ ജമീലത്തിൻ ഫിൽ ഹിന്ദി വ യൗമീ കാന റാഇഅൻ',
+            ml: 'ഞാൻ ഇന്ത്യയിലെ മനോഹരമായ ഒരു നഗരത്തിൽ നിന്നാണ്, എന്റെ ദിവസം വളരെ നല്ലതായിരുന്നു',
+          },
+        ],
+      },
+    ],
     question_to_tariq: [
       {
         ackAr: 'أَنَا بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ يَا صَدِيقِي! أَنَا طَارِقٌ، أَجْلِسُ الْآنَ فِي مَقْهًى جَمِيلٍ وَأَسْتَمْتِعُ بِالتَّحَدُّثِ مَعَكَ.',
@@ -1176,7 +1236,60 @@ export function generateSmartArabicReply(req: DynamicVideoCallRequest): DynamicV
   let ackTr = chosen.ackTr;
   let ackMl = chosen.ackMl;
 
-  if (intent === 'food_drink') {
+  if (intent === 'name_identity') {
+    const askingIfKnown =
+      norm.includes('تعرف اسمي') ||
+      norm.includes('تذكر اسمي') ||
+      norm.includes('ما اسمي') ||
+      norm.includes('شو اسمي') ||
+      norm.includes('ايش اسمي') ||
+      norm.includes('من انا');
+    const sharedNameEarlier = (history || []).some(
+      (h) => h.speaker === 'user' && normalizeArabicSpeech(h.text).includes('اسمي') && !normalizeArabicSpeech(h.text).includes('تعرف اسمي')
+    );
+    const hasCustomProfileName = Boolean(
+      req.learnerName &&
+        req.learnerName.trim() &&
+        !['പഠിതാവ്', 'learner', 'student', 'user', 'guest'].includes(req.learnerName.trim().toLowerCase())
+    );
+    if (askingIfKnown && (sharedNameEarlier || hasCustomProfileName)) {
+      ackAr = 'نَعَمْ بِالطَّبْعِ أَتَذَكَّرُكَ يَا صَدِيقِي الْعَزِيزُ! أَنَا سَعِيدٌ جِدًّا بِالتَّحَدُّثِ مَعَكَ الْيَوْمَ.';
+      ackTr = 'നഅം ബിത്ത്വബ്ഇ അതദക്കറുക യാ സ്വദീഖിൽ അസീസ്! അന സഈദുൻ ജിദ്ദൻ ബിത്തഹദ്ദുഥി മഅകൽ യൗം.';
+      ackMl = 'അതെ, തീർച്ചയായും ഞാൻ നിങ്ങളെ ഓർക്കുന്നു പ്രിയ സുഹൃത്തേ! ഇന്ന് നിങ്ങളോട് സംസാരിക്കാൻ എനിക്ക് വളരെ സന്തോഷമുണ്ട്.';
+      const altVariant = allVariants.name_identity[1];
+      if (!isFinalTurn && altVariant) {
+        return {
+          replyArabic: stripQuotedEcho(`${ackAr} ${altVariant.followUpAr}`),
+          replyTransliteration: `${ackTr} ${altVariant.followUpTr}`,
+          replyMalayalam: `${ackMl} ${altVariant.followUpMl}`,
+          nextHints: altVariant.hints,
+          xpEarned,
+          isFinalTurn: false,
+          intent,
+          source: 'smart_local',
+        };
+      }
+    } else if (!askingIfKnown && norm.includes('اسمي')) {
+      const introVariant = allVariants.name_identity[1];
+      if (introVariant) {
+        ackAr = introVariant.ackAr;
+        ackTr = introVariant.ackTr;
+        ackMl = introVariant.ackMl;
+        if (!isFinalTurn) {
+          return {
+            replyArabic: stripQuotedEcho(`${ackAr} ${introVariant.followUpAr}`),
+            replyTransliteration: `${ackTr} ${introVariant.followUpTr}`,
+            replyMalayalam: `${ackMl} ${introVariant.followUpMl}`,
+            nextHints: introVariant.hints,
+            xpEarned,
+            isFinalTurn: false,
+            intent,
+            source: 'smart_local',
+          };
+        }
+      }
+    }
+  } else if (intent === 'food_drink') {
     const sub = getSubTopicFoodAck(norm);
     if (sub) {
       ackAr = sub.ar;
@@ -1223,7 +1336,15 @@ export function generateSmartArabicReply(req: DynamicVideoCallRequest): DynamicV
  * Checks whether the runtime host can reach the server-side Gemini endpoint
  * (automatically skips static hosts like GitHub Pages or Android WebView file/capacitor origins).
  */
-export function canUseServerGeminiEndpoint(loc?: { protocol?: string; hostname?: string }): boolean {
+export function canUseServerGeminiEndpoint(
+  loc?: { protocol?: string; hostname?: string },
+  online?: boolean
+): boolean {
+  const isOnline =
+    typeof online === 'boolean'
+      ? online
+      : typeof navigator === 'undefined' || navigator.onLine !== false;
+  if (!isOnline) return false;
   const target =
     loc ?? (typeof window !== 'undefined' ? window.location : { protocol: '', hostname: '' });
   const proto = String(target.protocol || '').toLowerCase();
@@ -1235,13 +1356,14 @@ export function canUseServerGeminiEndpoint(loc?: { protocol?: string; hostname?:
 
 /**
  * Requests a natural, open-topic vocalized Arabic reply for whatever the learner spoke:
- * - Automatically calls server-side Gemini 2.5 Flash (`/api/video-call-reply`) when available.
- * - Seamlessly falls back to the Smart Intent-Based Arabic Responder on GitHub Pages,
- *   Android APK, or offline sessions without ever echoing/quoting raw user words.
+ * - Automatically calls server-side Gemini 2.5 Flash (`/api/video-call-reply`) powered by
+ *   AI Studio's injected `process.env.GEMINI_API_KEY` with zero user setup.
+ * - Seamlessly falls back to the Smart Intent-Based Arabic Responder only when offline or
+ *   on static hosts (GitHub Pages / Android APK) without ever echoing raw user words.
  */
 export async function requestDynamicVideoCallReply(
   req: DynamicVideoCallRequest,
-  timeoutMs = 7000
+  timeoutMs = 12000
 ): Promise<DynamicVideoCallResponse> {
   if (canUseServerGeminiEndpoint() && typeof fetch === 'function') {
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -1251,6 +1373,7 @@ export async function requestDynamicVideoCallReply(
         : null;
 
     try {
+      const fullHistory = (req.history || []).slice(-30);
       const response = await fetch('/api/video-call-reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1263,10 +1386,12 @@ export async function requestDynamicVideoCallReply(
           characterNameAr: req.scenario.characterNameAr,
           sceneTitleMl: req.scenario.sceneTitleMl,
           sceneSettingMl: req.scenario.sceneSettingMl,
+          learnerName: req.learnerName,
           unitNumber: req.scenario.unitNumber,
           turnIndex: req.turnIndex,
           totalTurns: req.scenario.turns.length,
-          history: req.history.slice(-10),
+          history: fullHistory,
+          conversationHistory: fullHistory,
         }),
       });
 
