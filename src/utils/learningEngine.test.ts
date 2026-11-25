@@ -2,12 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ARABIC_ALPHABET, PLACEMENT_QUESTIONS, UNITS } from '../data/curriculum';
 import { UNIT_STORIES } from '../data/unitStories';
-import { UNIT_VIDEO_CALLS } from '../data/unitVideoCalls';
+import {
+  TARIQ_OPENING_GREETING_AR,
+  UNIT_VIDEO_CALLS,
+  VIDEO_CALL_NODE_TITLE_ML,
+} from '../data/unitVideoCalls';
 import {
   canUseServerGeminiEndpoint,
   detectArabicIntent,
-  extractMirrorSnippet,
   generateSmartArabicReply,
+  mergeSpeechTranscripts,
+  stripQuotedEcho,
 } from './videoCallConversation';
 import {
   ALL_QUESTION_TYPES,
@@ -1875,14 +1880,14 @@ test('Instant synchronous localStorage persistence, pre-render hydration, and mo
   assert.deepEqual(newerMerge.state.legendaryLessons, ['u15_n1']);
 });
 
-test('Video Call Roleplay (video_call) appears EXCLUSIVELY in Units 15 to 35 with 5-turn Tariq/Layla conversations and word-count bonus XP', () => {
+test('Video Call Roleplay (video_call) appears EXCLUSIVELY in Units 15 to 35 as open-topic Tariq calls with unified title, open greeting, and word-count bonus XP', () => {
   assert.equal(VIDEO_CALL_MIN_UNIT_NUMBER, 15);
   assert.equal(VIDEO_CALL_BASE_XP, 15);
   assert.equal(VIDEO_CALL_XP_PER_WORD, 2);
   assert.equal(VIDEO_CALL_MAX_BONUS_XP, 35);
   assert.equal(Object.keys(UNIT_VIDEO_CALLS).length, 21);
 
-  // 1. Units 1-14 must have ZERO video_call nodes; Units 15-35 must each have 1 video_call node
+  // 1. Units 1-14 must have ZERO video_call nodes; Units 15-35 must each have 1 open-topic Tariq video_call node
   for (const unit of UNITS) {
     const vcNodes = unit.lessons.filter((l) => l.nodeType === 'video_call');
     if (unit.number < 15) {
@@ -1892,21 +1897,28 @@ test('Video Call Roleplay (video_call) appears EXCLUSIVELY in Units 15 to 35 wit
       const vcNode = vcNodes[0];
       assert.equal(vcNode.id, `${unit.id}_vc`);
       assert.equal(vcNode.icon, '📹');
+      assert.equal(vcNode.title, VIDEO_CALL_NODE_TITLE_ML);
+      assert.equal(vcNode.title, 'വീഡിയോ കോൾ: താരിഖുമായി സംസാരിക്കാം');
       assert.ok(vcNode.videoCall, `${vcNode.id} must attach VideoCallScenario`);
 
       const scenario = vcNode.videoCall;
-      assert.ok(
-        scenario.characterKey === 'tariq' || scenario.characterKey === 'layla',
-        `${vcNode.id} character must be Tariq or Layla`
+      assert.equal(scenario.characterKey, 'tariq', `${vcNode.id} must feature Tariq`);
+      assert.equal(scenario.characterAvatar, '👳‍♂️');
+      assert.equal(scenario.sceneTitleMl, 'വീഡിയോ കോൾ: താരിഖുമായി സംസാരിക്കാം');
+      assert.equal(scenario.turns.length, 5, `${vcNode.id} must have 5 conversational turns`);
+      assert.equal(
+        scenario.turns[0].characterAr,
+        TARIQ_OPENING_GREETING_AR,
+        `${vcNode.id} must open with Tariq open-topic greeting`
       );
       assert.equal(
-        scenario.characterAvatar,
-        scenario.characterKey === 'tariq' ? '👳‍♂️' : '🧕'
+        scenario.turns[0].characterAr,
+        'أَهْلًا وَسَهْلًا يَا صَدِيقِي! كَيْفَ حَالُكَ الْيَوْمَ؟ وَمَاذَا تُحِبُّ أَنْ نَتَحَدَّثَ عَنْهُ؟'
       );
-      assert.equal(scenario.turns.length, 5, `${vcNode.id} must have 5 conversational turns`);
 
       for (const turn of scenario.turns) {
         assert.ok(/[\u0621-\u064A]/.test(turn.characterAr), `${vcNode.id} turn needs Arabic question`);
+        assert.ok(/[\u064B-\u0652]/.test(turn.characterAr), `${vcNode.id} turn must include Harakat`);
         assert.ok(turn.characterTr.trim().length > 0);
         assert.ok(turn.characterMl.trim().length > 0);
         assert.ok(/[\u0621-\u064A]/.test(turn.reactionAr), `${vcNode.id} turn needs Arabic reaction`);
@@ -1949,13 +1961,13 @@ test('Video Call Roleplay (video_call) appears EXCLUSIVELY in Units 15 to 35 wit
   assert.ok(updated.completedLessons.includes('u15_vc'));
 });
 
-test('Dynamic Video Call Smart Arabic Conversational Engine detects intents, mirrors custom Arabic words, refreshes hints, and routes GitHub Pages / APK vs server cleanly', () => {
+test('Open-topic Video Call Smart Arabic Responder understands meaning without parroting («...»), generates vocalized follow-ups, avoids repetition, and merges continuous speech across pauses', () => {
   const tariqScenario = UNIT_VIDEO_CALLS.u15;
-  const laylaScenario = UNIT_VIDEO_CALLS.u16;
-  assert.ok(tariqScenario && laylaScenario);
+  assert.ok(tariqScenario);
 
-  // 1. Intent detection across key Arabic topics
+  // 1. Intent detection across rich open-topic Arabic inputs
   assert.equal(detectArabicIntent('السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللّٰهِ').intent, 'greeting');
+  assert.equal(detectArabicIntent('كَيْفَ حَالُكَ أَنْتَ يَا طَارِقُ؟').intent, 'question_to_tariq');
   assert.equal(detectArabicIntent('أُرِيدُ قَهْوَةً عَرَبِيَّةً مَعَ التَّمْرِ').intent, 'food_drink');
   assert.equal(detectArabicIntent('سَأُسَافِرُ إِلَى دُبَي غَدًا').intent, 'travel');
   assert.equal(detectArabicIntent('أُمِّي وَأَبِي بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ').intent, 'family');
@@ -1963,15 +1975,14 @@ test('Dynamic Video Call Smart Arabic Conversational Engine detects intents, mir
   assert.equal(detectArabicIntent('أَنَا تَعْبَانٌ قَلِيلًا').intent, 'feelings_tired');
   assert.equal(detectArabicIntent('الْجَوُّ حَارٌّ جِدًّا').intent, 'weather');
   assert.equal(detectArabicIntent('أَدْرُسُ اللُّغَةَ الْعَرَبِيَّةَ فِي الْجَامِعَةِ').intent, 'work_study');
+  assert.equal(detectArabicIntent('أُحِبُّ لَعِبَ كُرَةِ الْقَدَمِ').intent, 'hobbies_sports');
+  assert.equal(detectArabicIntent('ذَهَبْتُ إِلَى السُّوقِ لِشِرَاءِ مَلَابِسَ').intent, 'shopping');
+  assert.equal(detectArabicIntent('سَأَلْتَقِي بِكَ غَدًا فِي السَّاعَةِ الْخَامِسَةِ').intent, 'time_routine');
   assert.equal(detectArabicIntent('نَعَمْ أَكِيدٌ').intent, 'affirmative');
   assert.equal(detectArabicIntent('لَا شُكْرًا').intent, 'gratitude_farewell');
   assert.equal(detectArabicIntent('لَا أَعْرِفُ').intent, 'negative');
 
-  // 2. Mirror snippet strips filler stop-words and keeps meaningful custom Arabic words
-  assert.equal(extractMirrorSnippet('أنا أحب القهوة العربية الساخنة!'), 'أحب القهوة العربية');
-  assert.equal(extractMirrorSnippet('أريد شراء ساعة زرقاء'), 'أريد شراء ساعة');
-
-  // 3. Custom spoken food sentence gets mirrored in Tariq's vocalized Arabic reply + refreshed hints
+  // 2. Coffee input gets a natural vocalized reply with Harakat, ZERO «...» parroting, and a related follow-up
   const foodReply = generateSmartArabicReply({
     userSpokenText: 'أريد قهوة عربية مع التمر',
     scenario: tariqScenario,
@@ -1981,26 +1992,43 @@ test('Dynamic Video Call Smart Arabic Conversational Engine detects intents, mir
   assert.equal(foodReply.source, 'smart_local');
   assert.equal(foodReply.intent, 'food_drink');
   assert.equal(foodReply.isFinalTurn, false);
-  assert.ok(foodReply.replyArabic.includes('قهوة'), 'Tariq reply must mirror user spoken Arabic words');
+  assert.equal(foodReply.replyArabic.includes('«'), false, 'Tariq must NEVER parrot/quote user words with «...»');
+  assert.equal(foodReply.replyArabic.includes('»'), false, 'Tariq must NEVER parrot/quote user words with «...»');
+  assert.ok(/[\u064B-\u0652]/.test(foodReply.replyArabic), 'Tariq reply must contain Harakat diacritics');
+  assert.ok(foodReply.replyArabic.includes('؟'), 'Non-final reply must include a directly related follow-up question');
   assert.ok(foodReply.replyTransliteration.trim().length > 0);
   assert.ok(foodReply.replyMalayalam.trim().length > 0);
   assert.equal(foodReply.nextHints.length, 3, 'Must refresh 3 tailored Arabic follow-up hints');
   assert.equal(foodReply.xpEarned, 10);
 
-  // 4. Arbitrary custom Arabic sentence falls back to custom_mirror and acknowledges exact words
-  assert.equal(detectArabicIntent('سَأَلْتَقِي بِكَ غَدًا فِي السَّاعَةِ الْخَامِسَةِ').intent, 'time');
-  const customReply = generateSmartArabicReply({
-    userSpokenText: 'اشْتَرَيْتُ دَرَّاجَةً زَرْقَاءَ',
-    scenario: laylaScenario,
+  // 3. Second food turn uses a non-repeating follow-up variant instead of repeating turn 0's question
+  const foodReply2 = generateSmartArabicReply({
+    userSpokenText: 'أحب الشاي بالنعناع',
+    scenario: tariqScenario,
+    turnIndex: 1,
+    history: [
+      { speaker: 'character', text: tariqScenario.turns[0].characterAr },
+      { speaker: 'user', text: 'أريد قهوة عربية مع التمر' },
+      { speaker: 'character', text: foodReply.replyArabic },
+    ],
+  });
+  assert.notEqual(foodReply2.replyArabic, foodReply.replyArabic);
+  assert.equal(foodReply2.replyArabic.includes('«'), false);
+
+  // 4. Arbitrary open-topic Arabic sentence gets a natural non-echoing reply (never quotes raw input)
+  const openReply = generateSmartArabicReply({
+    userSpokenText: 'اشتريت قطة صغيرة أمس',
+    scenario: tariqScenario,
     turnIndex: 1,
     history: [],
   });
-  assert.equal(customReply.intent, 'custom_mirror');
-  assert.ok(customReply.replyArabic.includes('اشْتَرَيْتُ'), 'Layla reply must mirror custom spoken Arabic');
-  assert.ok(customReply.nextHints.length >= 2);
-  assert.equal(customReply.isFinalTurn, false);
+  assert.equal(openReply.replyArabic.includes('«'), false);
+  assert.equal(openReply.replyArabic.includes('قطة'), false, 'Must not parrot raw unvocalized user words');
+  assert.ok(/[\u064B-\u0652]/.test(openReply.replyArabic));
+  assert.ok(openReply.nextHints.length >= 2);
+  assert.equal(openReply.isFinalTurn, false);
 
-  // 5. Final turn returns closing farewell with isFinalTurn: true and empty nextHints
+  // 5. Final turn returns natural vocalized closing farewell with isFinalTurn: true and empty nextHints
   const finalReply = generateSmartArabicReply({
     userSpokenText: 'شُكْرًا جَزِيلًا يَا طَارِقُ',
     scenario: tariqScenario,
@@ -2009,9 +2037,18 @@ test('Dynamic Video Call Smart Arabic Conversational Engine detects intents, mir
   });
   assert.equal(finalReply.isFinalTurn, true);
   assert.deepEqual(finalReply.nextHints, []);
+  assert.equal(finalReply.replyArabic.includes('«'), false);
   assert.ok(finalReply.replyArabic.includes('إِلَى اللِّقَاءِ'));
 
-  // 6. Automatic environment routing: GitHub Pages & Android APK skip server endpoint; AI Studio / localhost use it
+  // 6. Continuous recording transcript merging across pauses + echo sanitizer
+  assert.equal(
+    mergeSpeechTranscripts('أَنَا بِخَيْرٍ', 'وَالْحَمْدُ لِلّٰهِ', 'أُحِبُّ السَّفَرَ'),
+    'أَنَا بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ أُحِبُّ السَّفَرَ'
+  );
+  assert.equal(mergeSpeechTranscripts('  أَهْلًا  ', '', '  يَا طَارِقُ '), 'أَهْلًا يَا طَارِقُ');
+  assert.equal(stripQuotedEcho('جَمِيلٌ «قَهْوَة» جِدًّا'), 'جَمِيلٌ قَهْوَة جِدًّا');
+
+  // 7. Automatic environment routing: GitHub Pages & Android APK skip server endpoint; AI Studio / localhost use it
   assert.equal(canUseServerGeminiEndpoint({ protocol: 'https:', hostname: 'user.github.io' }), false);
   assert.equal(canUseServerGeminiEndpoint({ protocol: 'file:', hostname: '' }), false);
   assert.equal(canUseServerGeminiEndpoint({ protocol: 'capacitor:', hostname: 'localhost' }), false);

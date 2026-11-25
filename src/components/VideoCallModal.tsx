@@ -18,6 +18,7 @@ import {
 } from '../utils/learningEngine';
 import { playTone, preloadArabicAudioBatch, speakArabic, stopArabicAudio } from '../utils/audio';
 import {
+  mergeSpeechTranscripts,
   requestDynamicVideoCallReply,
   type VideoCallChatEntry,
 } from '../utils/videoCallConversation';
@@ -177,6 +178,10 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const transcriptRef = useRef('');
+  const committedTranscriptRef = useRef('');
+  const sessionSegmentRef = useRef('');
+  const manualStopRequestedRef = useRef(false);
+  const isListeningRef = useRef(false);
   const mountedRef = useRef(true);
   const greetedRef = useRef(false);
   const historyRef = useRef<VideoCallChatEntry[]>(
@@ -195,6 +200,8 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   const xpStats = useMemo(() => calculateVideoCallXp(totalSpokenWords), [totalSpokenWords]);
 
   const stopRecognition = useCallback(() => {
+    manualStopRequestedRef.current = true;
+    isListeningRef.current = false;
     const rec = recognitionRef.current;
     recognitionRef.current = null;
     if (rec) {
@@ -384,11 +391,21 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   const handleToggleSpeak = useCallback(() => {
     if (isAdvancing) return;
 
-    if (isListening) {
-      const captured = transcriptRef.current.trim();
+    // Explicit manual STOP & SEND: only submit when the user taps Stop
+    if (isListening || isListeningRef.current) {
+      const captured = (
+        transcriptRef.current ||
+        mergeSpeechTranscripts(committedTranscriptRef.current, sessionSegmentRef.current, '')
+      ).trim();
       stopRecognition();
+      committedTranscriptRef.current = '';
+      sessionSegmentRef.current = '';
       if (captured) {
         submitTurnReply(captured);
+      } else {
+        setLiveTranscript('');
+        transcriptRef.current = '';
+        setMicNote('ഒന്നും റെക്കോർഡ് ആയില്ല — വീണ്ടും 🎤 അമർത്തി സംസാരിക്കൂ, പൂർത്തിയായാൽ ⏹ അമർത്തൂ.');
       }
       return;
     }
@@ -406,69 +423,106 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     setMicNote(null);
     setLiveTranscript('');
     transcriptRef.current = '';
+    committedTranscriptRef.current = '';
+    sessionSegmentRef.current = '';
+    manualStopRequestedRef.current = false;
+    let playedStartTone = false;
 
-    try {
-      const recognition = new Ctor();
-      recognition.lang = 'ar-SA';
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 3;
+    const startContinuousSegment = () => {
+      if (!mountedRef.current || manualStopRequestedRef.current) return;
+      try {
+        const recognition = new Ctor();
+        recognition.lang = 'ar-SA';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 3;
 
-      recognition.onstart = () => {
-        if (!mountedRef.current) return;
-        setIsListening(true);
-        playTone('tap', soundEnabled);
-      };
-
-      recognition.onresult = (ev: SpeechRecognitionEventLike) => {
-        if (!mountedRef.current) return;
-        let combined = '';
-        let hasFinal = false;
-        for (let i = 0; i < ev.results.length; i++) {
-          const item = ev.results[i];
-          if (item && item[0]?.transcript) {
-            combined += (combined ? ' ' : '') + item[0].transcript.trim();
+        recognition.onstart = () => {
+          if (!mountedRef.current || manualStopRequestedRef.current) return;
+          isListeningRef.current = true;
+          setIsListening(true);
+          if (!playedStartTone) {
+            playedStartTone = true;
+            playTone('tap', soundEnabled);
           }
-          if (item?.isFinal) hasFinal = true;
-        }
-        transcriptRef.current = combined.trim();
-        setLiveTranscript(combined.trim());
+        };
 
-        if (hasFinal && combined.trim()) {
-          submitTurnReply(combined.trim());
-        }
-      };
+        recognition.onresult = (ev: SpeechRecognitionEventLike) => {
+          if (!mountedRef.current || manualStopRequestedRef.current) return;
+          let sessionFinal = '';
+          let sessionInterim = '';
+          for (let i = 0; i < ev.results.length; i++) {
+            const item = ev.results[i];
+            const text = item?.[0]?.transcript?.trim() ?? '';
+            if (!text) continue;
+            if (item.isFinal) {
+              sessionFinal += (sessionFinal ? ' ' : '') + text;
+            } else {
+              sessionInterim += (sessionInterim ? ' ' : '') + text;
+            }
+          }
+          sessionSegmentRef.current = mergeSpeechTranscripts('', sessionFinal, sessionInterim);
+          const accumulated = mergeSpeechTranscripts(
+            committedTranscriptRef.current,
+            sessionFinal,
+            sessionInterim
+          );
+          transcriptRef.current = accumulated;
+          setLiveTranscript(accumulated);
+          // Never auto-submit on isFinal or pauses — wait for explicit STOP & SEND tap!
+        };
 
-      recognition.onerror = (ev: SpeechRecognitionErrorEventLike) => {
-        if (!mountedRef.current) return;
+        recognition.onerror = (ev: SpeechRecognitionErrorEventLike) => {
+          if (!mountedRef.current || manualStopRequestedRef.current) return;
+          // Ignore brief silence/no-speech errors so thinking/breathing pauses never cut off the user
+          if (ev.error === 'no-speech' || ev.error === 'aborted') {
+            return;
+          }
+          stopRecognition();
+          if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+            setMicNote('മൈക്ക് അനുമതി ലഭിച്ചില്ല — താഴെയുള്ള അറബി മറുപടികൾ ടാപ്പ് ചെയ്ത് തുടരാം.');
+          } else {
+            setMicNote('ശബ്ദം തിരിച്ചറിയാൻ കഴിഞ്ഞില്ല — വീണ്ടും 🎤 അമർത്തുകയോ താഴെയുള്ള മറുപടി ടാപ്പ് ചെയ്യുകയോ ചെയ്യൂ.');
+          }
+          setShowSuggestions(true);
+        };
+
+        recognition.onend = () => {
+          if (!mountedRef.current) return;
+          // Preserve all words spoken before any browser silence timeout
+          if (sessionSegmentRef.current) {
+            committedTranscriptRef.current = mergeSpeechTranscripts(
+              committedTranscriptRef.current,
+              sessionSegmentRef.current,
+              ''
+            );
+            sessionSegmentRef.current = '';
+            transcriptRef.current = committedTranscriptRef.current;
+            setLiveTranscript(committedTranscriptRef.current);
+          }
+          // If the user has NOT explicitly tapped Stop, seamlessly keep listening across pauses
+          if (!manualStopRequestedRef.current && isListeningRef.current) {
+            recognitionRef.current = null;
+            startContinuousSegment();
+            return;
+          }
+          recognitionRef.current = null;
+          isListeningRef.current = false;
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        isListeningRef.current = true;
+        setIsListening(true);
+        recognition.start();
+      } catch {
         stopRecognition();
-        if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
-          setMicNote('മൈക്ക് അനുമതി ലഭിച്ചില്ല — താഴെയുള്ള അറബി മറുപടികൾ ടാപ്പ് ചെയ്ത് തുടരാം.');
-        } else if (ev.error === 'no-speech') {
-          setMicNote('ശബ്ദം കേട്ടില്ല — വീണ്ടും 🎤 അമർത്തുകയോ താഴെയുള്ള മറുപടി തിരഞ്ഞെടുക്കുകയോ ചെയ്യൂ.');
-        } else {
-          setMicNote('ശബ്ദം തിരിച്ചറിയാൻ കഴിഞ്ഞില്ല — വീണ്ടും ശ്രമിക്കുകയോ താഴെയുള്ള മറുപടി ടാപ്പ് ചെയ്യുകയോ ചെയ്യൂ.');
-        }
+        setMicNote('മൈക്ക് തുടങ്ങാൻ കഴിഞ്ഞില്ല — താഴെയുള്ള അറബി മറുപടികൾ ടാപ്പ് ചെയ്ത് സംസാരിക്കാം.');
         setShowSuggestions(true);
-      };
+      }
+    };
 
-      recognition.onend = () => {
-        if (!mountedRef.current) return;
-        const captured = transcriptRef.current.trim();
-        setIsListening(false);
-        recognitionRef.current = null;
-        if (captured && !isAdvancing) {
-          submitTurnReply(captured);
-        }
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch {
-      stopRecognition();
-      setMicNote('മൈക്ക് തുടങ്ങാൻ കഴിഞ്ഞില്ല — താഴെയുള്ള അറബി മറുപടികൾ ടാപ്പ് ചെയ്ത് സംസാരിക്കാം.');
-      setShowSuggestions(true);
-    }
+    startContinuousSegment();
   }, [isAdvancing, isListening, stopRecognition, submitTurnReply, soundEnabled]);
 
   const handleQuickReply = (suggestion: VideoCallReplySuggestion) => {
@@ -698,7 +752,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                   {isListening && (
                     <span
                       aria-hidden="true"
-                      className="absolute w-40 h-40 sm:w-44 sm:h-44 rounded-full border-4 border-sky-400/75 animate-pulse"
+                      className="absolute w-40 h-40 sm:w-44 sm:h-44 rounded-full border-4 border-red-400/80 animate-pulse"
                     />
                   )}
                   <button
@@ -709,7 +763,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                       isCharacterSpeaking
                         ? 'border-amber-300 scale-105'
                         : isListening
-                          ? 'border-sky-400 scale-100'
+                          ? 'border-red-400 scale-100'
                           : 'border-white/90 hover:scale-[1.03]'
                     }`}
                   >
@@ -731,8 +785,8 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                     </>
                   ) : isListening ? (
                     <>
-                      <Mic className="w-3.5 h-3.5 text-sky-400 animate-pulse" aria-hidden="true" />
-                      <span>കേൾക്കുന്നു... അറബിയിൽ സംസാരിക്കൂ!</span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
+                      <span>റെക്കോർഡിംഗ്... പൂർത്തിയായാൽ ⏹ നിർത്തുക &amp; അയക്കുക അമർത്തുക</span>
                     </>
                   ) : (
                     <span>മറുപടി പറയാൻ 🎤 അമർത്തുക</span>
@@ -820,18 +874,31 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                 </div>
               )}
 
-              {/* Live Interim Speech Transcript while Listening */}
-              {liveTranscript && (
+              {/* Live Accumulated Speech Preview Box while Recording */}
+              {(isListening || liveTranscript) && (
                 <div
                   data-testid="video-call-live-transcript"
-                  className="w-full max-w-lg bg-sky-950/85 backdrop-blur-md border border-sky-400/50 rounded-2xl px-4 py-2.5 text-center space-y-1 shadow-lg animate-pop"
+                  className="w-full max-w-lg bg-slate-950/85 backdrop-blur-md border-2 border-red-400/60 rounded-2xl px-4 py-3 text-center space-y-1.5 shadow-lg animate-pop"
                 >
-                  <div className="text-[11px] font-extrabold text-sky-300 uppercase tracking-wide">
-                    കേൾക്കുന്നു ({countSpokenArabicWords(liveTranscript)} വാക്കുകൾ)
+                  <div className="flex items-center justify-center gap-2 text-[11px] font-extrabold text-red-300 tracking-wide">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
+                    <span>
+                      തത്സമയ പ്രിവ്യൂ · {countSpokenArabicWords(liveTranscript)} അറബി വാക്കുകൾ
+                    </span>
                   </div>
-                  <div dir="rtl" lang="ar" className="font-arabic text-xl sm:text-2xl font-bold text-white">
-                    {liveTranscript}
-                  </div>
+                  {liveTranscript ? (
+                    <div
+                      dir="rtl"
+                      lang="ar"
+                      className="font-arabic text-xl sm:text-2xl font-bold text-white leading-relaxed"
+                    >
+                      {liveTranscript}
+                    </div>
+                  ) : (
+                    <div className="text-xs font-semibold text-white/75">
+                      അറബിയിൽ സംസാരിക്കൂ... ചെറിയ ഇടവേളകളിൽ കട്ട് ആകില്ല. പൂർത്തിയായാൽ ⏹ അമർത്തുക.
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -922,22 +989,25 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                   <span className="text-[10px] font-extrabold text-white/80">വീണ്ടും</span>
                 </button>
 
-                {/* Bottom-Center: Large Sky-Blue TAP TO SPEAK Microphone Button */}
+                {/* Bottom-Center: Large Sky-Blue TAP TO SPEAK / Pulsing Red STOP & SEND Button */}
                 <button
                   type="button"
                   data-testid="video-call-speak-btn"
+                  data-recording={isListening ? 'true' : 'false'}
                   disabled={isAdvancing}
                   onClick={handleToggleSpeak}
-                  className={`btn-3d flex-1 h-16 px-5 rounded-2xl border-b-[5px] font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl transition whitespace-nowrap ${
+                  className={`btn-3d flex-1 h-16 px-4 sm:px-5 rounded-2xl border-b-[5px] font-extrabold text-xs sm:text-sm md:text-base flex items-center justify-center gap-2 shadow-xl transition ${
                     isListening
-                      ? 'bg-rose-500 hover:bg-rose-600 border-rose-700 text-white ring-4 ring-rose-400/40'
+                      ? 'bg-red-600 hover:bg-red-700 border-red-800 text-white ring-4 ring-red-500/45 animate-pulse'
                       : 'bg-[#1CB0F6] hover:bg-[#17A2E6] border-[#0284C7] text-white'
                   } disabled:opacity-60`}
                 >
                   {isListening ? (
                     <>
-                      <MicOff className="w-5 h-5 shrink-0" aria-hidden="true" />
-                      <span>നിർത്തുക · STOP</span>
+                      <MicOff className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 hidden" aria-hidden="true" />
+                      <span className="leading-tight text-center">
+                        ⏹ നിർത്തുക &amp; അയക്കുക <span className="font-latin">(STOP &amp; SEND)</span>
+                      </span>
                     </>
                   ) : (
                     <>

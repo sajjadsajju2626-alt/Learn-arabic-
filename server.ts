@@ -136,15 +136,22 @@ function parseValidatedBody(raw: unknown): VideoCallReplyRequestBody | null {
     characterNameEn: clampString(obj.characterNameEn, 40) || (characterKey === 'layla' ? 'Layla' : 'Tariq'),
     characterNameMl: clampString(obj.characterNameMl, 40) || (characterKey === 'layla' ? 'ലൈല' : 'താരിഖ്'),
     characterNameAr: clampString(obj.characterNameAr, 40) || (characterKey === 'layla' ? 'لَيْلَى' : 'طَارِق'),
-    sceneTitleMl: clampString(obj.sceneTitleMl, 120) || 'അറബി സംഭാഷണം',
-    sceneSettingMl: clampString(obj.sceneSettingMl, 160) || 'അറബി കഫേ',
+    sceneTitleMl: clampString(obj.sceneTitleMl, 120) || 'വീഡിയോ കോൾ: താരിഖുമായി സംസാരിക്കാം',
+    sceneSettingMl:
+      clampString(obj.sceneSettingMl, 160) ||
+      'അറബി കഫേയിൽ നിന്ന് താരിഖ് നിങ്ങളെ വിളിക്കുന്നു · ഏത് വിഷയത്തെക്കുറിച്ചും സംസാരിക്കാം',
     unitNumber,
     turnIndex,
     totalTurns,
     history,
-    nextTopicAr: clampString(obj.nextTopicAr, 220),
-    nextTopicMl: clampString(obj.nextTopicMl, 220),
   };
+}
+
+function sanitizeReplyArabic(text: string): string {
+  return text
+    .replace(/[«»]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 async function handleVideoCallReply(req: Request, res: Response): Promise<void> {
@@ -175,29 +182,27 @@ async function handleVideoCallReply(req: Request, res: Response): Promise<void> 
     .join('\n');
 
   const systemInstruction = [
-    `You are ${body.characterNameEn} (${body.characterNameAr}), a warm, friendly native Arabic conversation partner on a Duolingo-style Video Call with a Malayalam-speaking Arabic learner.`,
-    `Unit ${body.unitNumber} scene: ${body.sceneTitleMl} (${body.sceneSettingMl}).`,
+    `You are ${body.characterNameEn} (${body.characterNameAr}), a warm, genuine, natural native Arabic friend on an open-topic Video Call with a Malayalam-speaking Arabic learner.`,
+    `There is NO fixed topic — talk naturally about whatever the learner brings up (daily life, feelings, food, travel, family, work, studies, weather, hobbies, plans, or questions about you).`,
     `STRICT RULES:`,
-    `1. Directly react to and mirror the specific Arabic words/topic the learner actually spoke — never ignore what they said!`,
-    `2. Write replyArabic in clear, natural Modern Standard Arabic (Fusha) with FULL Harakat/Tashkeel vowel marks on EVERY word (Fatha, Kasra, Damma, Sukoon, Shadda, Tanween). Keep it concise (1-2 short natural sentences).`,
+    `1. UNDERSTAND THE MEANING of what the learner actually said — even if it is short, conversational, or has minor mistakes — and reply genuinely to their meaning and intent.`,
+    `2. NEVER parrot, echo, repeat verbatim, or quote the learner's raw words. NEVER use guillemets («...») or quotation marks to repeat what they said.`,
+    `3. Write replyArabic in clear, natural Modern Standard Arabic (Fusha) with FULL Harakat/Tashkeel vowel marks on EVERY word (Fatha, Kasra, Damma, Sukoon, Shadda, Tanween) so Hamed TTS reads it clearly. Keep it concise and warm (1-2 natural sentences).`,
     isFinalTurn
-      ? `3. This is the FINAL turn (${body.turnIndex + 1}/${body.totalTurns}). Give warm praise referencing what the learner said and a friendly Arabic farewell (do NOT ask a new question).`
-      : `3. This is turn ${body.turnIndex + 1} of ${body.totalTurns}. Acknowledge what the learner said and end with ONE clear, friendly follow-up question in vocalized Arabic.`,
-    `4. Write replyTransliteration in natural Malayalam script phonetic transliteration (e.g., അസ്സലാമു അലൈക്കും).`,
-    `5. Write replyMalayalam in natural, idiomatic Malayalam explaining what ${body.characterNameEn} said.`,
+      ? `4. This is the FINAL turn (${body.turnIndex + 1}/${body.totalTurns}). React warmly to what the learner just said and give a heartfelt, natural Arabic farewell without quoting their words verbatim and without asking a new question.`
+      : `4. This is turn ${body.turnIndex + 1} of ${body.totalTurns}. First give a natural, meaningful reaction/answer to what the learner said, then immediately ask ONE directly related, natural follow-up question in vocalized Arabic that continues THEIR topic (do not jump to an unrelated script and do not repeat a question already in the conversation history).`,
+    `5. Write replyTransliteration in natural Malayalam script phonetic transliteration (e.g., أَهْلًا وَسَهْلًا -> അഹ്‌ലൻ വ സഹ്‌ലൻ).`,
+    `6. Write replyMalayalam in natural, idiomatic Malayalam translating what ${body.characterNameEn} just said.`,
     isFinalTurn
-      ? `6. Return an empty array [] for nextHints since the call is finishing.`
-      : `6. Provide exactly 3 nextHints tailored to answer YOUR new follow-up question: hint 1 short (2-3 Arabic words), hint 2 medium (4-6 Arabic words), hint 3 full natural sentence (6-9 Arabic words). Every hint must have full Harakat in "ar", Malayalam script phonetics in "tr", and Malayalam meaning in "ml".`,
-    `7. Set xpEarned to ${expectedTurnXp}.`,
+      ? `7. Return an empty array [] for nextHints since the call is finishing.`
+      : `7. Provide exactly 3 nextHints tailored to answer YOUR new follow-up question: hint 1 short (2-3 Arabic words), hint 2 medium (4-6 Arabic words), hint 3 full natural sentence (6-9 Arabic words). Every hint must have full Harakat in "ar", Malayalam script phonetics in "tr", and Malayalam meaning in "ml".`,
+    `8. Set xpEarned to ${expectedTurnXp}.`,
   ].join('\n');
 
   const userPrompt = [
     historyLines ? `Conversation so far:\n${historyLines}` : '',
     `Learner just spoke: "${body.userSpokenText}"`,
-    !isFinalTurn && body.nextTopicMl
-      ? `Optional scene direction if helpful: ${body.nextTopicMl}`
-      : '',
-    `Respond now as ${body.characterNameEn} in the required JSON schema.`,
+    `Reply naturally as ${body.characterNameEn} (without echoing or quoting their raw words) in the required JSON schema.`,
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -208,7 +213,7 @@ async function handleVideoCallReply(req: Request, res: Response): Promise<void> 
       contents: userPrompt,
       config: {
         systemInstruction,
-        temperature: 0.7,
+        temperature: 0.75,
         thinkingConfig: { thinkingBudget: 0 },
         responseMimeType: 'application/json',
         responseSchema: {
@@ -216,7 +221,8 @@ async function handleVideoCallReply(req: Request, res: Response): Promise<void> 
           properties: {
             replyArabic: {
               type: Type.STRING,
-              description: 'Character response in Arabic with full Harakat diacritics.',
+              description:
+                'Natural Arabic response with full Harakat diacritics. Never quote or parrot the user.',
             },
             replyTransliteration: {
               type: Type.STRING,
@@ -256,7 +262,7 @@ async function handleVideoCallReply(req: Request, res: Response): Promise<void> 
     }
 
     const parsed = JSON.parse(rawText) as Partial<DynamicVideoCallReplyPayload>;
-    const replyArabic = clampString(parsed.replyArabic, 420);
+    const replyArabic = sanitizeReplyArabic(clampString(parsed.replyArabic, 420));
     if (!replyArabic || !/[\u0621-\u064A]/.test(replyArabic)) {
       res.status(200).json({ available: false });
       return;
@@ -266,7 +272,7 @@ async function handleVideoCallReply(req: Request, res: Response): Promise<void> 
       ? parsed.nextHints
           .slice(0, 3)
           .map((h) => ({
-            ar: clampString((h as DynamicHintItem)?.ar, 220),
+            ar: sanitizeReplyArabic(clampString((h as DynamicHintItem)?.ar, 220)),
             tr: clampString((h as DynamicHintItem)?.tr, 240),
             ml: clampString((h as DynamicHintItem)?.ml, 240),
           }))
