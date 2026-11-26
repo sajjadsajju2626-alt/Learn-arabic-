@@ -45,6 +45,7 @@ import {
   computeStreakUpdate,
   computeVisibleUnitIndex,
   countSpokenArabicWords,
+  deduplicateSessionQuestions,
   enqueueMistakeForReview,
   evaluateQuestionAnswer,
   evaluateSessionOutcome,
@@ -54,9 +55,11 @@ import {
   getActiveNodeTargetId,
   getAllLessonIds,
   getLetterDisplay,
+  getQuestionArabicSourceKey,
   getQuestionFingerprint,
   getUnitNumberFromLessonId,
   hydratePersistedUserState,
+  interleaveDistinctQuestionTypes,
   isBasicAlphabetOrHarakatQuestion,
   isLessonUnlocked,
   isPairsQuestion,
@@ -74,6 +77,7 @@ import {
   MISTAKE_REVIEW_BANNER_TEXT,
   normalizeAppTab,
   normalizeArabicDictation,
+  normalizeArabicSentenceKey,
   normalizeArabicSpeech,
   normalizeWordBankText,
   persistUserStateSync,
@@ -2548,6 +2552,157 @@ test('basic Alphabet and single-letter Harakat recognition questions are strictl
     2,
     'Unit 1 Mistake Review must still re-queue Unit 1 Harakat questions'
   );
+});
+
+test('every lesson, Hard Practice, Review, Legendary, and 15-question Entry Test deduplicates core Arabic sentences across all exercise types and never repeats consecutive exercise formats', () => {
+  // 1. Normalization strips extra whitespace, punctuation, and Harakat on phrases while preserving single-letter Harakat drills
+  assert.equal(
+    normalizeArabicSentenceKey('  السَّلَامُ   عَلَيْكُمْ!  '),
+    normalizeArabicSentenceKey('السلام عليكم')
+  );
+  assert.notEqual(
+    normalizeArabicSentenceKey('بَ'),
+    normalizeArabicSentenceKey('بِ'),
+    'Single-letter Harakat drills in Units 1-4 must remain distinct'
+  );
+
+  // 2. Same Arabic sentence across different exercise types (mcq, listen, wordbank, fill_blank, dictation) collapses to 1 question
+  const duplicateCrossTypeQueue: LessonQuestion[] = [
+    {
+      type: 'mcq',
+      prompt: 'ഈ അറബി പ്രയോഗത്തിന്റെ ശരിയായ മലയാളം അർത്ഥം ഏതാണ്?',
+      arabic: 'كَتَبَ   الْوَلَدُ الدَّرْسَ',
+      options: ['കുട്ടി പാഠം എഴുതി', 'കുട്ടി പുസ്തകം വായിച്ചു', 'കുട്ടി സ്കൂളിൽ പോയി', 'കുട്ടി ഭക്ഷണം കഴിച്ചു'],
+      answer: 'കുട്ടി പാഠം എഴുതി',
+    },
+    {
+      type: 'listen',
+      prompt: 'ശബ്ദം കേട്ട് ശരിയായ മലയാളം അർത്ഥം തിരഞ്ഞെടുക്കുക',
+      arabic: 'كَتَبَ الْوَلَدُ الدَّرْسَ.',
+      options: ['കുട്ടി പാഠം എഴുതി', 'കുട്ടി പുസ്തകം വായിച്ചു', 'കുട്ടി സ്കൂളിൽ പോയി', 'കുട്ടി ഭക്ഷണം കഴിച്ചു'],
+      answer: 'കുട്ടി പാഠം എഴുതി',
+    },
+    {
+      type: 'fill_blank',
+      prompt: 'ശരിയായ ക്രിയ തിരഞ്ഞെടുക്കുക',
+      sentence: '___ الْوَلَدُ الدَّرْسَ',
+      hintMl: 'കുട്ടി പാഠം എഴുതി',
+      options: ['كَتَبَ', 'قَرَأَ', 'ذَهَبَ'],
+      answer: 'كَتَبَ',
+    },
+    {
+      type: 'dictation',
+      prompt: 'ശബ്ദം കേട്ട് അറബിയിൽ ടൈപ്പ് ചെയ്യുക',
+      arabic: 'كَتَبَ الْوَلَدُ الدَّرْسَ',
+      meaningMl: 'കുട്ടി പാഠം എഴുതി',
+    },
+    {
+      type: 'wordbank',
+      prompt: "'ഞാൻ വെള്ളം കുടിക്കുന്നു' എന്ന് അറബിയിൽ ക്രമീകരിക്കുക",
+      words: ['أَنَا', 'أَشْرَبُ', 'الْمَاءَ', 'الْقَهْوَةَ'],
+      isArabicWords: true,
+      answer: ['أَنَا', 'أَشْرَبُ', 'الْمَاءَ'],
+    },
+  ];
+  const deduped = deduplicateSessionQuestions(duplicateCrossTypeQueue);
+  assert.equal(
+    deduped.length,
+    2,
+    'Only 1 question per core Arabic sentence may survive across mcq/listen/fill_blank/dictation'
+  );
+  assert.notEqual(
+    getQuestionArabicSourceKey(deduped[0]),
+    getQuestionArabicSourceKey(deduped[1])
+  );
+  assert.notEqual(deduped[0].type, deduped[1].type);
+
+  // 3. Interleaver guarantees distinct consecutive exercise formats
+  const interleaved = interleaveDistinctQuestionTypes([
+    { type: 'mcq', prompt: 'p1', arabic: 'بَيْتٌ', options: ['a', 'b'], answer: 'a' },
+    { type: 'mcq', prompt: 'p2', arabic: 'قَلَمٌ', options: ['a', 'b'], answer: 'a' },
+    { type: 'listen', prompt: 'p3', arabic: 'كِتَابٌ', options: ['a', 'b'], answer: 'a' },
+    { type: 'listen', prompt: 'p4', arabic: 'بَابٌ', options: ['a', 'b'], answer: 'a' },
+  ]);
+  for (let i = 1; i < interleaved.length; i++) {
+    assert.notEqual(interleaved[i].type, interleaved[i - 1].type);
+  }
+
+  // 4. Exhaustive verification across ALL 35 units (all lessons, Hard Practice, Review, Legendary)
+  let seed = 20261126;
+  const rng = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
+  for (let uIdx = 0; uIdx < UNITS.length; uIdx++) {
+    const unit = UNITS[uIdx];
+    const priorCompleted = unlockLessonsUpToUnit([], uIdx, UNITS);
+    for (const lesson of unit.lessons) {
+      if (lesson.nodeType === 'chest' || lesson.nodeType === 'video_call' || lesson.nodeType === 'story') continue;
+
+      const session = buildLessonSessionQuestions(lesson, priorCompleted, UNITS, rng);
+      const usedAr = new Set<string>();
+      for (let i = 0; i < session.length; i++) {
+        const key = getQuestionArabicSourceKey(session[i]);
+        if (key) {
+          assert.equal(
+            usedAr.has(key),
+            false,
+            `${lesson.id} (${lesson.nodeType}) repeated Arabic sentence "${key}" across questions`
+          );
+          usedAr.add(key);
+        }
+        if (i > 0) {
+          assert.notEqual(
+            session[i].type,
+            session[i - 1].type,
+            `${lesson.id} placed consecutive "${session[i].type}" questions at indices ${i - 1} and ${i}`
+          );
+        }
+      }
+
+      if (lesson.nodeType === 'hard' || lesson.nodeType === 'lesson') {
+        const review = buildReviewSessionQuestions(lesson, UNITS, rng);
+        const revKeys = review.map((q) => getQuestionArabicSourceKey(q)).filter(Boolean);
+        assert.equal(new Set(revKeys).size, revKeys.length, `${lesson.id} Review has duplicate Arabic sentences`);
+        for (let i = 1; i < review.length; i++) {
+          assert.notEqual(review[i].type, review[i - 1].type, `${lesson.id} Review repeated consecutive format`);
+        }
+
+        const legendary = buildLegendarySessionQuestions(lesson, UNITS, rng);
+        const legKeys = legendary.map((q) => getQuestionArabicSourceKey(q)).filter(Boolean);
+        assert.equal(new Set(legKeys).size, legKeys.length, `${lesson.id} Legendary has duplicate Arabic sentences`);
+        for (let i = 1; i < legendary.length; i++) {
+          assert.notEqual(legendary[i].type, legendary[i - 1].type, `${lesson.id} Legendary repeated consecutive format`);
+        }
+      }
+    }
+  }
+
+  // 5. Exhaustive verification across ALL 34 Jump-Ahead Entry Tests (Units 2 through 35)
+  for (let targetUnitIndex = 1; targetUnitIndex < UNITS.length; targetUnitIndex++) {
+    const jumpQs = buildUnitJumpQuestions(targetUnitIndex, UNITS, JUMP_TEST_QUESTION_COUNT);
+    assert.equal(jumpQs.length, 15, `Unit ${targetUnitIndex + 1} Entry Test must have 15 questions`);
+    const usedAr = new Set<string>();
+    for (let i = 0; i < jumpQs.length; i++) {
+      const key = getQuestionArabicSourceKey(jumpQs[i]);
+      if (key) {
+        assert.equal(
+          usedAr.has(key),
+          false,
+          `Unit ${targetUnitIndex + 1} Entry Test repeated Arabic sentence "${key}"`
+        );
+        usedAr.add(key);
+      }
+      if (i > 0) {
+        assert.notEqual(
+          jumpQs[i].type,
+          jumpQs[i - 1].type,
+          `Unit ${targetUnitIndex + 1} Entry Test placed consecutive "${jumpQs[i].type}" questions`
+        );
+      }
+    }
+  }
 });
 
 

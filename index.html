@@ -5634,6 +5634,145 @@
       return 10;
     }
 
+    function normalizeArabicSentenceKey(raw) {
+      const cleaned = String(raw ?? "")
+        .normalize("NFC")
+        .replace(/[\u200B-\u200F\uFEFF\u0640]/g, "")
+        .replace(/[؟?!.,،؛:«»"'()[\]{}\-–—…]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!cleaned || !/[\u0600-\u06FF]/.test(cleaned)) return "";
+      const noHarakat = cleaned
+        .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "")
+        .replace(/[أإآٱ]/g, "ا")
+        .replace(/ى/g, "ي")
+        .replace(/\s+/g, " ")
+        .trim();
+      const bareLetters = (noHarakat.match(/[\u0621-\u064A]/g) || []).length;
+      return bareLetters <= 1 ? cleaned : noHarakat;
+    }
+
+    function getQuestionArabicSourceKey(q) {
+      if (!q) return "";
+      if (typeof q.targetArabic === "string" && q.targetArabic.trim()) {
+        const k = normalizeArabicSentenceKey(q.targetArabic);
+        if (k) return k;
+      }
+      if (q.type === "fill_blank") {
+        return normalizeArabicSentenceKey(buildFilledSentence(q.sentence || "", q.answer || ""));
+      }
+      if (q.type === "listen" || q.type === "dictation" || q.type === "speak") {
+        return normalizeArabicSentenceKey(q.arabic);
+      }
+      if (q.type === "radio_tf" || q.type === "radio_select3" || q.type === "radio_mcq") {
+        return normalizeArabicSentenceKey(q.arabic || q.transcriptAr);
+      }
+      if (q.type === "wordbank") {
+        if (q.arabic && /[\u0600-\u06FF]/.test(q.arabic)) {
+          return normalizeArabicSentenceKey(q.arabic);
+        }
+        if (Array.isArray(q.answer)) {
+          const joined = q.answer.join(" ");
+          if (/[\u0600-\u06FF]/.test(joined)) return normalizeArabicSentenceKey(joined);
+        }
+        const promptAr = String(q.prompt || "").match(/[\u0600-\u06FF][\u0600-\u06FF\s\u064B-\u065F\u0670]*/);
+        return promptAr ? normalizeArabicSentenceKey(promptAr[0]) : "";
+      }
+      if (q.type === "mcq") {
+        if (q.arabic && /[\u0600-\u06FF]/.test(q.arabic)) {
+          return normalizeArabicSentenceKey(q.arabic);
+        }
+        if (typeof q.answer === "string" && /[\u0600-\u06FF]/.test(q.answer)) {
+          const strippedParens = q.answer.replace(/\([^)]*\)/g, " ");
+          const k = normalizeArabicSentenceKey(strippedParens);
+          if (k) return k;
+        }
+        const promptAr = String(q.prompt || "").match(/[\u0600-\u06FF][\u0600-\u06FF\s\u064B-\u065F\u0670]*/);
+        return promptAr ? normalizeArabicSentenceKey(promptAr[0]) : "";
+      }
+      if (q.type === "pairs" || q.type === "audio_pairs") {
+        const items = (q.pairs || [])
+          .map(p => normalizeArabicSentenceKey(p.ar))
+          .filter(Boolean)
+          .sort();
+        return items.length > 0 ? `pairs:${items.join("|")}` : "";
+      }
+      return "";
+    }
+
+    function areSimilarFormats(a, b) {
+      if (a === b) return true;
+      if ((a === "pairs" || a === "audio_pairs") && (b === "pairs" || b === "audio_pairs")) return true;
+      return false;
+    }
+
+    function interleaveDistinctQuestionTypes(questions, anchorFirst = false) {
+      if (!Array.isArray(questions) || questions.length <= 1) return [...(questions || [])];
+      const ordered = [];
+      const pool = anchorFirst ? questions.slice(1) : [...questions];
+      if (anchorFirst) ordered.push(questions[0]);
+
+      const buckets = new Map();
+      pool.forEach(q => {
+        if (!buckets.has(q.type)) buckets.set(q.type, []);
+        buckets.get(q.type).push(q);
+      });
+
+      while (ordered.length < questions.length) {
+        const prevType = ordered.length > 0 ? ordered[ordered.length - 1].type : null;
+        const nonEmptyTypes = Array.from(buckets.entries())
+          .filter(([, list]) => list.length > 0)
+          .sort((a, b) => (b[1].length !== a[1].length ? b[1].length - a[1].length : Math.random() - 0.5));
+        if (nonEmptyTypes.length === 0) break;
+        const chosenEntry =
+          (prevType
+            ? nonEmptyTypes.find(([t]) => !areSimilarFormats(t, prevType)) ||
+              nonEmptyTypes.find(([t]) => t !== prevType)
+            : nonEmptyTypes[0]) || nonEmptyTypes[0];
+        const nextQ = chosenEntry[1].shift();
+        if (nextQ) ordered.push(nextQ);
+      }
+      return ordered;
+    }
+
+    function insertWithoutAdjacentSameType(ordered, item, preferredIndex) {
+      const clamped = Math.max(0, Math.min(preferredIndex, ordered.length));
+      const fitsStrictly = idx =>
+        (idx === 0 || !areSimilarFormats(ordered[idx - 1].type, item.type)) &&
+        (idx === ordered.length || !areSimilarFormats(ordered[idx].type, item.type));
+      const fitsExact = idx =>
+        (idx === 0 || ordered[idx - 1].type !== item.type) &&
+        (idx === ordered.length || ordered[idx].type !== item.type);
+      for (const predicate of [fitsStrictly, fitsExact]) {
+        for (let offset = 0; offset <= ordered.length; offset++) {
+          const candidates = offset === 0 ? [clamped] : [clamped + offset, clamped - offset];
+          for (const idx of candidates) {
+            if (idx >= 0 && idx <= ordered.length && predicate(idx)) {
+              ordered.splice(idx, 0, item);
+              return;
+            }
+          }
+        }
+      }
+      ordered.splice(clamped, 0, item);
+    }
+
+    function deduplicateSessionQuestions(questions) {
+      const seen = new Set();
+      const usedSentences = new Set();
+      const unique = [];
+      (questions || []).forEach(q => {
+        const fp = getQuestionFingerprint(q);
+        if (seen.has(fp)) return;
+        const arKey = getQuestionArabicSourceKey(q);
+        if (arKey && usedSentences.has(arKey)) return;
+        seen.add(fp);
+        if (arKey) usedSentences.add(arKey);
+        unique.push(q);
+      });
+      return interleaveDistinctQuestionTypes(unique, false);
+    }
+
     function getQuestionFingerprint(q) {
       const norm = s => normalizeWordBankText(s ?? "").toLowerCase();
       if (q.type === "mcq") return `mcq|${norm(q.prompt)}|${norm(q.arabic)}|${norm(q.answer)}`;
@@ -5860,21 +5999,38 @@
       const unitIndex = units.findIndex(u => u.lessons.some(l => l.id === lesson.id));
       const unit = unitIndex >= 0 ? units[unitIndex] : null;
       const seen = new Set();
+      const usedSentences = new Set();
       const cloneQ = q => JSON.parse(JSON.stringify(q));
 
       const disallowBasicAlphabet = Boolean(unit && unit.number > ALPHABET_MAX_UNIT_NUMBER);
 
-      const tryAccept = (list, q, markSpacedRepetition = false) => {
+      const canAccept = q => {
         if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return false;
         const fp = getQuestionFingerprint(q);
         if (seen.has(fp)) return false;
+        const arKey = getQuestionArabicSourceKey(q);
+        if (arKey && usedSentences.has(arKey)) return false;
+        return true;
+      };
+
+      const tryAccept = (list, q, markSpacedRepetition = false) => {
+        if (!canAccept(q)) return false;
+        const fp = getQuestionFingerprint(q);
+        const arKey = getQuestionArabicSourceKey(q);
         seen.add(fp);
+        if (arKey) usedSentences.add(arKey);
         const copy = cloneQ(q);
         delete copy.isReview;
         if (markSpacedRepetition) copy.isSpacedRepetition = true;
         else delete copy.isSpacedRepetition;
         list.push(copy);
         return true;
+      };
+
+      const releaseAccepted = q => {
+        seen.delete(getQuestionFingerprint(q));
+        const arKey = getQuestionArabicSourceKey(q);
+        if (arKey) usedSentences.delete(arKey);
       };
 
       const handcrafted = [];
@@ -5931,20 +6087,24 @@
       const unitPool = [...shuffleArray(siblingHandcrafted), ...shuffleArray(dynamicUnitQs)];
 
       const fallbackPool = [];
-      if (unitPool.length < 15) {
-        units.forEach(u => {
-          if (unit && u.id === unit.id) return;
-          if (disallowBasicAlphabet && u.number <= ALPHABET_MAX_UNIT_NUMBER) return;
-          u.lessons.forEach(l => {
-            if (l.nodeType === "chest" || l.nodeType === "video_call") return;
-            (l.questions || []).forEach(q => {
-              if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return;
-              fallbackPool.push(q);
-            });
+      const otherUnits = units
+        .map((u, idx) => ({ u, dist: unitIndex >= 0 ? Math.abs(idx - unitIndex) : idx + 1 }))
+        .filter(({ u }) => !(unit && u.id === unit.id))
+        .filter(({ u }) => !(disallowBasicAlphabet && u.number <= ALPHABET_MAX_UNIT_NUMBER))
+        .sort((a, b) => a.dist - b.dist);
+      otherUnits.slice(0, 6).forEach(({ u }) => {
+        const unitFallbackHandcrafted = [];
+        u.lessons.forEach(l => {
+          if (l.nodeType === "chest" || l.nodeType === "video_call") return;
+          (l.questions || []).forEach(q => {
+            if (q.type === "speak" && !(unit && unit.number >= SPEAK_MIN_UNIT_NUMBER)) return;
+            if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return;
+            unitFallbackHandcrafted.push(q);
           });
         });
-      }
-      const allCandidates = [...unitPool, ...shuffleArray(fallbackPool)];
+        fallbackPool.push(...shuffleArray(unitFallbackHandcrafted));
+      });
+      const allCandidates = [...unitPool, ...fallbackPool];
 
       const reinforcements = [];
       const currentTotal = () => handcrafted.length + spacedRepetition.length + reinforcements.length;
@@ -6006,14 +6166,16 @@
               return (countsNow[q.type] || 0) > 1;
             });
             if (swapIdx >= 0) {
-              reinforcements.splice(swapIdx, 1);
+              const [removed] = reinforcements.splice(swapIdx, 1);
+              releaseAccepted(removed);
             } else {
               let swappedHandcrafted = false;
               for (let i = handcrafted.length - 1; i >= 1; i--) {
                 const item = handcrafted[i];
                 if (item.type === "speak" || isPodcastQuestion(item)) continue;
                 if ((countsNow[item.type] || 0) > 1) {
-                  handcrafted.splice(i, 1);
+                  const [removed] = handcrafted.splice(i, 1);
+                  releaseAccepted(removed);
                   swappedHandcrafted = true;
                   break;
                 }
@@ -6047,6 +6209,7 @@
         let added = false;
         for (const t of prioritizedTypes) {
           if (t === "speak" && typeCounts.speak >= 2) continue;
+          if (t === "dictation" && typeCounts.dictation >= 2) continue;
           for (const cand of allCandidates) {
             if (cand.type !== t) continue;
             if (tryAccept(reinforcements, cand, false)) {
@@ -6060,18 +6223,11 @@
         if (!added) break;
       }
 
-      const ordered = [];
-      if (handcrafted.length > 0) ordered.push(handcrafted[0]);
-      const remaining = [...handcrafted.slice(1), ...reinforcements];
-      while (remaining.length > 0) {
-        const prevType = ordered.length > 0 ? ordered[ordered.length - 1].type : null;
-        const diffIdx = remaining.findIndex(q => q.type !== prevType);
-        const pickIdx = diffIdx >= 0 ? diffIdx : 0;
-        ordered.push(remaining.splice(pickIdx, 1)[0]);
-      }
+      const unitQuestions = [...handcrafted, ...reinforcements];
+      const ordered = interleaveDistinctQuestionTypes(unitQuestions, handcrafted.length > 0);
 
-      if (spacedRepetition.length >= 1) ordered.splice(Math.min(4, ordered.length), 0, spacedRepetition[0]);
-      if (spacedRepetition.length >= 2) ordered.splice(Math.min(8, ordered.length), 0, spacedRepetition[1]);
+      if (spacedRepetition.length >= 1) insertWithoutAdjacentSameType(ordered, spacedRepetition[0], Math.min(4, ordered.length));
+      if (spacedRepetition.length >= 2) insertWithoutAdjacentSameType(ordered, spacedRepetition[1], Math.min(8, ordered.length));
 
       return prepareSessionQuestions(ordered.slice(0, effectiveTargetCount));
     }
@@ -6115,27 +6271,59 @@
       const fullPool = buildLessonSessionQuestions(lesson, [], units);
       const picked = [];
       const seen = new Set();
+      const usedSentences = new Set();
+      const tryPick = q => {
+        const fp = getQuestionFingerprint(q);
+        if (seen.has(fp)) return false;
+        const arKey = getQuestionArabicSourceKey(q);
+        if (arKey && usedSentences.has(arKey)) return false;
+        seen.add(fp);
+        if (arKey) usedSentences.add(arKey);
+        picked.push(q);
+        return true;
+      };
       ALL_QUESTION_TYPES.forEach(t => {
         if (picked.length >= REVIEW_QUESTION_COUNT) return;
-        const match = fullPool.find(q => q.type === t && !seen.has(getQuestionFingerprint(q)));
-        if (match) { seen.add(getQuestionFingerprint(match)); picked.push(match); }
+        const match = fullPool.find(q => {
+          if (q.type !== t) return false;
+          const fp = getQuestionFingerprint(q);
+          const arKey = getQuestionArabicSourceKey(q);
+          return !seen.has(fp) && !(arKey && usedSentences.has(arKey));
+        });
+        if (match) tryPick(match);
       });
       fullPool.forEach(q => {
         if (picked.length >= REVIEW_QUESTION_COUNT) return;
-        const fp = getQuestionFingerprint(q);
-        if (!seen.has(fp)) { seen.add(fp); picked.push(q); }
+        tryPick(q);
       });
-      return prepareSessionQuestions(picked.slice(0, REVIEW_QUESTION_COUNT));
+      return prepareSessionQuestions(interleaveDistinctQuestionTypes(picked.slice(0, REVIEW_QUESTION_COUNT), false));
     }
 
     function buildLegendarySessionQuestions(lesson, units) {
       const basePool = buildLessonSessionQuestions(lesson, [], units);
-      const unit = units.find(u => u.lessons.some(l => l.id === lesson.id));
+      const unitIndex = units.findIndex(u => u.lessons.some(l => l.id === lesson.id));
+      const unit = unitIndex >= 0 ? units[unitIndex] : null;
       const disallowBasicAlphabet = Boolean(unit && unit.number > ALPHABET_MAX_UNIT_NUMBER);
       const extraDynamic = unit
         ? generateDynamicUnitQuestions(unit).filter(q => !(disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)))
         : [];
-      const combined = [...basePool, ...shuffleArray(extraDynamic)];
+      const fallbackPool = [];
+      const nearbyUnits = units
+        .map((u, idx) => ({ u, dist: unitIndex >= 0 ? Math.abs(idx - unitIndex) : idx + 1 }))
+        .filter(({ u }) => !(unit && u.id === unit.id))
+        .filter(({ u }) => !(disallowBasicAlphabet && u.number <= ALPHABET_MAX_UNIT_NUMBER))
+        .sort((a, b) => a.dist - b.dist);
+      nearbyUnits.slice(0, 4).forEach(({ u }) => {
+        u.lessons.forEach(l => {
+          if (l.nodeType === "chest" || l.nodeType === "video_call") return;
+          (l.questions || []).forEach(q => {
+            if (q.type === "speak" && !(unit && unit.number >= SPEAK_MIN_UNIT_NUMBER)) return;
+            if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return;
+            fallbackPool.push(q);
+          });
+        });
+      });
+      const combined = [...basePool, ...shuffleArray(extraDynamic), ...shuffleArray(fallbackPool)];
       const rank = q => {
         if (q.type === "dictation") return 0;
         if (q.type === "speak") return 1;
@@ -6149,34 +6337,36 @@
       };
       const ranked = [...combined].sort((a, b) => rank(a) - rank(b));
       const seen = new Set();
+      const usedSentences = new Set();
       const picked = [];
       const counts = {};
       const maxForType = t => (t === "dictation" || t === "speak" ? 2 : 3);
-      for (const q of ranked) {
-        if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
-        if ((counts[q.type] || 0) >= maxForType(q.type)) continue;
+      const tryPick = (q, enforceTypeCap) => {
+        if (enforceTypeCap && (counts[q.type] || 0) >= maxForType(q.type)) return false;
         const fp = getQuestionFingerprint(q);
-        if (seen.has(fp)) continue;
+        if (seen.has(fp)) return false;
+        const arKey = getQuestionArabicSourceKey(q);
+        if (arKey && usedSentences.has(arKey)) return false;
         seen.add(fp);
+        if (arKey) usedSentences.add(arKey);
         counts[q.type] = (counts[q.type] || 0) + 1;
         const clone = JSON.parse(JSON.stringify(q));
         delete clone.isReview;
         delete clone.isSpacedRepetition;
         picked.push(clone);
+        return true;
+      };
+      for (const q of ranked) {
+        if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
+        tryPick(q, true);
       }
       if (picked.length < LEGENDARY_QUESTION_COUNT) {
         for (const q of ranked) {
           if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
-          const fp = getQuestionFingerprint(q);
-          if (seen.has(fp)) continue;
-          seen.add(fp);
-          const clone = JSON.parse(JSON.stringify(q));
-          delete clone.isReview;
-          delete clone.isSpacedRepetition;
-          picked.push(clone);
+          tryPick(q, false);
         }
       }
-      return prepareSessionQuestions(picked.slice(0, LEGENDARY_QUESTION_COUNT));
+      return prepareSessionQuestions(interleaveDistinctQuestionTypes(picked.slice(0, LEGENDARY_QUESTION_COUNT), false));
     }
 
     function prepareStorySteps(story) {
@@ -6494,16 +6684,23 @@
             const fp = getQuestionFingerprint(q);
             if (seenGlobal.has(fp)) return;
             seenGlobal.add(fp);
-            buckets[bucket].push({ unitIndex: i, bucket, fp, question: q });
+            buckets[bucket].push({
+              unitIndex: i,
+              bucket,
+              fp,
+              arKey: getQuestionArabicSourceKey(q),
+              question: q
+            });
           });
         });
       }
 
-      const pickAcrossUnits = (candidates, quota, usedFps, preferPredicate) => {
+      const pickAcrossUnits = (candidates, quota, usedFps, usedSentences, preferPredicate) => {
         if (quota <= 0 || candidates.length === 0) return [];
         const byUnit = new Map();
         shuffleArray(candidates).forEach(c => {
           if (usedFps.has(c.fp)) return;
+          if (c.arKey && usedSentences.has(c.arKey)) return;
           if (!byUnit.has(c.unitIndex)) byUnit.set(c.unitIndex, []);
           byUnit.get(c.unitIndex).push(c);
         });
@@ -6511,17 +6708,27 @@
         const picked = [];
         const unitOrder = shuffleArray(Array.from(byUnit.keys()));
 
+        const acceptCandidate = c => {
+          if (usedFps.has(c.fp)) return false;
+          if (c.arKey && usedSentences.has(c.arKey)) return false;
+          usedFps.add(c.fp);
+          if (c.arKey) usedSentences.add(c.arKey);
+          picked.push(c.question);
+          return true;
+        };
+
         if (preferPredicate) {
           const preferLimit = Math.min(2, Math.max(1, Math.floor(quota / 2)));
           for (const uIdx of unitOrder) {
             if (picked.length >= preferLimit) break;
             const list = byUnit.get(uIdx);
             if (!list) continue;
-            const matchIdx = list.findIndex(c => !usedFps.has(c.fp) && preferPredicate(c.question));
+            const matchIdx = list.findIndex(
+              c => !usedFps.has(c.fp) && !(c.arKey && usedSentences.has(c.arKey)) && preferPredicate(c.question)
+            );
             if (matchIdx !== -1) {
               const [chosen] = list.splice(matchIdx, 1);
-              usedFps.add(chosen.fp);
-              picked.push(chosen.question);
+              acceptCandidate(chosen);
             }
           }
         }
@@ -6533,11 +6740,12 @@
             if (picked.length >= quota) break;
             const list = byUnit.get(uIdx);
             if (!list || list.length === 0) continue;
-            const next = list.shift();
-            if (next && !usedFps.has(next.fp)) {
-              usedFps.add(next.fp);
-              picked.push(next.question);
-              progress = true;
+            while (list.length > 0) {
+              const next = list.shift();
+              if (next && acceptCandidate(next)) {
+                progress = true;
+                break;
+              }
             }
           }
         }
@@ -6550,11 +6758,12 @@
       const pairsQuota = Math.max(1, count - mcQuota - wbQuota - audioQuota);
 
       const usedFps = new Set();
+      const usedSentences = new Set();
       const selected = [
-        ...pickAcrossUnits(buckets.multiple_choice, mcQuota, usedFps, q => q.type === "fill_blank"),
-        ...pickAcrossUnits(buckets.translation_tiles, wbQuota, usedFps),
-        ...pickAcrossUnits(buckets.audio_listening, audioQuota, usedFps, q => q.type === "listen"),
-        ...pickAcrossUnits(buckets.matching_pairs, pairsQuota, usedFps)
+        ...pickAcrossUnits(buckets.multiple_choice, mcQuota, usedFps, usedSentences, q => q.type === "fill_blank"),
+        ...pickAcrossUnits(buckets.translation_tiles, wbQuota, usedFps, usedSentences),
+        ...pickAcrossUnits(buckets.audio_listening, audioQuota, usedFps, usedSentences, q => q.type === "listen"),
+        ...pickAcrossUnits(buckets.matching_pairs, pairsQuota, usedFps, usedSentences)
       ];
 
       if (selected.length < count) {
@@ -6563,27 +6772,28 @@
           ...buckets.audio_listening,
           ...buckets.translation_tiles,
           ...buckets.matching_pairs
-        ].filter(c => !usedFps.has(c.fp));
-        selected.push(...pickAcrossUnits(remaining, count - selected.length, usedFps));
+        ].filter(c => !usedFps.has(c.fp) && !(c.arKey && usedSentences.has(c.arKey)));
+        selected.push(...pickAcrossUnits(remaining, count - selected.length, usedFps, usedSentences));
       }
 
-      const ordered = shuffleArray(selected.slice(0, count));
-      for (let i = 1; i < ordered.length; i++) {
-        if (isPairsQuestion(ordered[i]) && isPairsQuestion(ordered[i - 1])) {
-          const swapIdx = ordered.findIndex(
-            (q, idx) =>
-              !isPairsQuestion(q) &&
-              (idx === 0 || !isPairsQuestion(ordered[idx - 1])) &&
-              (idx === ordered.length - 1 || !isPairsQuestion(ordered[idx + 1]))
-          );
-          if (swapIdx !== -1) {
-            const tmp = ordered[i];
-            ordered[i] = ordered[swapIdx];
-            ordered[swapIdx] = tmp;
-          }
+      if (selected.length < count) {
+        const dynamicFallback = [];
+        for (let i = startUnitIndex; i < maxUnits; i++) {
+          generateDynamicUnitQuestions(UNITS[i]).forEach(q => {
+            if (q.type === "speak") return;
+            if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return;
+            const bucket = classifyJumpQuestionBucket(q);
+            if (!bucket) return;
+            const fp = getQuestionFingerprint(q);
+            const arKey = getQuestionArabicSourceKey(q);
+            if (usedFps.has(fp) || (arKey && usedSentences.has(arKey))) return;
+            dynamicFallback.push({ unitIndex: i, bucket, fp, arKey, question: q });
+          });
         }
+        selected.push(...pickAcrossUnits(dynamicFallback, count - selected.length, usedFps, usedSentences));
       }
 
+      const ordered = interleaveDistinctQuestionTypes(selected.slice(0, count), false);
       return prepareSessionQuestions(ordered);
     }
 

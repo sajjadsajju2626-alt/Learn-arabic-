@@ -980,6 +980,187 @@ export function resolveLessonTargetCount(lesson: Pick<Lesson, 'nodeType'>): numb
   return 10;
 }
 
+export function normalizeArabicSentenceKey(raw?: string | null): string {
+  const cleaned = String(raw ?? '')
+    .normalize('NFC')
+    .replace(/[\u200B-\u200F\uFEFF\u0640]/g, '')
+    .replace(/[؟?!.,،؛:«»"'()[\]{}\-–—…]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned || !/[\u0600-\u06FF]/.test(cleaned)) return '';
+
+  const noHarakat = cleaned
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Preserve Harakat distinction for single-letter Harakat drills (e.g. بَ vs بِ vs بُ in Units 1-4)
+  const bareLetters = (noHarakat.match(/[\u0621-\u064A]/g) ?? []).length;
+  return bareLetters <= 1 ? cleaned : noHarakat;
+}
+
+export function getQuestionArabicSourceKey(
+  q: LessonQuestion & { targetArabic?: string }
+): string {
+  if (!q) return '';
+  if (typeof q.targetArabic === 'string' && q.targetArabic.trim()) {
+    const k = normalizeArabicSentenceKey(q.targetArabic);
+    if (k) return k;
+  }
+  if (q.type === 'fill_blank') {
+    return normalizeArabicSentenceKey(buildFilledSentence(q.sentence, q.answer));
+  }
+  if (q.type === 'listen' || q.type === 'dictation' || q.type === 'speak') {
+    return normalizeArabicSentenceKey(q.arabic);
+  }
+  if (q.type === 'radio_tf' || q.type === 'radio_select3' || q.type === 'radio_mcq') {
+    return normalizeArabicSentenceKey(q.arabic || q.transcriptAr);
+  }
+  if (q.type === 'wordbank') {
+    if (q.arabic && /[\u0600-\u06FF]/.test(q.arabic)) {
+      return normalizeArabicSentenceKey(q.arabic);
+    }
+    if (Array.isArray(q.answer)) {
+      const joined = q.answer.join(' ');
+      if (/[\u0600-\u06FF]/.test(joined)) {
+        return normalizeArabicSentenceKey(joined);
+      }
+    }
+    const promptAr = q.prompt.match(/[\u0600-\u06FF][\u0600-\u06FF\s\u064B-\u065F\u0670]*/);
+    return promptAr ? normalizeArabicSentenceKey(promptAr[0]) : '';
+  }
+  if (q.type === 'mcq') {
+    if (q.arabic && /[\u0600-\u06FF]/.test(q.arabic)) {
+      return normalizeArabicSentenceKey(q.arabic);
+    }
+    if (q.answer && /[\u0600-\u06FF]/.test(q.answer)) {
+      const strippedParens = q.answer.replace(/\([^)]*\)/g, ' ');
+      const k = normalizeArabicSentenceKey(strippedParens);
+      if (k) return k;
+    }
+    const promptAr = q.prompt.match(/[\u0600-\u06FF][\u0600-\u06FF\s\u064B-\u065F\u0670]*/);
+    return promptAr ? normalizeArabicSentenceKey(promptAr[0]) : '';
+  }
+  if (q.type === 'pairs' || q.type === 'audio_pairs') {
+    const items = q.pairs
+      .map((p) => normalizeArabicSentenceKey(p.ar))
+      .filter(Boolean)
+      .sort();
+    return items.length > 0 ? `pairs:${items.join('|')}` : '';
+  }
+  return '';
+}
+
+function areSimilarFormats(a: LessonQuestion['type'], b: LessonQuestion['type']): boolean {
+  if (a === b) return true;
+  if ((a === 'pairs' || a === 'audio_pairs') && (b === 'pairs' || b === 'audio_pairs')) {
+    return true;
+  }
+  return false;
+}
+
+export function interleaveDistinctQuestionTypes(
+  questions: readonly LessonQuestion[],
+  rng: () => number = Math.random,
+  anchorFirst = false
+): LessonQuestion[] {
+  if (questions.length <= 1) return [...questions];
+
+  const ordered: LessonQuestion[] = [];
+  const pool = anchorFirst ? questions.slice(1) : [...questions];
+  if (anchorFirst) {
+    ordered.push(questions[0]);
+  }
+
+  const buckets = new Map<LessonQuestion['type'], LessonQuestion[]>();
+  for (const q of pool) {
+    const list = buckets.get(q.type) ?? [];
+    list.push(q);
+    buckets.set(q.type, list);
+  }
+
+  while (ordered.length < questions.length) {
+    const prevType = ordered.length > 0 ? ordered[ordered.length - 1].type : null;
+    const nonEmptyTypes = Array.from(buckets.entries())
+      .filter(([, list]) => list.length > 0)
+      .sort((a, b) => {
+        if (b[1].length !== a[1].length) return b[1].length - a[1].length;
+        return rng() - 0.5;
+      });
+
+    if (nonEmptyTypes.length === 0) break;
+
+    const chosenEntry =
+      (prevType
+        ? nonEmptyTypes.find(([t]) => !areSimilarFormats(t, prevType)) ??
+          nonEmptyTypes.find(([t]) => t !== prevType)
+        : nonEmptyTypes[0]) ?? nonEmptyTypes[0];
+
+    const nextQ = chosenEntry[1].shift();
+    if (nextQ) {
+      ordered.push(nextQ);
+    }
+  }
+
+  return ordered;
+}
+
+function insertWithoutAdjacentSameType(
+  ordered: LessonQuestion[],
+  item: LessonQuestion,
+  preferredIndex: number
+): void {
+  const clamped = Math.max(0, Math.min(preferredIndex, ordered.length));
+  const fitsStrictly = (idx: number): boolean => {
+    const prevOk = idx === 0 || !areSimilarFormats(ordered[idx - 1].type, item.type);
+    const nextOk = idx === ordered.length || !areSimilarFormats(ordered[idx].type, item.type);
+    return prevOk && nextOk;
+  };
+  const fitsExact = (idx: number): boolean => {
+    const prevOk = idx === 0 || ordered[idx - 1].type !== item.type;
+    const nextOk = idx === ordered.length || ordered[idx].type !== item.type;
+    return prevOk && nextOk;
+  };
+
+  for (const predicate of [fitsStrictly, fitsExact]) {
+    for (let offset = 0; offset <= ordered.length; offset++) {
+      const candidates =
+        offset === 0 ? [clamped] : [clamped + offset, clamped - offset];
+      for (const idx of candidates) {
+        if (idx >= 0 && idx <= ordered.length && predicate(idx)) {
+          ordered.splice(idx, 0, item);
+          return;
+        }
+      }
+    }
+  }
+
+  ordered.splice(clamped, 0, item);
+}
+
+export function deduplicateSessionQuestions(
+  questions: readonly LessonQuestion[],
+  rng: () => number = Math.random
+): LessonQuestion[] {
+  const seen = new Set<string>();
+  const usedSentences = new Set<string>();
+  const unique: LessonQuestion[] = [];
+
+  for (const q of questions) {
+    const fp = getQuestionFingerprint(q);
+    if (seen.has(fp)) continue;
+    const arKey = getQuestionArabicSourceKey(q);
+    if (arKey && usedSentences.has(arKey)) continue;
+    seen.add(fp);
+    if (arKey) usedSentences.add(arKey);
+    unique.push(q);
+  }
+
+  return interleaveDistinctQuestionTypes(unique, rng, false);
+}
+
 export function getQuestionFingerprint(q: LessonQuestion): string {
   const norm = (s?: string) => normalizeWordBankText(s ?? '').toLowerCase();
   if (q.type === 'mcq') {
@@ -1318,20 +1499,31 @@ export function buildLessonSessionQuestions(
   const unit = unitIndex >= 0 ? units[unitIndex] : null;
 
   const seen = new Set<string>();
+  const usedSentences = new Set<string>();
   const cloneQ = (q: LessonQuestion): LessonQuestion =>
     JSON.parse(JSON.stringify(q)) as LessonQuestion;
 
   const disallowBasicAlphabet = Boolean(unit && unit.number > ALPHABET_MAX_UNIT_NUMBER);
+
+  const canAccept = (q: LessonQuestion): boolean => {
+    if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return false;
+    const fp = getQuestionFingerprint(q);
+    if (seen.has(fp)) return false;
+    const arKey = getQuestionArabicSourceKey(q);
+    if (arKey && usedSentences.has(arKey)) return false;
+    return true;
+  };
 
   const tryAccept = (
     list: LessonQuestion[],
     q: LessonQuestion,
     markSpacedRepetition = false
   ): boolean => {
-    if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) return false;
+    if (!canAccept(q)) return false;
     const fp = getQuestionFingerprint(q);
-    if (seen.has(fp)) return false;
+    const arKey = getQuestionArabicSourceKey(q);
     seen.add(fp);
+    if (arKey) usedSentences.add(arKey);
     const copy = cloneQ(q);
     delete copy.isReview;
     if (markSpacedRepetition) {
@@ -1341,6 +1533,12 @@ export function buildLessonSessionQuestions(
     }
     list.push(copy);
     return true;
+  };
+
+  const releaseAccepted = (q: LessonQuestion): void => {
+    seen.delete(getQuestionFingerprint(q));
+    const arKey = getQuestionArabicSourceKey(q);
+    if (arKey) usedSentences.delete(arKey);
   };
 
   // 1. Handcrafted questions for the active node
@@ -1409,22 +1607,26 @@ export function buildLessonSessionQuestions(
     ...shuffleArray(dynamicUnitQs, rng),
   ];
 
-  // Fallback cross-unit pool (only if a unit somehow ever lacked enough unique candidates)
+  // Cross-unit fallback pool ordered by proximity so strict Arabic sentence deduplication always fills 10-12 unique items
   const fallbackPool: LessonQuestion[] = [];
-  if (unitPool.length < 15) {
-    for (const u of units) {
-      if (unit && u.id === unit.id) continue;
-      if (disallowBasicAlphabet && u.number <= ALPHABET_MAX_UNIT_NUMBER) continue;
-      for (const l of u.lessons) {
-        if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
-        for (const q of l.questions) {
-          if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) continue;
-          fallbackPool.push(q);
-        }
+  const otherUnits = units
+    .map((u, idx) => ({ u, dist: unitIndex >= 0 ? Math.abs(idx - unitIndex) : idx + 1 }))
+    .filter(({ u }) => !(unit && u.id === unit.id))
+    .filter(({ u }) => !(disallowBasicAlphabet && u.number <= ALPHABET_MAX_UNIT_NUMBER))
+    .sort((a, b) => a.dist - b.dist);
+  for (const { u } of otherUnits.slice(0, 6)) {
+    const unitFallbackHandcrafted: LessonQuestion[] = [];
+    for (const l of u.lessons) {
+      if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
+      for (const q of l.questions) {
+        if (q.type === 'speak' && !(unit && unit.number >= SPEAK_MIN_UNIT_NUMBER)) continue;
+        if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) continue;
+        unitFallbackHandcrafted.push(q);
       }
     }
+    fallbackPool.push(...shuffleArray(unitFallbackHandcrafted, rng));
   }
-  const allCandidates = [...unitPool, ...shuffleArray(fallbackPool, rng)];
+  const allCandidates = [...unitPool, ...fallbackPool];
 
   // 4. Guarantee balanced 5-type coverage (mcq, listen, pairs, wordbank, fill_blank)
   const reinforcements: LessonQuestion[] = [];
@@ -1436,7 +1638,7 @@ export function buildLessonSessionQuestions(
     reinforcements.some((q) => q.type === t);
 
   const baseTargetCount = targetCount;
-  const maxSessionCount = lesson.nodeType === 'trophy' ? 12 : 12;
+  const maxSessionCount = 12;
   let effectiveTargetCount = baseTargetCount;
 
   for (const requiredType of ALL_QUESTION_TYPES) {
@@ -1488,7 +1690,6 @@ export function buildLessonSessionQuestions(
 
     while (countSpeak() < desiredSpeakCount) {
       if (currentTotal() >= maxSessionCount) {
-        // Free a redundant non-protected reinforcement slot if session hit 12 before adding speak
         const allSoFar = [...handcrafted, ...spacedRepetition, ...reinforcements];
         const countsByType: Record<string, number> = {};
         for (const item of allSoFar) {
@@ -1505,14 +1706,16 @@ export function buildLessonSessionQuestions(
           return (countsByType[r.type] ?? 0) > 1;
         });
         if (removableIdx >= 0) {
-          reinforcements.splice(removableIdx, 1);
+          const [removed] = reinforcements.splice(removableIdx, 1);
+          releaseAccepted(removed);
         } else {
           let swappedHandcrafted = false;
           for (let i = handcrafted.length - 1; i >= 1; i--) {
             const item = handcrafted[i];
             if (item.type === 'speak' || isPodcastQuestion(item)) continue;
             if ((countsByType[item.type] ?? 0) > 1) {
-              handcrafted.splice(i, 1);
+              const [removed] = handcrafted.splice(i, 1);
+              releaseAccepted(removed);
               swappedHandcrafted = true;
               break;
             }
@@ -1559,7 +1762,6 @@ export function buildLessonSessionQuestions(
     ? [...ALL_QUESTION_TYPES, 'dictation', 'speak']
     : [...ALL_QUESTION_TYPES, 'dictation'];
   while (currentTotal() < effectiveTargetCount) {
-    // Pick the least-represented question type (capping pairs, dictation & speak at 2 so sessions stay snappy)
     const prioritizedTypes = [...fillTypes].sort((a, b) => {
       const penA =
         (a === 'pairs' && typeCounts.pairs >= 2) ||
@@ -1593,29 +1795,16 @@ export function buildLessonSessionQuestions(
     if (!added) break;
   }
 
-  // 6. Smart Duolingo sequencing: anchor first handcrafted core question, interleave types, place SR mid/late
-  const ordered: LessonQuestion[] = [];
-  if (handcrafted.length > 0) {
-    ordered.push(handcrafted[0]);
-  }
-  const restUnit = [...handcrafted.slice(1), ...reinforcements];
-  const remaining = [...restUnit];
+  // 6. Smart sequencing: anchor first handcrafted core question, strictly interleave distinct exercise formats,
+  //    and weave Spaced-Repetition review questions without creating consecutive same-type questions
+  const unitQuestions = [...handcrafted, ...reinforcements];
+  const ordered = interleaveDistinctQuestionTypes(unitQuestions, rng, handcrafted.length > 0);
 
-  while (remaining.length > 0) {
-    const prevType = ordered.length > 0 ? ordered[ordered.length - 1].type : null;
-    const diffIdx = remaining.findIndex((q) => q.type !== prevType);
-    const pickIdx = diffIdx >= 0 ? diffIdx : 0;
-    ordered.push(remaining.splice(pickIdx, 1)[0]);
-  }
-
-  // Weave Spaced-Repetition review questions cleanly at mid & late positions
   if (spacedRepetition.length >= 1) {
-    const midPos = Math.min(4, ordered.length);
-    ordered.splice(midPos, 0, spacedRepetition[0]);
+    insertWithoutAdjacentSameType(ordered, spacedRepetition[0], Math.min(4, ordered.length));
   }
   if (spacedRepetition.length >= 2) {
-    const latePos = Math.min(8, ordered.length);
-    ordered.splice(latePos, 0, spacedRepetition[1]);
+    insertWithoutAdjacentSameType(ordered, spacedRepetition[1], Math.min(8, ordered.length));
   }
 
   return prepareSessionQuestions(ordered.slice(0, effectiveTargetCount), rng);
@@ -1632,24 +1821,39 @@ export function buildReviewSessionQuestions(
   const fullPool = buildLessonSessionQuestions(lesson, [], units, rng);
   const picked: LessonQuestion[] = [];
   const seen = new Set<string>();
+  const usedSentences = new Set<string>();
+
+  const tryPick = (q: LessonQuestion): boolean => {
+    const fp = getQuestionFingerprint(q);
+    if (seen.has(fp)) return false;
+    const arKey = getQuestionArabicSourceKey(q);
+    if (arKey && usedSentences.has(arKey)) return false;
+    seen.add(fp);
+    if (arKey) usedSentences.add(arKey);
+    picked.push(q);
+    return true;
+  };
 
   for (const t of ALL_QUESTION_TYPES) {
     if (picked.length >= REVIEW_QUESTION_COUNT) break;
-    const match = fullPool.find((q) => q.type === t && !seen.has(getQuestionFingerprint(q)));
-    if (match) {
-      seen.add(getQuestionFingerprint(match));
-      picked.push(match);
-    }
+    const match = fullPool.find((q) => {
+      if (q.type !== t) return false;
+      const fp = getQuestionFingerprint(q);
+      const arKey = getQuestionArabicSourceKey(q);
+      return !seen.has(fp) && !(arKey && usedSentences.has(arKey));
+    });
+    if (match) tryPick(match);
   }
   for (const q of fullPool) {
     if (picked.length >= REVIEW_QUESTION_COUNT) break;
-    const fp = getQuestionFingerprint(q);
-    if (!seen.has(fp)) {
-      seen.add(fp);
-      picked.push(q);
-    }
+    tryPick(q);
   }
-  return prepareSessionQuestions(picked.slice(0, REVIEW_QUESTION_COUNT), rng);
+  const interleaved = interleaveDistinctQuestionTypes(
+    picked.slice(0, REVIEW_QUESTION_COUNT),
+    rng,
+    false
+  );
+  return prepareSessionQuestions(interleaved, rng);
 }
 
 /**
@@ -1662,14 +1866,33 @@ export function buildLegendarySessionQuestions(
   rng: () => number = Math.random
 ): LessonQuestion[] {
   const basePool = buildLessonSessionQuestions(lesson, [], units, rng);
-  const unit = units.find((u) => u.lessons.some((l) => l.id === lesson.id));
+  const unitIndex = units.findIndex((u) => u.lessons.some((l) => l.id === lesson.id));
+  const unit = unitIndex >= 0 ? units[unitIndex] : null;
   const disallowBasicAlphabet = Boolean(unit && unit.number > ALPHABET_MAX_UNIT_NUMBER);
   const extraDynamic = unit
     ? generateDynamicUnitQuestions(unit, rng).filter(
         (q) => !(disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q))
       )
     : [];
-  const combined = [...basePool, ...shuffleArray(extraDynamic, rng)];
+
+  const fallbackPool: LessonQuestion[] = [];
+  const nearbyUnits = units
+    .map((u, idx) => ({ u, dist: unitIndex >= 0 ? Math.abs(idx - unitIndex) : idx + 1 }))
+    .filter(({ u }) => !(unit && u.id === unit.id))
+    .filter(({ u }) => !(disallowBasicAlphabet && u.number <= ALPHABET_MAX_UNIT_NUMBER))
+    .sort((a, b) => a.dist - b.dist);
+  for (const { u } of nearbyUnits.slice(0, 4)) {
+    for (const l of u.lessons) {
+      if (l.nodeType === 'chest' || l.nodeType === 'video_call') continue;
+      for (const q of l.questions) {
+        if (q.type === 'speak' && !(unit && unit.number >= SPEAK_MIN_UNIT_NUMBER)) continue;
+        if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) continue;
+        fallbackPool.push(q);
+      }
+    }
+  }
+
+  const combined = [...basePool, ...shuffleArray(extraDynamic, rng), ...shuffleArray(fallbackPool, rng)];
 
   const difficultyRank = (q: LessonQuestion): number => {
     if (q.type === 'dictation') return 0;
@@ -1685,37 +1908,45 @@ export function buildLegendarySessionQuestions(
 
   const ranked = [...combined].sort((a, b) => difficultyRank(a) - difficultyRank(b));
   const seen = new Set<string>();
+  const usedSentences = new Set<string>();
   const picked: LessonQuestion[] = [];
   const counts: Record<string, number> = {};
   const maxForType = (t: LessonQuestion['type']): number => {
     if (t === 'dictation' || t === 'speak') return 2;
     return 3;
   };
-  for (const q of ranked) {
-    if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
-    if ((counts[q.type] ?? 0) >= maxForType(q.type)) continue;
+  const tryPick = (q: LessonQuestion, enforceTypeCap: boolean): boolean => {
+    if (enforceTypeCap && (counts[q.type] ?? 0) >= maxForType(q.type)) return false;
     const fp = getQuestionFingerprint(q);
-    if (seen.has(fp)) continue;
+    if (seen.has(fp)) return false;
+    const arKey = getQuestionArabicSourceKey(q);
+    if (arKey && usedSentences.has(arKey)) return false;
     seen.add(fp);
+    if (arKey) usedSentences.add(arKey);
     counts[q.type] = (counts[q.type] ?? 0) + 1;
     const clone = JSON.parse(JSON.stringify(q)) as LessonQuestion;
     delete clone.isReview;
     delete clone.isSpacedRepetition;
     picked.push(clone);
+    return true;
+  };
+
+  for (const q of ranked) {
+    if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
+    tryPick(q, true);
   }
   if (picked.length < LEGENDARY_QUESTION_COUNT) {
     for (const q of ranked) {
       if (picked.length >= LEGENDARY_QUESTION_COUNT) break;
-      const fp = getQuestionFingerprint(q);
-      if (seen.has(fp)) continue;
-      seen.add(fp);
-      const clone = JSON.parse(JSON.stringify(q)) as LessonQuestion;
-      delete clone.isReview;
-      delete clone.isSpacedRepetition;
-      picked.push(clone);
+      tryPick(q, false);
     }
   }
-  return prepareSessionQuestions(picked.slice(0, LEGENDARY_QUESTION_COUNT), rng);
+  const interleaved = interleaveDistinctQuestionTypes(
+    picked.slice(0, LEGENDARY_QUESTION_COUNT),
+    rng,
+    false
+  );
+  return prepareSessionQuestions(interleaved, rng);
 }
 
 /**
@@ -1802,6 +2033,7 @@ export function buildUnitJumpQuestions(
     unitIndex: number;
     bucket: JumpBucket;
     fp: string;
+    arKey: string;
     question: LessonQuestion;
   }
 
@@ -1841,22 +2073,30 @@ export function buildUnitJumpQuestions(
         const fp = getQuestionFingerprint(q);
         if (seenGlobal.has(fp)) continue;
         seenGlobal.add(fp);
-        buckets[bucket].push({ unitIndex: i, bucket, fp, question: q });
+        buckets[bucket].push({
+          unitIndex: i,
+          bucket,
+          fp,
+          arKey: getQuestionArabicSourceKey(q),
+          question: q,
+        });
       }
     }
   }
 
-  // Spread selections evenly across preceding units (prioritizing distinct units first)
+  // Spread selections evenly across preceding units while strictly deduplicating core Arabic sentences
   const pickAcrossUnits = (
     candidates: TaggedCandidate[],
     quota: number,
     usedFps: Set<string>,
+    usedSentences: Set<string>,
     preferPredicate?: (q: LessonQuestion) => boolean
   ): LessonQuestion[] => {
     if (quota <= 0 || candidates.length === 0) return [];
     const byUnit = new Map<number, TaggedCandidate[]>();
     for (const c of shuffleArray(candidates)) {
       if (usedFps.has(c.fp)) continue;
+      if (c.arKey && usedSentences.has(c.arKey)) continue;
       const list = byUnit.get(c.unitIndex) ?? [];
       list.push(c);
       byUnit.set(c.unitIndex, list);
@@ -1865,6 +2105,15 @@ export function buildUnitJumpQuestions(
     const picked: LessonQuestion[] = [];
     const unitOrder = shuffleArray(Array.from(byUnit.keys()));
 
+    const acceptCandidate = (c: TaggedCandidate): boolean => {
+      if (usedFps.has(c.fp)) return false;
+      if (c.arKey && usedSentences.has(c.arKey)) return false;
+      usedFps.add(c.fp);
+      if (c.arKey) usedSentences.add(c.arKey);
+      picked.push(c.question);
+      return true;
+    };
+
     // Optional first pass to ensure grammar/particle fill_blank or primary listening items are represented
     if (preferPredicate) {
       const preferLimit = Math.min(2, Math.max(1, Math.floor(quota / 2)));
@@ -1872,11 +2121,15 @@ export function buildUnitJumpQuestions(
         if (picked.length >= preferLimit) break;
         const list = byUnit.get(uIdx);
         if (!list) continue;
-        const matchIdx = list.findIndex((c) => !usedFps.has(c.fp) && preferPredicate(c.question));
+        const matchIdx = list.findIndex(
+          (c) =>
+            !usedFps.has(c.fp) &&
+            !(c.arKey && usedSentences.has(c.arKey)) &&
+            preferPredicate(c.question)
+        );
         if (matchIdx !== -1) {
           const [chosen] = list.splice(matchIdx, 1);
-          usedFps.add(chosen.fp);
-          picked.push(chosen.question);
+          acceptCandidate(chosen);
         }
       }
     }
@@ -1889,11 +2142,12 @@ export function buildUnitJumpQuestions(
         if (picked.length >= quota) break;
         const list = byUnit.get(uIdx);
         if (!list || list.length === 0) continue;
-        const next = list.shift();
-        if (next && !usedFps.has(next.fp)) {
-          usedFps.add(next.fp);
-          picked.push(next.question);
-          progress = true;
+        while (list.length > 0) {
+          const next = list.shift()!;
+          if (acceptCandidate(next)) {
+            progress = true;
+            break;
+          }
         }
       }
     }
@@ -1909,40 +2163,48 @@ export function buildUnitJumpQuestions(
   const pairsQuota = Math.max(1, count - mcQuota - wbQuota - audioQuota);
 
   const usedFps = new Set<string>();
+  const usedSentences = new Set<string>();
   const selected: LessonQuestion[] = [
-    ...pickAcrossUnits(buckets.multiple_choice, mcQuota, usedFps, (q) => q.type === 'fill_blank'),
-    ...pickAcrossUnits(buckets.translation_tiles, wbQuota, usedFps),
-    ...pickAcrossUnits(buckets.audio_listening, audioQuota, usedFps, (q) => q.type === 'listen'),
-    ...pickAcrossUnits(buckets.matching_pairs, pairsQuota, usedFps),
+    ...pickAcrossUnits(buckets.multiple_choice, mcQuota, usedFps, usedSentences, (q) => q.type === 'fill_blank'),
+    ...pickAcrossUnits(buckets.translation_tiles, wbQuota, usedFps, usedSentences),
+    ...pickAcrossUnits(buckets.audio_listening, audioQuota, usedFps, usedSentences, (q) => q.type === 'listen'),
+    ...pickAcrossUnits(buckets.matching_pairs, pairsQuota, usedFps, usedSentences),
   ];
 
-  // Top up from any remaining unused candidates across all buckets if a single bucket had fewer unique items (e.g., Unit 2)
+  // Top up from any remaining unused handcrafted candidates across all buckets
   if (selected.length < count) {
     const remaining = [
       ...buckets.multiple_choice,
       ...buckets.audio_listening,
       ...buckets.translation_tiles,
       ...buckets.matching_pairs,
-    ].filter((c) => !usedFps.has(c.fp));
-    selected.push(...pickAcrossUnits(remaining, count - selected.length, usedFps));
+    ].filter((c) => !usedFps.has(c.fp) && !(c.arKey && usedSentences.has(c.arKey)));
+    selected.push(...pickAcrossUnits(remaining, count - selected.length, usedFps, usedSentences));
   }
 
-  // Shuffle final order and avoid placing two matching pairs back-to-back
-  const ordered = shuffleArray(selected.slice(0, count));
-  for (let i = 1; i < ordered.length; i++) {
-    if (isPairsQuestion(ordered[i]) && isPairsQuestion(ordered[i - 1])) {
-      const swapIdx = ordered.findIndex(
-        (q, idx) =>
-          !isPairsQuestion(q) &&
-          (idx === 0 || !isPairsQuestion(ordered[idx - 1])) &&
-          (idx === ordered.length - 1 || !isPairsQuestion(ordered[idx + 1]))
-      );
-      if (swapIdx !== -1) {
-        [ordered[i], ordered[swapIdx]] = [ordered[swapIdx], ordered[i]];
+  // Emergency fallback: generate dynamic questions strictly from [startUnitIndex .. maxUnits - 1]
+  // only if a narrow unit range (e.g. Unit 2 jump sampling only Unit 1) had fewer than `count` unique Arabic sentences
+  if (selected.length < count) {
+    const dynamicFallback: TaggedCandidate[] = [];
+    for (let i = startUnitIndex; i < maxUnits; i++) {
+      for (const q of generateDynamicUnitQuestions(units[i], Math.random)) {
+        if (q.type === 'speak') continue;
+        if (disallowBasicAlphabet && isBasicAlphabetOrHarakatQuestion(q)) continue;
+        const bucket = classifyJumpQuestionBucket(q);
+        if (!bucket) continue;
+        const fp = getQuestionFingerprint(q);
+        const arKey = getQuestionArabicSourceKey(q);
+        if (usedFps.has(fp) || (arKey && usedSentences.has(arKey))) continue;
+        dynamicFallback.push({ unitIndex: i, bucket, fp, arKey, question: q });
       }
     }
+    selected.push(
+      ...pickAcrossUnits(dynamicFallback, count - selected.length, usedFps, usedSentences)
+    );
   }
 
+  // Strictly interleave so consecutive Entry Test questions always test distinct sentences AND distinct exercise formats
+  const ordered = interleaveDistinctQuestionTypes(selected.slice(0, count), Math.random, false);
   return prepareSessionQuestions(ordered);
 }
 
