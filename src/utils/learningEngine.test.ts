@@ -19,9 +19,8 @@ import {
 } from '../data/verbConjugations';
 import {
   canUseServerGeminiEndpoint,
-  detectArabicIntent,
-  generateSmartArabicReply,
   mergeSpeechTranscripts,
+  requestDynamicVideoCallReply,
   stripQuotedEcho,
 } from './videoCallConversation';
 import {
@@ -2022,86 +2021,79 @@ test('Video Call Roleplay (video_call) appears EXCLUSIVELY in Units 15 to 35 as 
   assert.ok(updated.completedLessons.includes('u15_vc'));
 });
 
-test('Open-topic Video Call Smart Arabic Responder understands meaning without parroting («...»), generates vocalized follow-ups, avoids repetition, and merges continuous speech across pauses', () => {
+test('Open-topic Video Call direct REST gemini-2.5-flash engine strips quote echoing, merges continuous speech across pauses, and routes static/server hosts cleanly', async () => {
   const tariqScenario = UNIT_VIDEO_CALLS.u15;
   assert.ok(tariqScenario);
 
-  // 1. Intent detection across rich open-topic Arabic inputs
-  assert.equal(detectArabicIntent('السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللّٰهِ').intent, 'greeting');
-  assert.equal(detectArabicIntent('كَيْفَ حَالُكَ أَنْتَ يَا طَارِقُ؟').intent, 'question_to_tariq');
-  assert.equal(detectArabicIntent('أُرِيدُ قَهْوَةً عَرَبِيَّةً مَعَ التَّمْرِ').intent, 'food_drink');
-  assert.equal(detectArabicIntent('سَأُسَافِرُ إِلَى دُبَي غَدًا').intent, 'travel');
-  assert.equal(detectArabicIntent('أُمِّي وَأَبِي بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ').intent, 'family');
-  assert.equal(detectArabicIntent('أَنَا سَعِيدٌ جِدًّا الْيَوْمَ').intent, 'feelings_positive');
-  assert.equal(detectArabicIntent('أَنَا تَعْبَانٌ قَلِيلًا').intent, 'feelings_tired');
-  assert.equal(detectArabicIntent('الْجَوُّ حَارٌّ جِدًّا').intent, 'weather');
-  assert.equal(detectArabicIntent('أَدْرُسُ اللُّغَةَ الْعَرَبِيَّةَ فِي الْجَامِعَةِ').intent, 'work_study');
-  assert.equal(detectArabicIntent('أُحِبُّ لَعِبَ كُرَةِ الْقَدَمِ').intent, 'hobbies_sports');
-  assert.equal(detectArabicIntent('ذَهَبْتُ إِلَى السُّوقِ لِشِرَاءِ مَلَابِسَ').intent, 'shopping');
-  assert.equal(detectArabicIntent('سَأَلْتَقِي بِكَ غَدًا فِي السَّاعَةِ الْخَامِسَةِ').intent, 'time_routine');
-  assert.equal(detectArabicIntent('نَعَمْ أَكِيدٌ').intent, 'affirmative');
-  assert.equal(detectArabicIntent('لَا شُكْرًا').intent, 'gratitude_farewell');
-  assert.equal(detectArabicIntent('لَا أَعْرِفُ').intent, 'negative');
+  // 1. Direct REST fetch to gemini-2.5-flash returns natural vocalized reply with zero «...» echoing
+  let capturedUrl = '';
+  const mockFetch = (async (input: RequestInfo | URL) => {
+    capturedUrl = String(input);
+    return new Response(
+      JSON.stringify({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    replyArabic: 'يَا سَلَامُ! الْقَهْوَةُ الْعَرَبِيَّةُ «مُمْتَازَةٌ» جِدًّا! هَلْ تُحِبُّهَا مَعَ التَّمْرِ؟',
+                    replyTransliteration: 'യാ സലാം! അൽഖഹ്‌വത്തുൽ അറബിയ്യത്തു മുംതാസത്തുൻ ജിദ്ദൻ!',
+                    replyMalayalam: 'കൊള്ളാം! അറബി കാപ്പി വളരെ മികച്ചതാണ്! ഈന്തപ്പഴത്തോടൊപ്പം ഇഷ്ടമാണോ?',
+                    nextHints: [
+                      { ar: 'نَعَمْ مَعَ التَّمْرِ', tr: 'നഅം മഅത്തംർ', ml: 'അതെ ഈന്തപ്പഴത്തോടൊപ്പം' },
+                      { ar: 'أُحِبُّهَا بِالْهَيْلِ وَالتَّمْرِ', tr: 'ഉഹിബ്ബുഹാ ബിൽഹയ്‌ലി വത്തംർ', ml: 'ഏലക്കായയും ഈന്തപ്പഴവും ചേർത്ത് ഇഷ്ടമാണ്' },
+                      { ar: 'نَعَمْ أُفَضِّلُ الْقَهْوَةَ الْعَرَبِيَّةَ مَعَ التَّمْرِ فِي الْمَسَاءِ', tr: 'നഅം ഉഫള്‌ളിലുൽ ഖഹ്‌വത്തൽ അറബിയ്യ', ml: 'അതെ വൈകുന്നേരം ഈന്തപ്പഴത്തോടൊപ്പം അറബി കാപ്പിയാണ് എനിക്കിഷ്ടം' },
+                    ],
+                    xpEarned: 10,
+                  }),
+                },
+              ],
+            },
+          },
+        ],
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  }) as typeof fetch;
 
-  // 2. Coffee input gets a natural vocalized reply with Harakat, ZERO «...» parroting, and a related follow-up
-  const foodReply = generateSmartArabicReply({
-    userSpokenText: 'أريد قهوة عربية مع التمر',
-    scenario: tariqScenario,
-    turnIndex: 0,
-    history: [{ speaker: 'character', text: tariqScenario.turns[0].characterAr }],
-  });
-  assert.equal(foodReply.source, 'smart_local');
-  assert.equal(foodReply.intent, 'food_drink');
+  const foodReply = await requestDynamicVideoCallReply(
+    {
+      userSpokenText: 'أريد قهوة عربية مع التمر',
+      scenario: tariqScenario,
+      turnIndex: 0,
+      history: [{ speaker: 'character', text: tariqScenario.turns[0].characterAr }],
+    },
+    { apiKey: '  AIzaSyTestRestKey  ', fetchImpl: mockFetch }
+  );
+
+  assert.equal(
+    capturedUrl,
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyTestRestKey'
+  );
+  assert.equal(foodReply.source, 'gemini_direct');
   assert.equal(foodReply.isFinalTurn, false);
   assert.equal(foodReply.replyArabic.includes('«'), false, 'Tariq must NEVER parrot/quote user words with «...»');
   assert.equal(foodReply.replyArabic.includes('»'), false, 'Tariq must NEVER parrot/quote user words with «...»');
   assert.ok(/[\u064B-\u0652]/.test(foodReply.replyArabic), 'Tariq reply must contain Harakat diacritics');
   assert.ok(foodReply.replyArabic.includes('؟'), 'Non-final reply must include a directly related follow-up question');
-  assert.ok(foodReply.replyTransliteration.trim().length > 0);
-  assert.ok(foodReply.replyMalayalam.trim().length > 0);
   assert.equal(foodReply.nextHints.length, 3, 'Must refresh 3 tailored Arabic follow-up hints');
   assert.equal(foodReply.xpEarned, 10);
 
-  // 3. Second food turn uses a non-repeating follow-up variant instead of repeating turn 0's question
-  const foodReply2 = generateSmartArabicReply({
-    userSpokenText: 'أحب الشاي بالنعناع',
-    scenario: tariqScenario,
-    turnIndex: 1,
-    history: [
-      { speaker: 'character', text: tariqScenario.turns[0].characterAr },
-      { speaker: 'user', text: 'أريد قهوة عربية مع التمر' },
-      { speaker: 'character', text: foodReply.replyArabic },
-    ],
-  });
-  assert.notEqual(foodReply2.replyArabic, foodReply.replyArabic);
-  assert.equal(foodReply2.replyArabic.includes('«'), false);
-
-  // 4. Arbitrary open-topic Arabic sentence gets a natural non-echoing reply (never quotes raw input)
-  const openReply = generateSmartArabicReply({
-    userSpokenText: 'اشتريت قطة صغيرة أمس',
-    scenario: tariqScenario,
-    turnIndex: 1,
-    history: [],
-  });
-  assert.equal(openReply.replyArabic.includes('«'), false);
-  assert.equal(openReply.replyArabic.includes('قطة'), false, 'Must not parrot raw unvocalized user words');
-  assert.ok(/[\u064B-\u0652]/.test(openReply.replyArabic));
-  assert.ok(openReply.nextHints.length >= 2);
-  assert.equal(openReply.isFinalTurn, false);
-
-  // 5. Final turn returns natural vocalized closing farewell with isFinalTurn: true and empty nextHints
-  const finalReply = generateSmartArabicReply({
-    userSpokenText: 'شُكْرًا جَزِيلًا يَا طَارِقُ',
-    scenario: tariqScenario,
-    turnIndex: tariqScenario.turns.length - 1,
-    history: [],
-  });
+  // 2. Final turn returns empty nextHints and isFinalTurn: true
+  const finalReply = await requestDynamicVideoCallReply(
+    {
+      userSpokenText: 'شُكْرًا جَزِيلًا يَا طَارِقُ',
+      scenario: tariqScenario,
+      turnIndex: tariqScenario.turns.length - 1,
+      history: [],
+    },
+    { apiKey: 'AIzaSyTestRestKey', fetchImpl: mockFetch }
+  );
   assert.equal(finalReply.isFinalTurn, true);
   assert.deepEqual(finalReply.nextHints, []);
-  assert.equal(finalReply.replyArabic.includes('«'), false);
-  assert.ok(finalReply.replyArabic.includes('إِلَى اللِّقَاءِ'));
 
-  // 6. Continuous recording transcript merging across pauses + echo sanitizer
+  // 3. Continuous recording transcript merging across pauses + echo sanitizer
   assert.equal(
     mergeSpeechTranscripts('أَنَا بِخَيْرٍ', 'وَالْحَمْدُ لِلّٰهِ', 'أُحِبُّ السَّفَرَ'),
     'أَنَا بِخَيْرٍ وَالْحَمْدُ لِلّٰهِ أُحِبُّ السَّفَرَ'
@@ -2109,7 +2101,7 @@ test('Open-topic Video Call Smart Arabic Responder understands meaning without p
   assert.equal(mergeSpeechTranscripts('  أَهْلًا  ', '', '  يَا طَارِقُ '), 'أَهْلًا يَا طَارِقُ');
   assert.equal(stripQuotedEcho('جَمِيلٌ «قَهْوَة» جِدًّا'), 'جَمِيلٌ قَهْوَة جِدًّا');
 
-  // 7. Automatic environment routing: GitHub Pages & Android APK skip server endpoint; AI Studio / localhost use it
+  // 4. Automatic environment routing: GitHub Pages & Android APK skip server endpoint; AI Studio / localhost use it
   assert.equal(canUseServerGeminiEndpoint({ protocol: 'https:', hostname: 'user.github.io' }), false);
   assert.equal(canUseServerGeminiEndpoint({ protocol: 'file:', hostname: '' }), false);
   assert.equal(canUseServerGeminiEndpoint({ protocol: 'capacitor:', hostname: 'localhost' }), false);

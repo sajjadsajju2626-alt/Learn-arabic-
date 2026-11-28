@@ -85,7 +85,7 @@ async function handleVideoCallReply(req: Request, res: Response): Promise<void> 
 
   const ai = getGeminiClient();
   if (!ai) {
-    res.status(200).json({ available: false });
+    res.status(200).json({ available: false, error: 'NO_SERVER_KEY' });
     return;
   }
 
@@ -152,7 +152,10 @@ async function handleVideoCallReply(req: Request, res: Response): Promise<void> 
       const rawText = (response.text ?? '').trim();
       const payload = sanitizeGeminiVideoCallPayload(rawText, expectedTurnXp, isFinalTurn);
       if (!payload) {
-        res.status(200).json({ available: false });
+        res.status(200).json({
+          available: false,
+          error: 'Gemini returned an unreadable response. Please try speaking again.',
+        });
         return;
       }
 
@@ -173,8 +176,8 @@ async function handleVideoCallReply(req: Request, res: Response): Promise<void> 
   }
 
   const message = lastError instanceof Error ? lastError.message : 'Gemini request failed';
-  console.warn('[video-call-reply] Falling back to Smart Arabic Engine:', message);
-  res.status(200).json({ available: false });
+  console.warn('[video-call-reply] Gemini API error:', message);
+  res.status(200).json({ available: false, error: message });
 }
 
 async function startServer(): Promise<void> {

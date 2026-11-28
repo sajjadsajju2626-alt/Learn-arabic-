@@ -154,6 +154,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
   const [isThinking, setIsThinking] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [micNote, setMicNote] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [turnRecords, setTurnRecords] = useState<CompletedTurnRecord[]>([]);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [activePrompt, setActivePrompt] = useState<ActivePromptState>(() => ({
@@ -307,15 +308,18 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
       setLiveTranscript('');
       transcriptRef.current = '';
       setMicNote(null);
+      setApiError(null);
 
+      const prevHistory = historyRef.current;
+      const userBubbleId = `user-${turnIndex}-${Date.now()}`;
       const userEntry: VideoCallChatEntry = { speaker: 'user', text: cleaned };
-      const updatedHistory = [...historyRef.current, userEntry];
+      const updatedHistory = [...prevHistory, userEntry];
       historyRef.current = updatedHistory;
 
       setChatMessages((prev) => [
         ...prev.slice(-4),
         {
-          id: `user-${turnIndex}-${Date.now()}`,
+          id: userBubbleId,
           speaker: 'user',
           ar: cleaned,
           wordCount: words,
@@ -333,50 +337,65 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         },
       ]);
 
-      const dynamicReply = await requestDynamicVideoCallReply({
-        userSpokenText: cleaned,
-        scenario,
-        turnIndex,
-        history: updatedHistory,
-        learnerName,
-      });
+      try {
+        const dynamicReply = await requestDynamicVideoCallReply({
+          userSpokenText: cleaned,
+          scenario,
+          turnIndex,
+          history: updatedHistory,
+          learnerName,
+        });
 
-      if (!mountedRef.current) return;
+        if (!mountedRef.current) return;
 
-      historyRef.current = [
-        ...historyRef.current,
-        { speaker: 'character', text: dynamicReply.replyArabic },
-      ];
+        historyRef.current = [
+          ...historyRef.current,
+          { speaker: 'character', text: dynamicReply.replyArabic },
+        ];
 
-      setActivePrompt({
-        ar: dynamicReply.replyArabic,
-        tr: dynamicReply.replyTransliteration,
-        ml: dynamicReply.replyMalayalam,
-      });
-      setActiveHints(dynamicReply.nextHints);
-      setChatMessages((prev) => [
-        ...prev.slice(-4),
-        {
-          id: `char-${turnIndex + 1}-${Date.now()}`,
-          speaker: 'character',
+        setActivePrompt({
           ar: dynamicReply.replyArabic,
           tr: dynamicReply.replyTransliteration,
           ml: dynamicReply.replyMalayalam,
-        },
-      ]);
-      setIsThinking(false);
-      speakCharacterLine(dynamicReply.replyArabic);
+        });
+        setActiveHints(dynamicReply.nextHints);
+        setChatMessages((prev) => [
+          ...prev.slice(-4),
+          {
+            id: `char-${turnIndex + 1}-${Date.now()}`,
+            speaker: 'character',
+            ar: dynamicReply.replyArabic,
+            tr: dynamicReply.replyTransliteration,
+            ml: dynamicReply.replyMalayalam,
+          },
+        ]);
+        setIsThinking(false);
+        speakCharacterLine(dynamicReply.replyArabic);
 
-      if (!dynamicReply.isFinalTurn) {
-        setTurnIndex((idx) => Math.min(totalTurns - 1, idx + 1));
-        setIsAdvancing(false);
-      } else {
-        advanceTimerRef.current = window.setTimeout(() => {
-          if (!mountedRef.current) return;
-          playTone('complete', soundEnabled);
-          setStage('summary');
+        if (!dynamicReply.isFinalTurn) {
+          setTurnIndex((idx) => Math.min(totalTurns - 1, idx + 1));
           setIsAdvancing(false);
-        }, 2200);
+        } else {
+          advanceTimerRef.current = window.setTimeout(() => {
+            if (!mountedRef.current) return;
+            playTone('complete', soundEnabled);
+            setStage('summary');
+            setIsAdvancing(false);
+          }, 2200);
+        }
+      } catch (err) {
+        if (!mountedRef.current) return;
+        historyRef.current = prevHistory;
+        setChatMessages((prev) => prev.filter((m) => m.id !== userBubbleId));
+        setTurnRecords((prev) => prev.slice(0, -1));
+        setIsThinking(false);
+        setIsAdvancing(false);
+        playTone('wrong', soundEnabled);
+        setApiError(
+          err instanceof Error
+            ? err.message
+            : 'Gemini API കണക്ഷൻ പരാജയപ്പെട്ടു. പ്രൊഫൈലിൽ API Key പരിശോധിക്കുക.'
+        );
       }
     },
     [
@@ -386,6 +405,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
       turnIndex,
       activePrompt.ar,
       scenario,
+      learnerName,
       speakCharacterLine,
       totalTurns,
     ]
@@ -909,6 +929,17 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
               {micNote && (
                 <div className="w-full max-w-lg bg-amber-950/80 border border-amber-400/40 rounded-xl px-3.5 py-2 text-xs font-bold text-amber-100 text-center">
                   {micNote}
+                </div>
+              )}
+
+              {/* Direct Gemini API Error Alert */}
+              {apiError && (
+                <div
+                  role="alert"
+                  data-testid="video-call-error"
+                  className="w-full max-w-lg bg-rose-950/90 border border-rose-400/60 rounded-xl px-4 py-3 text-xs font-bold text-rose-100 text-center break-words shadow-lg"
+                >
+                  ⚠️ {apiError}
                 </div>
               )}
 

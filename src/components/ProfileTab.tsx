@@ -1,9 +1,26 @@
 import React, { useState } from 'react';
-import { Check, Flame, Heart, Pencil, Rocket, RotateCcw, Star, Target, Volume2, VolumeX, X } from 'lucide-react';
+import {
+  Check,
+  Eye,
+  EyeOff,
+  Flame,
+  Heart,
+  KeyRound,
+  Loader2,
+  Pencil,
+  Rocket,
+  RotateCcw,
+  Star,
+  Target,
+  Volume2,
+  VolumeX,
+  X,
+} from 'lucide-react';
 import { AVATAR_OPTIONS, UNITS } from '../data/curriculum';
 import type { UserState } from '../types/learning';
 import { getAllLessonIds, MAX_HEARTS } from '../utils/learningEngine';
 import { playTone } from '../utils/audio';
+import { getSavedGeminiApiKey, testAndSaveGeminiApiKey } from '../utils/videoCallConversation';
 
 interface ProfileTabProps {
   user: UserState;
@@ -29,7 +46,43 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   const [nameError, setNameError] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  const [apiKeyInput, setApiKeyInput] = useState(() => getSavedGeminiApiKey());
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [testingApiKey, setTestingApiKey] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(() =>
+    getSavedGeminiApiKey()
+      ? { type: 'success', message: '✅ കണക്ഷൻ വിജയിച്ചു! (Connected)' }
+      : null
+  );
+
   const totalLessons = getAllLessonIds(UNITS).length;
+
+  const handleTestAndSaveApiKey = async () => {
+    if (testingApiKey) return;
+    playTone('tap', user.soundEnabled);
+    setTestingApiKey(true);
+    setApiKeyStatus(null);
+    const trimmed = apiKeyInput.trim();
+    setApiKeyInput(trimmed);
+    const result = await testAndSaveGeminiApiKey(trimmed);
+    setTestingApiKey(false);
+    if (result.ok) {
+      playTone('correct', user.soundEnabled);
+      setApiKeyStatus({
+        type: 'success',
+        message: '✅ കണക്ഷൻ വിജയിച്ചു! (Connected)',
+      });
+    } else {
+      playTone('wrong', user.soundEnabled);
+      setApiKeyStatus({
+        type: 'error',
+        message: result.error,
+      });
+    }
+  };
 
   const handleSaveName = () => {
     const trimmed = draftName.trim();
@@ -182,6 +235,96 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">പാഠങ്ങൾ</div>
         </div>
+      </div>
+
+      {/* Direct Gemini 2.5 Flash API Key Card for Video Call Roleplay */}
+      <div
+        data-testid="profile-gemini-key-card"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3.5 transition-colors"
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/70 flex items-center justify-center shrink-0">
+            <KeyRound className="w-5 h-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <label
+              htmlFor="profile-gemini-api-key"
+              className="text-sm font-extrabold text-slate-900 dark:text-slate-100 block"
+            >
+              🔑 AI സംഭാഷണ കീ (Gemini API Key)
+            </label>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+              താരിഖുമായി തത്സമയ അറബി വീഡിയോ കോൾ (gemini-2.5-flash) നടത്താൻ നിങ്ങളുടെ Gemini API Key ഇവിടെ നൽകി പരിശോധിക്കാം. GitHub Pages, Android APK എന്നിവയിലും നേരിട്ട് പ്രവർത്തിക്കും.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1 min-w-0">
+            <input
+              id="profile-gemini-api-key"
+              data-testid="profile-gemini-key-input"
+              type={showApiKey ? 'text' : 'password'}
+              value={apiKeyInput}
+              onChange={(e) => {
+                setApiKeyInput(e.target.value);
+                if (apiKeyStatus) setApiKeyStatus(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  void handleTestAndSaveApiKey();
+                }
+              }}
+              placeholder="AIzaSy..."
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 focus:border-[#0284C7] dark:focus:border-sky-400 outline-none text-sm font-mono text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/80 transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowApiKey((v) => !v)}
+              aria-label={showApiKey ? 'കീ മറയ്ക്കുക' : 'കീ കാണിക്കുക'}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            >
+              {showApiKey ? (
+                <EyeOff className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Eye className="w-4 h-4" aria-hidden="true" />
+              )}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            data-testid="profile-gemini-key-test-btn"
+            disabled={testingApiKey}
+            onClick={() => void handleTestAndSaveApiKey()}
+            className="btn-3d px-4 py-2.5 rounded-xl bg-[#4AA802] hover:bg-[#419600] border-b-4 border-[#388000] text-white font-extrabold text-xs sm:text-sm inline-flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-60 shrink-0"
+          >
+            {testingApiKey ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                <span>പരിശോധിക്കുന്നു...</span>
+              </>
+            ) : (
+              <span>പരിശോധിച്ച് സേവ് ചെയ്യുക (Test &amp; Save)</span>
+            )}
+          </button>
+        </div>
+
+        {apiKeyStatus && (
+          <div
+            role={apiKeyStatus.type === 'error' ? 'alert' : 'status'}
+            data-testid="profile-gemini-key-status"
+            className={`rounded-xl px-3.5 py-2.5 text-xs font-extrabold break-words ${
+              apiKeyStatus.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+            }`}
+          >
+            {apiKeyStatus.message}
+          </div>
+        )}
       </div>
 
       {/* Unit Mastery Breakdown */}

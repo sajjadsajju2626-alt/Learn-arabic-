@@ -1,4 +1,6 @@
 export const GEMINI_VIDEO_CALL_MODEL = 'gemini-2.5-flash';
+export const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
+export const GEMINI_REST_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export interface IncomingTurnHistory {
   speaker: 'character' | 'user';
@@ -286,3 +288,117 @@ export function sanitizeGeminiVideoCallPayload(
     isFinalTurn,
   };
 }
+
+export function buildGeminiRestEndpoint(rawApiKey: string): string {
+  const cleanKey = String(rawApiKey ?? '').trim();
+  if (!cleanKey) {
+    throw new Error('Gemini API key is empty.');
+  }
+  return `${GEMINI_REST_BASE_URL}/${GEMINI_VIDEO_CALL_MODEL}:generateContent?key=${encodeURIComponent(cleanKey)}`;
+}
+
+export function buildGeminiTestPingBody() {
+  return {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: 'Hi' }],
+      },
+    ],
+    generationConfig: {
+      maxOutputTokens: 16,
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+  };
+}
+
+export function buildGeminiRestRequestBody(
+  body: VideoCallReplyRequestBody,
+  expectedTurnXp: number
+) {
+  const systemInstruction = buildTariqSystemInstruction(body, expectedTurnXp);
+  const contents = buildGeminiConversationContents(body);
+  return {
+    systemInstruction: {
+      parts: [{ text: systemInstruction }],
+    },
+    contents,
+    generationConfig: {
+      temperature: 0.75,
+      thinkingConfig: { thinkingBudget: 0 },
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          replyArabic: {
+            type: 'STRING',
+            description:
+              'Natural Arabic response from Tariq with FULL Harakat diacritics on every word. Directly answers the user without repeating prior questions or parroting.',
+          },
+          replyTransliteration: {
+            type: 'STRING',
+            description: 'Natural Malayalam script phonetic transliteration of replyArabic.',
+          },
+          replyMalayalam: {
+            type: 'STRING',
+            description: 'Natural Malayalam translation of replyArabic.',
+          },
+          nextHints: {
+            type: 'ARRAY',
+            description:
+              'Up to 3 suggested vocalized Arabic replies tailored to the new follow-up question.',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                ar: { type: 'STRING', description: 'Vocalized Arabic reply with Harakat.' },
+                tr: { type: 'STRING', description: 'Malayalam script transliteration.' },
+                ml: { type: 'STRING', description: 'Malayalam meaning.' },
+              },
+              required: ['ar', 'tr', 'ml'],
+            },
+          },
+          xpEarned: {
+            type: 'INTEGER',
+            description: 'XP earned for this turn based on Arabic words spoken.',
+          },
+        },
+        required: ['replyArabic', 'replyTransliteration', 'replyMalayalam', 'nextHints', 'xpEarned'],
+      },
+    },
+  };
+}
+
+export function extractGeminiRestText(json: unknown): string {
+  if (!json || typeof json !== 'object') return '';
+  const candidates = (json as { candidates?: unknown }).candidates;
+  if (!Array.isArray(candidates) || candidates.length === 0) return '';
+  const first = candidates[0] as {
+    content?: { parts?: Array<{ text?: unknown }> };
+  };
+  const parts = first?.content?.parts;
+  if (!Array.isArray(parts)) return '';
+  return parts
+    .map((part) => (typeof part?.text === 'string' ? part.text : ''))
+    .join('')
+    .trim();
+}
+
+export function extractGeminiRestError(json: unknown, status?: number): string {
+  if (json && typeof json === 'object') {
+    const errObj = (json as { error?: unknown }).error;
+    if (typeof errObj === 'string' && errObj.trim()) {
+      return errObj.trim();
+    }
+    if (errObj && typeof errObj === 'object') {
+      const msg = (errObj as { message?: unknown }).message;
+      if (typeof msg === 'string' && msg.trim()) {
+        return msg.trim();
+      }
+    }
+  }
+  if (typeof status === 'number' && status > 0) {
+    return `Gemini API error (HTTP ${status})`;
+  }
+  return 'Gemini API request failed.';
+}
+
